@@ -194,7 +194,7 @@ export function makePlatformImplementation(
     envData,
   );
   return driver.onready.then(() => {
-    if (!isValidAppId(appId)) {
+    if (process.env.NODE_ENV !== 'development' && !isValidAppId(appId)) {
       console.error(`
 ===========================================================
 InboxSDK: You have loaded InboxSDK with an invalid appId:

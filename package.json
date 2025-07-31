@@ -120,7 +120,8 @@
   "version": "0.7.25",
   "workspaces": [
     "examples",
-    "packages/*"
+    "packages/*",
+    "my-first-extension"
   ],
   "packageManager": "yarn@4.0.1",
   "devDependencies": {

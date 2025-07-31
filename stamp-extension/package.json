@@ -1,0 +1,18 @@
+{
+  "name": "stamp-extension",
+  "version": "1.0.0",
+  "description": "Stamp helps you manage your entire AP workflow inside of Gmail.",
+  "main": "background.js",
+  "scripts": {
+    "build": "esbuild content.js --bundle --outfile=dist/content.js --sourcemap",
+    "watch": "esbuild content.js --bundle --outfile=dist/content.js --sourcemap --watch"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@inboxsdk/core": "file:../packages/core"
+  },
+  "devDependencies": {
+    "esbuild": "^0.19.11"
+  }
+} 
