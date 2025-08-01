@@ -35,8 +35,11 @@ fi
 CLIENT_ID_TO_USE="${OAUTH_CLIENT_ID:-$GOOGLE_CLIENT_ID}"
 echo "   Using CLIENT_ID: '${CLIENT_ID_TO_USE}'"
 
+echo "=> Installing dependencies..."
+npm install
+
 echo "=> Building JavaScript files with esbuild..."
-# Build content.js
+# Build content.js with node_modules support
 npx esbuild content.js --bundle --outfile=dist/content.js --platform=browser --sourcemap \
   --minify=false \
   --define:"CONFIG.API_ENDPOINT='${API_ENDPOINT}'" \

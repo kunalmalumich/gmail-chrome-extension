@@ -1,5 +1,399 @@
 import * as InboxSDK from '@inboxsdk/core';
 
+// Import jspreadsheet V5 properly
+import jspreadsheet from 'jspreadsheet-ce';
+import 'jspreadsheet-ce/dist/jspreadsheet.css';
+
+// Import jSuites for V5 (required dependency)
+import 'jsuites/dist/jsuites.css';
+
+import {
+  initializeProfessionalSpreadsheet,
+  createProfessionalHeader,
+  transformInvoicesToSpreadsheetData
+} from './spreadsheet-config.js';
+
+// Make jspreadsheet available globally for V5
+window.jspreadsheet = jspreadsheet;
+
+// Add Material Icons for jspreadsheet toolbar
+const materialIconsLink = document.createElement('link');
+materialIconsLink.rel = 'stylesheet';
+materialIconsLink.href = 'https://fonts.googleapis.com/css?family=Material+Icons';
+document.head.appendChild(materialIconsLink);
+
+// Add basic professional styling
+const basicStyles = document.createElement('style');
+basicStyles.textContent = `
+  /* Basic professional spreadsheet styling */
+  .jss_worksheet {
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #dee2e6;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  
+  /* Header styling */
+  .jss_worksheet thead td {
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 16px 12px;
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    color: #1a237e;
+  }
+  
+  /* Cell styling */
+  .jss_worksheet tbody td {
+    padding: 12px 8px;
+    font-size: 13px;
+    border-bottom: 1px solid #e9ecef;
+    transition: background-color 0.2s ease;
+  }
+  
+  /* Hover effects */
+  .jss_worksheet tbody tr:hover td {
+    background-color: #f5f5f5;
+  }
+  
+  /* Professional button styling */
+  .view-thread-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .view-thread-btn:hover {
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+    box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
+  }
+  
+  /* Status badge styling */
+  .status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  
+  /* Amount formatting */
+  .amount-cell {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-weight: 600;
+    text-align: right;
+    color: #2e7d32;
+  }
+  
+  /* Date formatting */
+  .date-cell {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-weight: 500;
+    text-align: center;
+  }
+  
+  /* Invoice number formatting */
+  .invoice-cell {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-weight: 600;
+    color: #1a237e;
+  }
+  
+  /* Column management panel styling */
+  .column-management-panel {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  .management-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  
+  .mgmt-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .mgmt-btn:hover {
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+    box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
+  }
+  
+  .mgmt-btn:active {
+    transform: translateY(1px);
+  }
+  
+  /* Enhanced cell styling for validation */
+  .jss_worksheet tbody td.invalid {
+    background-color: #ffebee;
+    border: 2px solid #f44336;
+  }
+  
+  .jss_worksheet tbody td.valid {
+    background-color: #e8f5e8;
+    border: 2px solid #4caf50;
+  }
+  
+  /* Autocomplete dropdown styling */
+  .jexcel_autocomplete {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+  }
+  
+  .jexcel_autocomplete div {
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .jexcel_autocomplete div:hover {
+    background-color: #f5f5f5;
+  }
+  
+  .jexcel_autocomplete div.selected {
+    background-color: #e3f2fd;
+    color: #1a237e;
+  }
+  
+  /* Enhanced dropdown styling */
+  .jdropdown, .jexcel_dropdown, .jdropdown-content {
+    z-index: 9999 !important;
+    min-width: 220px !important;
+    max-height: 250px !important;
+    overflow-y: auto !important;
+    font-size: 15px !important;
+    background: white !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 4px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+  
+  .jdropdown-content div, .jexcel_dropdown-content div {
+    padding: 8px 12px !important;
+    cursor: pointer !important;
+    transition: background-color 0.2s ease !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+  }
+  
+  .jdropdown-content div:hover, .jexcel_dropdown-content div:hover {
+    background-color: #f5f5f5 !important;
+  }
+  
+  .jdropdown-content div.selected, .jexcel_dropdown-content div.selected {
+    background-color: #e3f2fd !important;
+    color: #1a237e !important;
+  }
+  
+  /* Fix for overlapping dropdowns */
+  .jdropdown, .jexcel_dropdown {
+    position: absolute !important;
+    z-index: 9999 !important;
+  }
+  
+  /* Professional Toolbar Styling */
+  .professional-toolbar {
+    border-bottom: 1px solid #dee2e6 !important;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  .professional-toolbar button {
+    font-weight: 500 !important;
+    letter-spacing: 0.3px !important;
+  }
+  
+  .professional-toolbar button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+  }
+  
+  .professional-toolbar button:active {
+    transform: translateY(0) !important;
+  }
+  
+  /* Column Management Panel */
+  .column-management-panel {
+    background: linear-gradient(135deg, #f1f3f4 0%, #e8eaed 100%) !important;
+    border-bottom: 1px solid #d0d7de !important;
+  }
+  
+  .column-management-panel button {
+    font-weight: 500 !important;
+    border-radius: 6px !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  .column-management-panel button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+  }
+  
+  /* Enhanced spreadsheet styling */
+  .jss_worksheet {
+    border-radius: 0 0 8px 8px !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  .jss_worksheet thead td {
+    background: linear-gradient(135deg, #495057 0%, #343a40 100%) !important;
+    color: white !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    font-size: 12px !important;
+    padding: 12px 8px !important;
+    border-bottom: 2px solid #dee2e6 !important;
+  }
+  
+  .jss_worksheet tbody td {
+    padding: 10px 8px !important;
+    border-bottom: 1px solid #f1f3f4 !important;
+    transition: background-color 0.2s ease !important;
+  }
+  
+  .jss_worksheet tbody tr:hover td {
+    background-color: #f8f9fa !important;
+  }
+  
+  .jss_worksheet tbody tr:nth-child(even) {
+    background-color: #fafbfc !important;
+  }
+  
+  /* Hide default jspreadsheet toolbar */
+  .jss_toolbar, .jexcel_toolbar, .jspreadsheet-toolbar {
+    display: none !important;
+  }
+  
+  /* Ensure our custom toolbar is visible */
+  .professional-toolbar {
+    display: flex !important;
+    visibility: visible !important;
+  }
+  
+  /* Ensure jspreadsheet toolbar is visible */
+  .jss_toolbar, .jtoolbar {
+    display: flex !important;
+    visibility: visible !important;
+    background: #f8f9fa !important;
+    border-bottom: 1px solid #dee2e6 !important;
+    padding: 8px 16px !important;
+    gap: 8px !important;
+    align-items: center !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    position: relative !important;
+    z-index: 1000 !important;
+  }
+  
+  /* Force toolbar items to display horizontally */
+  .jtoolbar-item, .jss_toolbar-item {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    margin-right: 8px !important;
+  }
+  
+  /* Ensure spreadsheet displays properly */
+  .jss_spreadsheet {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+  
+  .jss_content {
+    display: block !important;
+    width: 100% !important;
+    height: 500px !important;
+    overflow: auto !important;
+  }
+  
+  /* Material Icons support */
+  .material-icons {
+    font-family: 'Material Icons' !important;
+    font-weight: normal !important;
+    font-style: normal !important;
+    font-size: 24px !important;
+    line-height: 1 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    display: inline-block !important;
+    white-space: nowrap !important;
+    word-wrap: normal !important;
+    direction: ltr !important;
+    -webkit-font-feature-settings: 'liga' !important;
+    -webkit-font-smoothing: antialiased !important;
+  }
+  
+  /* Toolbar button styling */
+  .jss_toolbar button, .jtoolbar button {
+    background: transparent !important;
+    border: none !important;
+    padding: 8px !important;
+    cursor: pointer !important;
+    border-radius: 4px !important;
+    transition: background-color 0.2s ease !important;
+  }
+  
+  .jss_toolbar button:hover, .jtoolbar button:hover {
+    background-color: rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  /* Style View Thread buttons */
+  .view-thread-btn {
+    background: #007bff !important;
+    color: white !important;
+    border: none !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    font-size: 12px !important;
+    text-decoration: none !important;
+    display: inline-block !important;
+  }
+  
+  .view-thread-btn:hover {
+    background: #0056b3 !important;
+  }
+`;
+document.head.appendChild(basicStyles);
+
 // --- CONFIGURATION ---
 // These values are injected by the build script (build.sh) as a global CONFIG object.
 const API_ENDPOINT = CONFIG.API_ENDPOINT;
@@ -15,6 +409,75 @@ if (!API_ENDPOINT) {
 
 if (!CLIENT_ID) {
   console.error('[CONFIG] Neither OAUTH_CLIENT_ID nor GOOGLE_CLIENT_ID is set');
+}
+
+// --- PROFESSIONAL SPREADSHEET CONFIGURATION ---
+// All spreadsheet-related functions are now imported from spreadsheet-config.js
+
+/**
+ * Get all invoices from all stages for spreadsheet display
+ * @returns {Promise<Array>} - Array of all invoice objects
+ */
+async function getAllInvoicesForSpreadsheet() {
+  try {
+    // Check if the required functions and data are available
+    if (typeof getStagesWithCounts === 'undefined') {
+      console.log('[SPREADSHEET] getStagesWithCounts not available, using sample data');
+      return getSampleInvoicesForSpreadsheet();
+    }
+    
+    // Check if trackedThreadRowViews is available (it might not be defined yet)
+    if (typeof trackedThreadRowViews === 'undefined' || !trackedThreadRowViews || trackedThreadRowViews.size === 0) {
+      console.log('[SPREADSHEET] trackedThreadRowViews not available or empty, using sample data');
+      return getSampleInvoicesForSpreadsheet();
+    }
+    
+    const stages = await getStagesWithCounts();
+    const allInvoices = [];
+    
+    for (const stageConfig of stages) {
+      const invoicesForStage = await getInvoicesForStage(stageConfig.name);
+      allInvoices.push(...invoicesForStage);
+    }
+    
+    // If no real data, return sample data
+    if (allInvoices.length === 0) {
+      console.log('[SPREADSHEET] No real data found, using sample data');
+      return getSampleInvoicesForSpreadsheet();
+    }
+    
+    console.log('[SPREADSHEET] Found', allInvoices.length, 'real invoices');
+    return allInvoices;
+    
+  } catch (error) {
+    console.error('[SPREADSHEET] Error getting invoices:', error);
+    console.log('[SPREADSHEET] Falling back to sample data');
+    return getSampleInvoicesForSpreadsheet();
+  }
+}
+
+/**
+ * Get sample invoice data for spreadsheet display
+ * @returns {Array} - Array of sample invoice objects
+ */
+function getSampleInvoicesForSpreadsheet() {
+  return [
+    { invoiceNumber: 'INV-001', vendor: 'Vendor ABC', amount: 1500, dueDate: '2024-01-30', assignedTo: 'john@company.com', status: 'Pending Approval', threadId: '1985f8728a45ce6b' },
+    { invoiceNumber: 'INV-002', vendor: 'Vendor XYZ', amount: 2300, dueDate: '2024-01-25', assignedTo: 'sarah@company.com', status: 'Pending Approval', threadId: '197f8e706fbe9a78' },
+    { invoiceNumber: 'INV-003', vendor: 'Vendor DEF', amount: 800, dueDate: '2024-01-20', assignedTo: 'mike@company.com', status: 'In Review', threadId: '1980f4557688b088' },
+    { invoiceNumber: 'INV-004', vendor: 'Vendor GHI', amount: 3200, dueDate: '2024-02-15', assignedTo: 'lisa@company.com', status: 'Approved', threadId: '1985c5c28c8b93fc' },
+    { invoiceNumber: 'INV-005', vendor: 'Vendor JKL', amount: 950, dueDate: '2024-01-10', assignedTo: 'finance@company.com', status: 'Paid', threadId: '1985a8b7e2f1c9d8' },
+    { invoiceNumber: 'INV-006', vendor: 'Vendor MNO', amount: 1800, dueDate: '2024-01-05', assignedTo: 'legal@company.com', status: 'Overdue', threadId: '19858ad5e4f3g2b1' },
+    { invoiceNumber: 'INV-007', vendor: 'Vendor PQR', amount: 1200, dueDate: '2024-01-15', assignedTo: 'hr@company.com', status: 'Rejected', threadId: '19856cf3g6h5i4d3' },
+    { invoiceNumber: 'INV-008', vendor: 'Tech Solutions Inc', amount: 4500, dueDate: '2024-02-10', assignedTo: 'tech@company.com', status: 'Pending Approval', threadId: '1985d4b9df0f880d' },
+    { invoiceNumber: 'INV-009', vendor: 'Creative Agency Pro', amount: 2800, dueDate: '2024-01-28', assignedTo: 'marketing@company.com', status: 'In Review', threadId: '1985ff48522d033e' },
+    { invoiceNumber: 'INV-010', vendor: 'Office Supply Co', amount: 650, dueDate: '2024-01-22', assignedTo: 'admin@company.com', status: 'Approved', threadId: '1985b51cce81485c' },
+    { invoiceNumber: 'INV-011', vendor: 'Cloud Hosting Ltd', amount: 1200, dueDate: '2024-01-15', assignedTo: 'it@company.com', status: 'Paid', threadId: '198599c6d3e2f1a0' },
+    { invoiceNumber: 'INV-012', vendor: 'Security Systems Corp', amount: 3500, dueDate: '2024-01-03', assignedTo: 'security@company.com', status: 'Overdue', threadId: '19857be4f5g4h3c2' },
+    { invoiceNumber: 'INV-013', vendor: 'Marketing Partners LLC', amount: 4200, dueDate: '2024-02-20', assignedTo: 'marketing@company.com', status: 'Draft', threadId: '1985f8728a45ce6b' },
+    { invoiceNumber: 'INV-014', vendor: 'Legal Services Group', amount: 2800, dueDate: '2024-02-05', assignedTo: 'legal@company.com', status: 'Payment Scheduled', threadId: '1985ff48522d033e' },
+    { invoiceNumber: 'INV-015', vendor: 'Consulting Experts Inc', amount: 5500, dueDate: '2024-01-18', assignedTo: 'consulting@company.com', status: 'Disputed', threadId: '1985c5c28c8b93fc' }
+  ];
 }
 
 // --- SERVICES ---
@@ -246,7 +709,7 @@ class AuthService {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          client_id: CLIENT_ID,
+          client_id: OAUTH_CLIENT_ID,
           code: code,
           grant_type: 'authorization_code',
           redirect_uri: redirectUri
@@ -625,7 +1088,7 @@ class UIManager {
       settingsMenu.style.opacity = '0';
       setTimeout(() => {
         settingsMenu.style.display = 'none';
-      }, 200);
+      }, 2000);
     };
 
     closeSettingsBtn.addEventListener('click', closeSettings);
@@ -901,101 +1364,101 @@ class UIManager {
                 </div>
 
                 <!-- Main Content -->
-                <div style="
+                        <div style="
                     display: flex;
                     flex-direction: column;
                     height: calc(100vh - 80px);
                     padding: 0;
                 ">
-                    <!-- Chat Messages -->
-                    <div id="chat-output" style="
+                            <!-- Chat Messages -->
+                            <div id="chat-output" style="
                         flex: 1;
-                        padding: 20px;
-                        overflow-y: auto;
-                        background: #ffffff;
-                    ">
-                        <div style="
-                            display: flex;
-                            align-items: flex-start;
-                            gap: 12px;
+                                padding: 20px;
+                                overflow-y: auto;
+                                background: #ffffff;
+                            ">
+                                <div style="
+                                    display: flex;
+                                    align-items: flex-start;
+                                    gap: 12px;
                             margin-bottom: 20px;
-                        ">
-                            <div style="
+                                ">
+                                    <div style="
                                 width: 32px;
                                 height: 32px;
                                 background: linear-gradient(135deg, #10b981 0%, #059669 100%);
                                 border-radius: 8px;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                color: white;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        color: white;
                                 font-size: 14px;
                                 font-weight: 700;
-                                flex-shrink: 0;
+                                        flex-shrink: 0;
                                 box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
-                            ">S</div>
-                            <div style="
-                                background: #f8fafc;
-                                border-radius: 12px;
+                                    ">S</div>
+                                    <div style="
+                                        background: #f8fafc;
+                                        border-radius: 12px;
                                 padding: 16px 20px;
-                                max-width: 85%;
-                                border: 1px solid #e2e8f0;
-                            ">
-                                <p style="
-                                    margin: 0;
+                                        max-width: 85%;
+                                        border: 1px solid #e2e8f0;
+                                    ">
+                                        <p style="
+                                            margin: 0;
                                     font-size: 15px;
                                     color: #374151;
                                     line-height: 1.6;
                                 ">Hi! I'm your Stamp AI assistant. Ask me anything about your invoices, payments, or accounts payable data. I'm here to help you stay on top of your financial operations.</p>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <!-- Input Area -->
-                    <div style="
+                            <!-- Input Area -->
+                            <div style="
                         padding: 20px;
                         background: #ffffff;
                         border-top: 1px solid #f0f0f0;
-                    ">
-                        <div style="
-                            display: flex;
-                            gap: 12px;
-                            align-items: flex-end;
+                            ">
+                                <div style="
+                                    display: flex;
+                                    gap: 12px;
+                                    align-items: flex-end;
                             max-width: 900px;
                             margin: 0 auto;
-                        ">
-                            <div style="flex: 1; position: relative;">
+                                ">
+                                    <div style="flex: 1; position: relative;">
                                 <textarea id="question-input" placeholder="Ask me about your invoices, payments, or accounts payable..." style="
-                                    width: 100%;
+                                            width: 100%;
                                     padding: 16px 20px;
-                                    border: 1px solid #e2e8f0;
+                                            border: 1px solid #e2e8f0;
                                     border-radius: 12px;
                                     font-size: 15px;
-                                    font-family: inherit;
-                                    resize: none;
+                                            font-family: inherit;
+                                            resize: none;
                                     min-height: 56px;
-                                    max-height: 120px;
-                                    outline: none;
-                                    transition: all 0.2s ease;
+                                            max-height: 120px;
+                                            outline: none;
+                                            transition: all 0.2s ease;
                                     background: #ffffff;
-                                    color: #1e293b;
+                                            color: #1e293b;
                                     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                                "></textarea>
-                            </div>
-                            <button id="send-question-btn" style="
+                                        "></textarea>
+                                    </div>
+                                    <button id="send-question-btn" style="
                                 background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-                                color: white;
-                                border: none;
+                                        color: white;
+                                        border: none;
                                 padding: 16px 24px;
                                 border-radius: 12px;
-                                cursor: pointer;
+                                        cursor: pointer;
                                 font-size: 15px;
-                                font-weight: 600;
-                                white-space: nowrap;
-                                transition: all 0.2s ease;
+                                        font-weight: 600;
+                                        white-space: nowrap;
+                                        transition: all 0.2s ease;
                                 min-width: 100px;
                                 box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
-                            ">Send</button>
+                                    ">Send</button>
                         </div>
                     </div>
                 </div>
@@ -1200,29 +1663,29 @@ class UIManager {
     const setupPanel = async () => {
       // Create the sidebar panel and wait for it to be ready
       self.sidebarPanel = await self.sdk.Global.addSidebarContentPanel({
-        title: 'Stamp',
-        iconUrl: chrome.runtime.getURL('stamp-logo.png'),
-        el: el,
-      });
+            title: 'Stamp',
+            iconUrl: chrome.runtime.getURL('stamp-logo.png'),
+            el: el,
+        });
 
       // Now that self.sidebarPanel is the actual panel object, set up event listeners
-      el.querySelector('#google-signin-btn').addEventListener('click', async () => {
-        console.log('[UI] "Sign in with Google" button clicked');
-        self.showLoading(el);
+        el.querySelector('#google-signin-btn').addEventListener('click', async () => {
+            console.log('[UI] "Sign in with Google" button clicked');
+            self.showLoading(el);
         self.hideError(el);
-        try {
-          await self.authService.signInWithGoogle();
+            try {
+                await self.authService.signInWithGoogle();
           // Now this will work because self.sidebarPanel is the correct object
           if (self.sidebarPanel) {
-            self.sidebarPanel.remove();
+                self.sidebarPanel.remove();
           }
-          self.renderMainView();
-        } catch (error) {
-          console.error('[UI] Sign-in failed:', error);
-          self.hideLoading(el);
-          self.showError(el, `Sign-in failed: ${error.message}. Please try again.`);
-        }
-      });
+                self.renderMainView();
+            } catch (error) {
+                console.error('[UI] Sign-in failed:', error);
+                self.hideLoading(el);
+                self.showError(el, `Sign-in failed: ${error.message}. Please try again.`);
+            }
+        });
     };
 
     setupPanel();
@@ -1235,7 +1698,7 @@ class UIManager {
     const el = this.createAndMount(this.createMainAppContent(), async (el) => {
         // Create the sidebar panel first
     this.sidebarPanel = await this.sdk.Global.addSidebarContentPanel({
-        title: 'Stamp',
+            title: 'Stamp',
             iconUrl: chrome.runtime.getURL('stamp-logo.png'),
             el: el,
         });
@@ -1751,39 +2214,56 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
   }
 
   function highlightInvoiceInTracker(invoiceNumber) {
-    console.log(`[HIGHLIGHT] Looking for invoice: ${invoiceNumber}`);
+    console.log(`[SPREADSHEET] Highlighting invoice ${invoiceNumber} in tracker`);
     
-    // Find the invoice row in the Invoice Tracker
-    const invoiceRows = document.querySelectorAll('[id^="view-thread-"], [id^="sample-view-thread-"]');
-    let foundRow = null;
-    
-    for (const row of invoiceRows) {
-      const button = row.querySelector('button');
-      if (button && button.textContent.includes(invoiceNumber)) {
-        foundRow = row;
-        break;
-      }
+    if (!window.currentSpreadsheet) {
+      console.log('[SPREADSHEET] No spreadsheet available for highlighting');
+      return;
     }
     
-    if (foundRow) {
-      // Highlight the row
-      foundRow.style.backgroundColor = '#e3f2fd';
-      foundRow.style.border = '2px solid #2196F3';
-      foundRow.style.borderRadius = '4px';
+    try {
+      const spreadsheet = window.currentSpreadsheet;
+      if (!spreadsheet || !spreadsheet.worksheets || !spreadsheet.worksheets[0]) {
+        console.error('[SPREADSHEET] No worksheet available for highlighting');
+        return;
+      }
       
-      // Scroll to the row
-      foundRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const worksheet = spreadsheet.worksheets[0];
+      const data = worksheet.getData();
       
-      console.log(`[HIGHLIGHT] Highlighted invoice ${invoiceNumber}`);
+      // Find the row with the matching invoice number
+      const rowIndex = data.findIndex(row => row[0] === invoiceNumber); // Invoice number is in column 0
       
-      // Remove highlight after 3 seconds
-      setTimeout(() => {
-        foundRow.style.backgroundColor = '';
-        foundRow.style.border = '';
-        foundRow.style.borderRadius = '';
-      }, 3000);
-    } else {
-      console.log(`[HIGHLIGHT] Invoice ${invoiceNumber} not found in tracker`);
+      if (rowIndex !== -1) {
+        console.log(`[SPREADSHEET] Found invoice ${invoiceNumber} at row ${rowIndex}`);
+        
+        // Select the row (V5 API)
+        worksheet.selectRow(rowIndex);
+        
+        // Scroll to the row
+        const rowElement = worksheet.element.querySelector(`tr[data-y="${rowIndex}"]`);
+        if (rowElement) {
+          rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        // Add temporary highlighting
+        if (rowElement) {
+          rowElement.style.backgroundColor = '#e3f2fd';
+          rowElement.style.border = '2px solid #2196F3';
+          
+          // Remove highlighting after 3 seconds
+          setTimeout(() => {
+            rowElement.style.backgroundColor = '';
+            rowElement.style.border = '';
+          }, 3000);
+        }
+        
+        console.log(`[SPREADSHEET] Successfully highlighted invoice ${invoiceNumber}`);
+      } else {
+        console.log(`[SPREADSHEET] Invoice ${invoiceNumber} not found in spreadsheet`);
+      }
+    } catch (error) {
+      console.error('[SPREADSHEET] Error highlighting invoice:', error);
     }
   }
 
@@ -1878,364 +2358,52 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
     // Load and display the data
     async function loadInvoiceData() {
       try {
-        // Get stages with counts and totals
-        const stages = await getStagesWithCounts();
+        console.log('[PROFESSIONAL SPREADSHEET] Loading invoice data...');
+        
+        // Get all invoices for spreadsheet display
+        const allInvoices = await getAllInvoicesForSpreadsheet();
         
         // Clear loading state
         container.innerHTML = '';
         
-        // 1. Create the stats bar with totals
-        const statsBar = document.createElement('div');
-        statsBar.innerHTML = `
-          <div style="display: flex; width: 100%; margin-bottom: 20px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden;">
-            ${stages.map(stage => `
-              <div style="flex: 1; background: ${stage.color}; padding: 15px; text-align: center; color: white;">
-                <h3 style="margin: 0; font-size: 24px;">${stage.count}</h3>
-                <p style="margin: 5px 0 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">${stage.name}</p>
-                <p style="margin: 5px 0 0 0; font-size: 14px; font-weight: 600;">$${(stage.total / 1000).toFixed(1)}k</p>
-              </div>
-            `).join('')}
-          </div>
-        `;
-        container.appendChild(statsBar);
-
-        // 2. Create sections for each stage with invoice tables
-        for (const stageConfig of stages) {
-          const invoicesForStage = await getInvoicesForStage(stageConfig.name);
-          
-          if (invoicesForStage.length > 0) {
-            const sectionDiv = document.createElement('div');
-            sectionDiv.style.marginBottom = '20px';
-            sectionDiv.style.border = `1px solid #e0e0e0`;
-            sectionDiv.style.borderRadius = '8px';
-            sectionDiv.style.overflow = 'hidden';
-            
-            // Section header
-            const headerDiv = document.createElement('div');
-            headerDiv.style.cssText = `
-              background: ${stageConfig.color};
-              color: white;
-              padding: 12px 16px;
-              font-weight: 600;
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-            `;
-            headerDiv.innerHTML = `
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="width: 15px; height: 15px; background-color: ${stageConfig.color}; border-radius: 4px; border: 2px solid white;"></div>
-                <span>${stageConfig.name} (${invoicesForStage.length})</span>
-              </div>
-              <div style="font-size: 14px; font-weight: 500;">
-                Total: $${(stageConfig.total / 1000).toFixed(1)}k
-              </div>
-            `;
-            sectionDiv.appendChild(headerDiv);
-            
-            // Section content - Invoice table
-            const contentDiv = document.createElement('div');
-            contentDiv.style.padding = '16px';
-            contentDiv.style.background = 'white';
-            
-            // Create table
-            const tableDiv = document.createElement('div');
-            tableDiv.style.cssText = `
-              width: 100%;
-              border-collapse: collapse;
-              font-size: 14px;
-            `;
-            
-            // Table header
-            const tableHeader = document.createElement('div');
-            tableHeader.style.cssText = `
-              display: grid;
-              grid-template-columns: 1fr 1.5fr 1fr 1fr 1fr 1fr;
-              gap: 12px;
-              padding: 12px;
-              background: #f8f9fa;
-              border-bottom: 1px solid #e0e0e0;
-              font-weight: 600;
-              color: #333;
-            `;
-            tableHeader.innerHTML = `
-              <div>Invoice #</div>
-              <div>Vendor</div>
-              <div>Amount</div>
-              <div>Due Date</div>
-              <div>Assigned To</div>
-              <div>Actions</div>
-            `;
-            tableDiv.appendChild(tableHeader);
-            
-            // Table rows
-            invoicesForStage.forEach(invoice => {
-              const rowDiv = document.createElement('div');
-              rowDiv.style.cssText = `
-                display: grid;
-                grid-template-columns: 1fr 1.5fr 1fr 1fr 1fr 1fr;
-                gap: 12px;
-                padding: 12px;
-                border-bottom: 1px solid #f0f0f0;
-                align-items: center;
-                transition: background-color 0.2s;
-              `;
-              
-              const dueDate = new Date(invoice.dueDate);
-              const isOverdue = dueDate < new Date() && invoice.status !== INVOICE_STAGES.PAID;
-              
-              rowDiv.innerHTML = `
-                <div style="font-weight: 500; color: #2196F3;">${invoice.invoiceNumber}</div>
-                <div style="font-weight: 500;">${invoice.vendor}</div>
-                <div style="font-weight: 600; color: #333;">$${invoice.amount.toLocaleString()}</div>
-                <div style="${isOverdue ? 'color: #f44336; font-weight: 600;' : ''}">${dueDate.toLocaleDateString()}</div>
-                <div style="font-size: 12px; color: #666;">${invoice.assignedTo}</div>
-                <div>
-                  <button id="view-thread-${invoice.invoiceNumber}" style="
-                    padding: 4px 8px;
-                    background: ${stageConfig.color};
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    font-size: 12px;
-                    cursor: pointer;
-                    margin-right: 4px;
-                  ">View Thread</button>
-                  <button id="action-${invoice.invoiceNumber}" style="
-                    padding: 4px 8px;
-                    background: #4caf50;
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    font-size: 12px;
-                    cursor: pointer;
-                  ">Action</button>
-                </div>
-              `;
-              
-              // Add event listeners after the HTML is set
-              rowDiv.querySelector(`#view-thread-${invoice.invoiceNumber}`).addEventListener('click', () => {
-                console.log(`[NAVIGATION] View Thread clicked for invoice ${invoice.invoiceNumber}, thread ${invoice.threadId}`);
-                navigateToThread(invoice.threadId);
-              });
-              
-              rowDiv.querySelector(`#action-${invoice.invoiceNumber}`).addEventListener('click', () => {
-                console.log(`[ACTION] Action clicked for invoice ${invoice.invoiceNumber}`);
-                takeActionOnInvoice(invoice.invoiceNumber);
-              });
-              
-              rowDiv.addEventListener('mouseenter', () => {
-                rowDiv.style.backgroundColor = '#f8f9fa';
-              });
-              
-              rowDiv.addEventListener('mouseleave', () => {
-                rowDiv.style.backgroundColor = 'transparent';
-              });
-              
-              tableDiv.appendChild(rowDiv);
-            });
-            
-            contentDiv.appendChild(tableDiv);
-            sectionDiv.appendChild(contentDiv);
-            container.appendChild(sectionDiv);
-          }
-        }
+        // Calculate professional header metrics
+        const totalAmount = allInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+        const totalInvoices = allInvoices.length;
+        const overdueCount = allInvoices.filter(invoice => {
+          const dueDate = new Date(invoice.dueDate);
+          const today = new Date();
+          return dueDate < today && invoice.status !== 'Paid';
+        }).length;
         
-        // Always show sample data for demonstration
-        // In a real app, this would only show when there's actual data
-        if (stages.every(stage => stage.count === 0)) {
-          // Show sample data instead of "No invoices found"
-          console.log('[INVOICE TRACKER] Showing sample data for demonstration');
-          
-          // Create sample sections with fake data
-          const sampleStages = [
-            { name: INVOICE_STAGES.PENDING_APPROVAL, color: STAGE_COLORS[INVOICE_STAGES.PENDING_APPROVAL], count: 4, total: 8750 },
-            { name: INVOICE_STAGES.IN_REVIEW, color: STAGE_COLORS[INVOICE_STAGES.IN_REVIEW], count: 3, total: 5800 },
-            { name: INVOICE_STAGES.APPROVED, color: STAGE_COLORS[INVOICE_STAGES.APPROVED], count: 2, total: 3850 },
-            { name: INVOICE_STAGES.PAID, color: STAGE_COLORS[INVOICE_STAGES.PAID], count: 2, total: 2150 },
-            { name: INVOICE_STAGES.OVERDUE, color: STAGE_COLORS[INVOICE_STAGES.OVERDUE], count: 2, total: 5300 },
-            { name: INVOICE_STAGES.REJECTED, color: STAGE_COLORS[INVOICE_STAGES.REJECTED], count: 2, total: 3000 }
-          ];
-          
-          // Create sample invoice data with real thread IDs
-          const sampleInvoices = {
-            [INVOICE_STAGES.PENDING_APPROVAL]: [
-              { invoiceNumber: 'INV-001', vendor: 'Vendor ABC', amount: 1500, dueDate: '2024-01-30', assignedTo: 'john@company.com', threadId: '1985f8728a45ce6b' },
-              { invoiceNumber: 'INV-002', vendor: 'Vendor XYZ', amount: 2300, dueDate: '2024-01-25', assignedTo: 'sarah@company.com', threadId: '197f8e706fbe9a78' },
-              { invoiceNumber: 'INV-008', vendor: 'Tech Solutions Inc', amount: 4500, dueDate: '2024-02-10', assignedTo: 'tech@company.com', threadId: '1985d4b9df0f880d' },
-              { invoiceNumber: 'INV-014', vendor: 'Printing Solutions', amount: 950, dueDate: '2024-02-05', assignedTo: 'marketing@company.com', threadId: '198610cb7f43f9d6' }
-            ],
-            [INVOICE_STAGES.IN_REVIEW]: [
-              { invoiceNumber: 'INV-003', vendor: 'Vendor DEF', amount: 800, dueDate: '2024-01-20', assignedTo: 'mike@company.com', threadId: '1980f4557688b088' },
-              { invoiceNumber: 'INV-009', vendor: 'Creative Agency Pro', amount: 2800, dueDate: '2024-01-28', assignedTo: 'marketing@company.com', threadId: '1985ff48522d033e' },
-              { invoiceNumber: 'INV-015', vendor: 'Maintenance Plus', amount: 2200, dueDate: '2024-01-27', assignedTo: 'facilities@company.com', threadId: '1985df699de1d999' }
-            ],
-            [INVOICE_STAGES.APPROVED]: [
-              { invoiceNumber: 'INV-004', vendor: 'Vendor GHI', amount: 3200, dueDate: '2024-02-15', assignedTo: 'lisa@company.com', threadId: '1985c5c28c8b93fc' },
-              { invoiceNumber: 'INV-010', vendor: 'Office Supply Co', amount: 650, dueDate: '2024-01-22', assignedTo: 'admin@company.com', threadId: '1985b51cce81485c' }
-            ],
-            [INVOICE_STAGES.PAID]: [
-              { invoiceNumber: 'INV-005', vendor: 'Vendor JKL', amount: 950, dueDate: '2024-01-10', assignedTo: 'finance@company.com', threadId: '1985a8b7e2f1c9d8' },
-              { invoiceNumber: 'INV-011', vendor: 'Cloud Hosting Ltd', amount: 1200, dueDate: '2024-01-15', assignedTo: 'it@company.com', threadId: '198599c6d3e2f1a0' }
-            ],
-            [INVOICE_STAGES.OVERDUE]: [
-              { invoiceNumber: 'INV-006', vendor: 'Vendor MNO', amount: 1800, dueDate: '2024-01-05', assignedTo: 'legal@company.com', threadId: '19858ad5e4f3g2b1' },
-              { invoiceNumber: 'INV-012', vendor: 'Security Systems Corp', amount: 3500, dueDate: '2024-01-03', assignedTo: 'security@company.com', threadId: '19857be4f5g4h3c2' }
-            ],
-            [INVOICE_STAGES.REJECTED]: [
-              { invoiceNumber: 'INV-007', vendor: 'Vendor PQR', amount: 1200, dueDate: '2024-01-15', assignedTo: 'hr@company.com', threadId: '19856cf3g6h5i4d3' },
-              { invoiceNumber: 'INV-013', vendor: 'Training Institute', amount: 1800, dueDate: '2024-01-18', assignedTo: 'hr@company.com', threadId: '19855dg2h7i6j5e4' }
-            ]
-          };
-          
-          // Create sections for sample data
-          for (const stageConfig of sampleStages) {
-            const invoicesForStage = sampleInvoices[stageConfig.name] || [];
-            
-            if (invoicesForStage.length > 0) {
-              const sectionDiv = document.createElement('div');
-              sectionDiv.style.marginBottom = '20px';
-              sectionDiv.style.border = `1px solid #e0e0e0`;
-              sectionDiv.style.borderRadius = '8px';
-              sectionDiv.style.overflow = 'hidden';
-              
-              // Section header
-              const headerDiv = document.createElement('div');
-              headerDiv.style.cssText = `
-                background: ${stageConfig.color};
-                color: white;
-                padding: 12px 16px;
-                font-weight: 600;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-              `;
-              headerDiv.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <div style="width: 15px; height: 15px; background-color: ${stageConfig.color}; border-radius: 4px; border: 2px solid white;"></div>
-                  <span>${stageConfig.name} (${invoicesForStage.length})</span>
-                </div>
-                <div style="font-size: 14px; font-weight: 500;">
-                  Total: $${(stageConfig.total / 1000).toFixed(1)}k
-                </div>
-              `;
-              sectionDiv.appendChild(headerDiv);
-              
-              // Section content - Invoice table
-              const contentDiv = document.createElement('div');
-              contentDiv.style.padding = '16px';
-              contentDiv.style.background = 'white';
-              
-              // Create table
-              const tableDiv = document.createElement('div');
-              tableDiv.style.cssText = `
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 14px;
-              `;
-              
-              // Table header
-              const tableHeader = document.createElement('div');
-              tableHeader.style.cssText = `
-                display: grid;
-                grid-template-columns: 1fr 1.5fr 1fr 1fr 1fr 1fr;
-                gap: 12px;
-                padding: 12px;
-                background: #f8f9fa;
-                border-bottom: 1px solid #e0e0e0;
-                font-weight: 600;
-                color: #333;
-              `;
-              tableHeader.innerHTML = `
-                <div>Invoice #</div>
-                <div>Vendor</div>
-                <div>Amount</div>
-                <div>Due Date</div>
-                <div>Assigned To</div>
-                <div>Actions</div>
-              `;
-              tableDiv.appendChild(tableHeader);
-              
-              // Table rows
-              invoicesForStage.forEach(invoice => {
-                const rowDiv = document.createElement('div');
-                rowDiv.style.cssText = `
-                  display: grid;
-                  grid-template-columns: 1fr 1.5fr 1fr 1fr 1fr 1fr;
-                  gap: 12px;
-                  padding: 12px;
-                  border-bottom: 1px solid #f0f0f0;
-                  align-items: center;
-                  transition: background-color 0.2s;
-                `;
-                
-                const dueDate = new Date(invoice.dueDate);
-                const isOverdue = dueDate < new Date() && stageConfig.name !== INVOICE_STAGES.PAID;
-                
-                rowDiv.innerHTML = `
-                  <div style="font-weight: 500; color: #2196F3;">${invoice.invoiceNumber}</div>
-                  <div style="font-weight: 500;">${invoice.vendor}</div>
-                  <div style="font-weight: 600; color: #333;">$${invoice.amount.toLocaleString()}</div>
-                  <div style="${isOverdue ? 'color: #f44336; font-weight: 600;' : ''}">${dueDate.toLocaleDateString()}</div>
-                  <div style="font-size: 12px; color: #666;">${invoice.assignedTo}</div>
-                  <div>
-                    <button id="sample-view-thread-${invoice.invoiceNumber}" style="
-                      padding: 4px 8px;
-                      background: ${stageConfig.color};
-                      color: white;
-                      border: none;
-                      border-radius: 4px;
-                      font-size: 12px;
-                      cursor: pointer;
-                      margin-right: 4px;
-                    ">View Thread</button>
-                    <button id="sample-action-${invoice.invoiceNumber}" style="
-                      padding: 4px 8px;
-                      background: #4caf50;
-                      color: white;
-                      border: none;
-                      border-radius: 4px;
-                      font-size: 12px;
-                      cursor: pointer;
-                    ">Action</button>
-                  </div>
-                `;
-                
-                // Add event listeners after the HTML is set
-                rowDiv.querySelector(`#sample-view-thread-${invoice.invoiceNumber}`).addEventListener('click', () => {
-                  console.log(`[NAVIGATION] Sample View Thread clicked for invoice ${invoice.invoiceNumber}, thread ${invoice.threadId}`);
-                  navigateToThread(invoice.threadId);
-                });
-                
-                rowDiv.querySelector(`#sample-action-${invoice.invoiceNumber}`).addEventListener('click', () => {
-                  console.log(`[ACTION] Sample Action clicked for invoice ${invoice.invoiceNumber}`);
-                  takeActionOnInvoice(invoice.invoiceNumber);
-                });
-                
-                rowDiv.addEventListener('mouseenter', () => {
-                  rowDiv.style.backgroundColor = '#f8f9fa';
-                });
-                
-                rowDiv.addEventListener('mouseleave', () => {
-                  rowDiv.style.backgroundColor = 'transparent';
-                });
-                
-                tableDiv.appendChild(rowDiv);
-              });
-              
-              contentDiv.appendChild(tableDiv);
-              sectionDiv.appendChild(contentDiv);
-              container.appendChild(sectionDiv);
-            }
-          }
-        }
+        // Create professional header
+        const headerHtml = createProfessionalHeader(totalInvoices, totalAmount, overdueCount);
+        container.innerHTML = headerHtml;
+        
+        // Create spreadsheet container
+        const spreadsheetContainer = document.createElement('div');
+        spreadsheetContainer.style.cssText = `
+          background: white;
+          border-radius: 8px;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          overflow: hidden;
+          margin-top: 20px;
+        `;
+        container.appendChild(spreadsheetContainer);
+        
+        // Initialize professional spreadsheet
+        console.log('[PROFESSIONAL SPREADSHEET] Initializing spreadsheet with', allInvoices.length, 'invoices');
+        const spreadsheet = initializeProfessionalSpreadsheet(spreadsheetContainer, allInvoices);
+        
+        // Store spreadsheet instance globally for external access
+        window.currentSpreadsheet = spreadsheet;
         
       } catch (error) {
-        console.error('[INVOICE TRACKER] Error loading data:', error);
+        console.error('[PROFESSIONAL SPREADSHEET] Error loading invoice data:', error);
         container.innerHTML = `
-          <div style="text-align: center; padding: 40px; color: #f44336;">
+          <div style="text-align: center; padding: 40px; color: #666;">
             <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
-            <h3 style="margin: 0 0 8px 0;">Error loading invoice data</h3>
-            <p style="margin: 0;">${error.message}</p>
+            <h3 style="margin: 0 0 8px 0; color: #333;">Error Loading Data</h3>
+            <p style="margin: 0; color: #666;">Unable to load invoice data. Please try again.</p>
           </div>
         `;
       }

@@ -10,9 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@inboxsdk/core": "file:../packages/core"
+    "@inboxsdk/core": "file:../packages/core",
+    "jspreadsheet-ce": "^5.0.1",
+    "jsuites": "^5.12.0"
   },
   "devDependencies": {
     "esbuild": "^0.19.11"
   }
-} 
+}
