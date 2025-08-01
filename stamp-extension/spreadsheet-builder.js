@@ -10,7 +10,7 @@ export async function buildSpreadsheet(container, data) {
   console.log('[SHADOW DOM] Starting clean jspreadsheet integration...');
   
   // Setup clean Shadow DOM container instead of CSS isolation
-  const cleanContainer = await setupShadowDOMContainer(container);
+  const { cleanContainer, shadowRoot } = await setupShadowDOMContainer(container);
   
   // Define columns with enhanced Phase 1 interactive features
   const columns = [
@@ -82,6 +82,7 @@ export async function buildSpreadsheet(container, data) {
 
   // Create the spreadsheet with clean default configuration
   const spreadsheet = jspreadsheet(cleanContainer, {
+    root: shadowRoot,  // Critical parameter for Shadow DOM event handling
     worksheets: [{
       data: spreadsheetData,
       columns: columns,
@@ -141,6 +142,9 @@ async function setupShadowDOMContainer(container) {
       // Create style element with combined CSS content
       const styleElement = document.createElement('style');
       styleElement.textContent = `
+        /* Material Icons - Required for toolbar */
+        @import url("https://fonts.googleapis.com/css?family=Material+Icons");
+        
         /* jspreadsheet.css */
         ${jspreadsheetCss}
         
@@ -175,7 +179,7 @@ async function setupShadowDOMContainer(container) {
   container.appendChild(shadowHost);
   
   console.log('[SHADOW DOM] ✅ Shadow DOM container created with isolated CSS');
-  return cleanContainer;
+  return { cleanContainer, shadowRoot };
 }
 
 // OLD FUNCTION - Inject comprehensive CSS overrides for jspreadsheet styling
