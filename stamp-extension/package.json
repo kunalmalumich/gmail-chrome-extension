@@ -4,8 +4,8 @@
   "description": "Stamp helps you manage your entire AP workflow inside of Gmail.",
   "main": "background.js",
   "scripts": {
-    "build": "esbuild content.js --bundle --outfile=dist/content.js --sourcemap",
-    "watch": "esbuild content.js --bundle --outfile=dist/content.js --sourcemap --watch"
+    "build": "esbuild content.js --bundle --outfile=dist/content.js --sourcemap --define:CONFIG.API_ENDPOINT='\"https://86cb9e6d9329.ngrok-free.app/email-poller\"' --define:CONFIG.OAUTH_CLIENT_ID='\"\"' --define:CONFIG.GOOGLE_CLIENT_ID='\"\"'",
+    "watch": "esbuild content.js --bundle --outfile=dist/content.js --sourcemap --watch --define:CONFIG.API_ENDPOINT='\"https://86cb9e6d9329.ngrok-free.app/email-poller\"' --define:CONFIG.OAUTH_CLIENT_ID='\"\"' --define:CONFIG.GOOGLE_CLIENT_ID='\"\"'"
   },
   "author": "",
   "license": "ISC",

@@ -64,6 +64,11 @@ cp ../packages/core/pageWorld.js.map dist/
 # Copy any PNG images (like logos)
 cp *.png dist/ 2>/dev/null || true
 
+# Copy CSS files for jspreadsheet integration
+echo "=> Copying CSS files for jspreadsheet..."
+cp jspreadsheet.css dist/ 2>/dev/null || echo "   Warning: jspreadsheet.css not found"
+cp jsuites.css dist/ 2>/dev/null || echo "   Warning: jsuites.css not found"
+
 echo
 echo "Build complete! 🎉"
 echo "The complete extension has been built into the 'dist' directory."

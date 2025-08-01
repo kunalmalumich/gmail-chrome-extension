@@ -1801,20 +1801,51 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
 
   // 1. Claim the "invoice-tracker-view" route to prevent Gmail from treating it as a search.
   // Use handleCustomRoute for simple custom views (not list views)
-  sdk.Router.handleCustomRoute("invoice-tracker-view", (customRouteView) => {
+  sdk.Router.handleCustomRoute("invoice-tracker-view", async (customRouteView) => {
     console.log('[UI DEBUG] "invoice-tracker-view" route loaded.');
     customRouteView.setFullWidth(true); // Use full width for the spreadsheet
+    
     const container = document.createElement('div');
-    container.style.padding = '20px';
+    // Enhanced container setup for CSS isolation
+    container.style.cssText = `
+      padding: 0 !important;
+      height: 100% !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      display: flex !important;
+      flex-direction: column !important;
+      background: #fff !important;
+    `;
+    
     customRouteView.getElement().appendChild(container);
 
-    // Temp data for now
+    // Enhanced sample data for testing scrolling
     const sampleData = [
-        { invoiceNumber: 'INV-001', vendor: 'Vendor A', amount: 100, dueDate: '2023-01-15', status: 'Approved', assignedTo: 'User 1', threadId: 'thread-1' },
-        { invoiceNumber: 'INV-002', vendor: 'Vendor B', amount: 200, dueDate: '2023-02-20', status: 'Pending', assignedTo: 'User 2', threadId: 'thread-2' },
+        { invoiceNumber: 'INV-001', vendor: 'Vendor A', amount: 1500, dueDate: '2023-01-15', status: 'Approved', assignedTo: 'User 1', threadId: 'thread-1' },
+        { invoiceNumber: 'INV-002', vendor: 'Vendor B', amount: 2300, dueDate: '2023-02-20', status: 'Pending Approval', assignedTo: 'User 2', threadId: 'thread-2' },
+        { invoiceNumber: 'INV-003', vendor: 'Vendor C', amount: 800, dueDate: '2023-01-20', status: 'In Review', assignedTo: 'User 3', threadId: 'thread-3' },
+        { invoiceNumber: 'INV-004', vendor: 'Vendor D', amount: 3200, dueDate: '2023-02-15', status: 'Approved', assignedTo: 'User 4', threadId: 'thread-4' },
+        { invoiceNumber: 'INV-005', vendor: 'Vendor E', amount: 950, dueDate: '2023-01-10', status: 'Paid', assignedTo: 'User 5', threadId: 'thread-5' },
+        { invoiceNumber: 'INV-006', vendor: 'Vendor F', amount: 1800, dueDate: '2023-01-05', status: 'Overdue', assignedTo: 'User 6', threadId: 'thread-6' },
+        { invoiceNumber: 'INV-007', vendor: 'Vendor G', amount: 1200, dueDate: '2023-01-15', status: 'Rejected', assignedTo: 'User 7', threadId: 'thread-7' },
+        { invoiceNumber: 'INV-008', vendor: 'Tech Solutions Inc', amount: 4500, dueDate: '2023-02-10', status: 'Pending Approval', assignedTo: 'User 8', threadId: 'thread-8' },
+        { invoiceNumber: 'INV-009', vendor: 'Creative Agency Pro', amount: 2800, dueDate: '2023-01-28', status: 'In Review', assignedTo: 'User 9', threadId: 'thread-9' },
+        { invoiceNumber: 'INV-010', vendor: 'Office Supply Co', amount: 650, dueDate: '2023-01-22', status: 'Approved', assignedTo: 'User 10', threadId: 'thread-10' },
+        { invoiceNumber: 'INV-011', vendor: 'Cloud Hosting Ltd', amount: 1200, dueDate: '2023-01-15', status: 'Paid', assignedTo: 'User 11', threadId: 'thread-11' },
+        { invoiceNumber: 'INV-012', vendor: 'Security Systems Corp', amount: 3500, dueDate: '2023-01-03', status: 'Overdue', assignedTo: 'User 12', threadId: 'thread-12' },
     ];
 
-    buildSpreadsheet(container, sampleData);
+    // Build spreadsheet with clean Shadow DOM approach
+    await buildSpreadsheet(container, sampleData);
+    
+    // Handle route cleanup
+    customRouteView.on('destroy', () => {
+      console.log('[UI DEBUG] Cleaning up invoice tracker view');
+      if (container._resizeObserver) {
+        container._resizeObserver.disconnect();
+        console.log('[UI DEBUG] Resize observer disconnected');
+      }
+    });
   });
 
   // Register a handler for ALL route views to inject our UI when our route is active

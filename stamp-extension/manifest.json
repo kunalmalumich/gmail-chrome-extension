@@ -43,6 +43,8 @@
         "pageWorld.js.map",
         "stamp-logo.png",
         "google-logo.png",
+        "jspreadsheet.css",
+        "jsuites.css",
         "*.map"
       ]
     }
