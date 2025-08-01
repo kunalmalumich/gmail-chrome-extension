@@ -1,398 +1,13 @@
 import * as InboxSDK from '@inboxsdk/core';
-
-// Import jspreadsheet V5 properly
 import jspreadsheet from 'jspreadsheet-ce';
+import jsuites from 'jsuites';
 import 'jspreadsheet-ce/dist/jspreadsheet.css';
-
-// Import jSuites for V5 (required dependency)
 import 'jsuites/dist/jsuites.css';
+import { buildSpreadsheet } from './spreadsheet-builder.js';
 
-import {
-  initializeProfessionalSpreadsheet,
-  createProfessionalHeader,
-  transformInvoicesToSpreadsheetData
-} from './spreadsheet-config.js';
-
-// Make jspreadsheet available globally for V5
+// Make jspreadsheet and jsuites available globally
 window.jspreadsheet = jspreadsheet;
-
-// Add Material Icons for jspreadsheet toolbar
-const materialIconsLink = document.createElement('link');
-materialIconsLink.rel = 'stylesheet';
-materialIconsLink.href = 'https://fonts.googleapis.com/css?family=Material+Icons';
-document.head.appendChild(materialIconsLink);
-
-// Add basic professional styling
-const basicStyles = document.createElement('style');
-basicStyles.textContent = `
-  /* Basic professional spreadsheet styling */
-  .jss_worksheet {
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    border: 1px solid #dee2e6;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  }
-  
-  /* Header styling */
-  .jss_worksheet thead td {
-    font-weight: 600;
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 16px 12px;
-    background: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
-    color: #1a237e;
-  }
-  
-  /* Cell styling */
-  .jss_worksheet tbody td {
-    padding: 12px 8px;
-    font-size: 13px;
-    border-bottom: 1px solid #e9ecef;
-    transition: background-color 0.2s ease;
-  }
-  
-  /* Hover effects */
-  .jss_worksheet tbody tr:hover td {
-    background-color: #f5f5f5;
-  }
-  
-  /* Professional button styling */
-  .view-thread-btn {
-    padding: 8px 16px;
-    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  
-  .view-thread-btn:hover {
-    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-    box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
-  }
-  
-  /* Status badge styling */
-  .status-badge {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  }
-  
-  /* Amount formatting */
-  .amount-cell {
-    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-    font-weight: 600;
-    text-align: right;
-    color: #2e7d32;
-  }
-  
-  /* Date formatting */
-  .date-cell {
-    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-    font-weight: 500;
-    text-align: center;
-  }
-  
-  /* Invoice number formatting */
-  .invoice-cell {
-    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-    font-weight: 600;
-    color: #1a237e;
-  }
-  
-  /* Column management panel styling */
-  .column-management-panel {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-  
-  .management-buttons {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  
-  .mgmt-btn {
-    padding: 8px 16px;
-    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  
-  .mgmt-btn:hover {
-    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-    box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
-  }
-  
-  .mgmt-btn:active {
-    transform: translateY(1px);
-  }
-  
-  /* Enhanced cell styling for validation */
-  .jss_worksheet tbody td.invalid {
-    background-color: #ffebee;
-    border: 2px solid #f44336;
-  }
-  
-  .jss_worksheet tbody td.valid {
-    background-color: #e8f5e8;
-    border: 2px solid #4caf50;
-  }
-  
-  /* Autocomplete dropdown styling */
-  .jexcel_autocomplete {
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    max-height: 200px;
-    overflow-y: auto;
-    z-index: 1000;
-  }
-  
-  .jexcel_autocomplete div {
-    padding: 8px 12px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-  }
-  
-  .jexcel_autocomplete div:hover {
-    background-color: #f5f5f5;
-  }
-  
-  .jexcel_autocomplete div.selected {
-    background-color: #e3f2fd;
-    color: #1a237e;
-  }
-  
-  /* Enhanced dropdown styling */
-  .jdropdown, .jexcel_dropdown, .jdropdown-content {
-    z-index: 9999 !important;
-    min-width: 220px !important;
-    max-height: 250px !important;
-    overflow-y: auto !important;
-    font-size: 15px !important;
-    background: white !important;
-    border: 1px solid #dee2e6 !important;
-    border-radius: 4px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  }
-  
-  .jdropdown-content div, .jexcel_dropdown-content div {
-    padding: 8px 12px !important;
-    cursor: pointer !important;
-    transition: background-color 0.2s ease !important;
-    border-bottom: 1px solid #f0f0f0 !important;
-  }
-  
-  .jdropdown-content div:hover, .jexcel_dropdown-content div:hover {
-    background-color: #f5f5f5 !important;
-  }
-  
-  .jdropdown-content div.selected, .jexcel_dropdown-content div.selected {
-    background-color: #e3f2fd !important;
-    color: #1a237e !important;
-  }
-  
-  /* Fix for overlapping dropdowns */
-  .jdropdown, .jexcel_dropdown {
-    position: absolute !important;
-    z-index: 9999 !important;
-  }
-  
-  /* Professional Toolbar Styling */
-  .professional-toolbar {
-    border-bottom: 1px solid #dee2e6 !important;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-  }
-  
-  .professional-toolbar button {
-    font-weight: 500 !important;
-    letter-spacing: 0.3px !important;
-  }
-  
-  .professional-toolbar button:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
-  }
-  
-  .professional-toolbar button:active {
-    transform: translateY(0) !important;
-  }
-  
-  /* Column Management Panel */
-  .column-management-panel {
-    background: linear-gradient(135deg, #f1f3f4 0%, #e8eaed 100%) !important;
-    border-bottom: 1px solid #d0d7de !important;
-  }
-  
-  .column-management-panel button {
-    font-weight: 500 !important;
-    border-radius: 6px !important;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
-  
-  .column-management-panel button:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
-  }
-  
-  /* Enhanced spreadsheet styling */
-  .jss_worksheet {
-    border-radius: 0 0 8px 8px !important;
-    overflow: hidden !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-  }
-  
-  .jss_worksheet thead td {
-    background: linear-gradient(135deg, #495057 0%, #343a40 100%) !important;
-    color: white !important;
-    font-weight: 600 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
-    font-size: 12px !important;
-    padding: 12px 8px !important;
-    border-bottom: 2px solid #dee2e6 !important;
-  }
-  
-  .jss_worksheet tbody td {
-    padding: 10px 8px !important;
-    border-bottom: 1px solid #f1f3f4 !important;
-    transition: background-color 0.2s ease !important;
-  }
-  
-  .jss_worksheet tbody tr:hover td {
-    background-color: #f8f9fa !important;
-  }
-  
-  .jss_worksheet tbody tr:nth-child(even) {
-    background-color: #fafbfc !important;
-  }
-  
-  /* Hide default jspreadsheet toolbar */
-  .jss_toolbar, .jexcel_toolbar, .jspreadsheet-toolbar {
-    display: none !important;
-  }
-  
-  /* Ensure our custom toolbar is visible */
-  .professional-toolbar {
-    display: flex !important;
-    visibility: visible !important;
-  }
-  
-  /* Ensure jspreadsheet toolbar is visible */
-  .jss_toolbar, .jtoolbar {
-    display: flex !important;
-    visibility: visible !important;
-    background: #f8f9fa !important;
-    border-bottom: 1px solid #dee2e6 !important;
-    padding: 8px 16px !important;
-    gap: 8px !important;
-    align-items: center !important;
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-    position: relative !important;
-    z-index: 1000 !important;
-  }
-  
-  /* Force toolbar items to display horizontally */
-  .jtoolbar-item, .jss_toolbar-item {
-    display: inline-flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    margin-right: 8px !important;
-  }
-  
-  /* Ensure spreadsheet displays properly */
-  .jss_spreadsheet {
-    display: block !important;
-    width: 100% !important;
-    height: auto !important;
-  }
-  
-  .jss_content {
-    display: block !important;
-    width: 100% !important;
-    height: 500px !important;
-    overflow: auto !important;
-  }
-  
-  /* Material Icons support */
-  .material-icons {
-    font-family: 'Material Icons' !important;
-    font-weight: normal !important;
-    font-style: normal !important;
-    font-size: 24px !important;
-    line-height: 1 !important;
-    letter-spacing: normal !important;
-    text-transform: none !important;
-    display: inline-block !important;
-    white-space: nowrap !important;
-    word-wrap: normal !important;
-    direction: ltr !important;
-    -webkit-font-feature-settings: 'liga' !important;
-    -webkit-font-smoothing: antialiased !important;
-  }
-  
-  /* Toolbar button styling */
-  .jss_toolbar button, .jtoolbar button {
-    background: transparent !important;
-    border: none !important;
-    padding: 8px !important;
-    cursor: pointer !important;
-    border-radius: 4px !important;
-    transition: background-color 0.2s ease !important;
-  }
-  
-  .jss_toolbar button:hover, .jtoolbar button:hover {
-    background-color: rgba(0, 0, 0, 0.1) !important;
-  }
-  
-  /* Style View Thread buttons */
-  .view-thread-btn {
-    background: #007bff !important;
-    color: white !important;
-    border: none !important;
-    padding: 4px 8px !important;
-    border-radius: 4px !important;
-    cursor: pointer !important;
-    font-size: 12px !important;
-    text-decoration: none !important;
-    display: inline-block !important;
-  }
-  
-  .view-thread-btn:hover {
-    background: #0056b3 !important;
-  }
-`;
-document.head.appendChild(basicStyles);
+window.jsuites = jsuites;
 
 // --- CONFIGURATION ---
 // These values are injected by the build script (build.sh) as a global CONFIG object.
@@ -409,75 +24,6 @@ if (!API_ENDPOINT) {
 
 if (!CLIENT_ID) {
   console.error('[CONFIG] Neither OAUTH_CLIENT_ID nor GOOGLE_CLIENT_ID is set');
-}
-
-// --- PROFESSIONAL SPREADSHEET CONFIGURATION ---
-// All spreadsheet-related functions are now imported from spreadsheet-config.js
-
-/**
- * Get all invoices from all stages for spreadsheet display
- * @returns {Promise<Array>} - Array of all invoice objects
- */
-async function getAllInvoicesForSpreadsheet() {
-  try {
-    // Check if the required functions and data are available
-    if (typeof getStagesWithCounts === 'undefined') {
-      console.log('[SPREADSHEET] getStagesWithCounts not available, using sample data');
-      return getSampleInvoicesForSpreadsheet();
-    }
-    
-    // Check if trackedThreadRowViews is available (it might not be defined yet)
-    if (typeof trackedThreadRowViews === 'undefined' || !trackedThreadRowViews || trackedThreadRowViews.size === 0) {
-      console.log('[SPREADSHEET] trackedThreadRowViews not available or empty, using sample data');
-      return getSampleInvoicesForSpreadsheet();
-    }
-    
-    const stages = await getStagesWithCounts();
-    const allInvoices = [];
-    
-    for (const stageConfig of stages) {
-      const invoicesForStage = await getInvoicesForStage(stageConfig.name);
-      allInvoices.push(...invoicesForStage);
-    }
-    
-    // If no real data, return sample data
-    if (allInvoices.length === 0) {
-      console.log('[SPREADSHEET] No real data found, using sample data');
-      return getSampleInvoicesForSpreadsheet();
-    }
-    
-    console.log('[SPREADSHEET] Found', allInvoices.length, 'real invoices');
-    return allInvoices;
-    
-  } catch (error) {
-    console.error('[SPREADSHEET] Error getting invoices:', error);
-    console.log('[SPREADSHEET] Falling back to sample data');
-    return getSampleInvoicesForSpreadsheet();
-  }
-}
-
-/**
- * Get sample invoice data for spreadsheet display
- * @returns {Array} - Array of sample invoice objects
- */
-function getSampleInvoicesForSpreadsheet() {
-  return [
-    { invoiceNumber: 'INV-001', vendor: 'Vendor ABC', amount: 1500, dueDate: '2024-01-30', assignedTo: 'john@company.com', status: 'Pending Approval', threadId: '1985f8728a45ce6b' },
-    { invoiceNumber: 'INV-002', vendor: 'Vendor XYZ', amount: 2300, dueDate: '2024-01-25', assignedTo: 'sarah@company.com', status: 'Pending Approval', threadId: '197f8e706fbe9a78' },
-    { invoiceNumber: 'INV-003', vendor: 'Vendor DEF', amount: 800, dueDate: '2024-01-20', assignedTo: 'mike@company.com', status: 'In Review', threadId: '1980f4557688b088' },
-    { invoiceNumber: 'INV-004', vendor: 'Vendor GHI', amount: 3200, dueDate: '2024-02-15', assignedTo: 'lisa@company.com', status: 'Approved', threadId: '1985c5c28c8b93fc' },
-    { invoiceNumber: 'INV-005', vendor: 'Vendor JKL', amount: 950, dueDate: '2024-01-10', assignedTo: 'finance@company.com', status: 'Paid', threadId: '1985a8b7e2f1c9d8' },
-    { invoiceNumber: 'INV-006', vendor: 'Vendor MNO', amount: 1800, dueDate: '2024-01-05', assignedTo: 'legal@company.com', status: 'Overdue', threadId: '19858ad5e4f3g2b1' },
-    { invoiceNumber: 'INV-007', vendor: 'Vendor PQR', amount: 1200, dueDate: '2024-01-15', assignedTo: 'hr@company.com', status: 'Rejected', threadId: '19856cf3g6h5i4d3' },
-    { invoiceNumber: 'INV-008', vendor: 'Tech Solutions Inc', amount: 4500, dueDate: '2024-02-10', assignedTo: 'tech@company.com', status: 'Pending Approval', threadId: '1985d4b9df0f880d' },
-    { invoiceNumber: 'INV-009', vendor: 'Creative Agency Pro', amount: 2800, dueDate: '2024-01-28', assignedTo: 'marketing@company.com', status: 'In Review', threadId: '1985ff48522d033e' },
-    { invoiceNumber: 'INV-010', vendor: 'Office Supply Co', amount: 650, dueDate: '2024-01-22', assignedTo: 'admin@company.com', status: 'Approved', threadId: '1985b51cce81485c' },
-    { invoiceNumber: 'INV-011', vendor: 'Cloud Hosting Ltd', amount: 1200, dueDate: '2024-01-15', assignedTo: 'it@company.com', status: 'Paid', threadId: '198599c6d3e2f1a0' },
-    { invoiceNumber: 'INV-012', vendor: 'Security Systems Corp', amount: 3500, dueDate: '2024-01-03', assignedTo: 'security@company.com', status: 'Overdue', threadId: '19857be4f5g4h3c2' },
-    { invoiceNumber: 'INV-013', vendor: 'Marketing Partners LLC', amount: 4200, dueDate: '2024-02-20', assignedTo: 'marketing@company.com', status: 'Draft', threadId: '1985f8728a45ce6b' },
-    { invoiceNumber: 'INV-014', vendor: 'Legal Services Group', amount: 2800, dueDate: '2024-02-05', assignedTo: 'legal@company.com', status: 'Payment Scheduled', threadId: '1985ff48522d033e' },
-    { invoiceNumber: 'INV-015', vendor: 'Consulting Experts Inc', amount: 5500, dueDate: '2024-01-18', assignedTo: 'consulting@company.com', status: 'Disputed', threadId: '1985c5c28c8b93fc' }
-  ];
 }
 
 // --- SERVICES ---
@@ -966,7 +512,7 @@ class UIManager {
           
           // Add event listeners
           this.sidebarElement.querySelector('#view-in-invoice-tracker').addEventListener('click', () => {
-            navigateToInvoiceTracker(invoice.invoiceNumber);
+            alert("The invoice tracker is currently unavailable.");
           });
           
           this.sidebarElement.querySelector('#take-action').addEventListener('click', () => {
@@ -1004,7 +550,7 @@ class UIManager {
           
           // Add event listener for general invoice tracker navigation
           this.sidebarElement.querySelector('#view-invoice-tracker-general').addEventListener('click', () => {
-            navigateToInvoiceTracker();
+            alert("The invoice tracker is currently unavailable.");
           });
         }
         
@@ -2199,74 +1745,6 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
     sdk.Router.goto(sdk.Router.NativeRouteIDs.THREAD, { threadID: threadId });
   }
 
-  function navigateToInvoiceTracker(invoiceNumber = null) {
-    console.log(`[NAVIGATION] Navigating to Invoice Tracker${invoiceNumber ? ` for invoice ${invoiceNumber}` : ''}`);
-    sdk.Router.goto('invoice-tracker-view');
-    
-    // If specific invoice provided, highlight it after navigation
-    if (invoiceNumber) {
-      console.log(`[NAVIGATION] Will highlight invoice: ${invoiceNumber}`);
-      // Use setTimeout to ensure the Invoice Tracker view is loaded
-      setTimeout(() => {
-        highlightInvoiceInTracker(invoiceNumber);
-      }, 1000);
-    }
-  }
-
-  function highlightInvoiceInTracker(invoiceNumber) {
-    console.log(`[SPREADSHEET] Highlighting invoice ${invoiceNumber} in tracker`);
-    
-    if (!window.currentSpreadsheet) {
-      console.log('[SPREADSHEET] No spreadsheet available for highlighting');
-      return;
-    }
-    
-    try {
-      const spreadsheet = window.currentSpreadsheet;
-      if (!spreadsheet || !spreadsheet.worksheets || !spreadsheet.worksheets[0]) {
-        console.error('[SPREADSHEET] No worksheet available for highlighting');
-        return;
-      }
-      
-      const worksheet = spreadsheet.worksheets[0];
-      const data = worksheet.getData();
-      
-      // Find the row with the matching invoice number
-      const rowIndex = data.findIndex(row => row[0] === invoiceNumber); // Invoice number is in column 0
-      
-      if (rowIndex !== -1) {
-        console.log(`[SPREADSHEET] Found invoice ${invoiceNumber} at row ${rowIndex}`);
-        
-        // Select the row (V5 API)
-        worksheet.selectRow(rowIndex);
-        
-        // Scroll to the row
-        const rowElement = worksheet.element.querySelector(`tr[data-y="${rowIndex}"]`);
-        if (rowElement) {
-          rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        
-        // Add temporary highlighting
-        if (rowElement) {
-          rowElement.style.backgroundColor = '#e3f2fd';
-          rowElement.style.border = '2px solid #2196F3';
-          
-          // Remove highlighting after 3 seconds
-          setTimeout(() => {
-            rowElement.style.backgroundColor = '';
-            rowElement.style.border = '';
-          }, 3000);
-        }
-        
-        console.log(`[SPREADSHEET] Successfully highlighted invoice ${invoiceNumber}`);
-      } else {
-        console.log(`[SPREADSHEET] Invoice ${invoiceNumber} not found in spreadsheet`);
-      }
-    } catch (error) {
-      console.error('[SPREADSHEET] Error highlighting invoice:', error);
-    }
-  }
-
   function takeActionOnInvoice(invoiceNumber) {
     console.log(`[ACTION] Taking action on invoice ${invoiceNumber}`);
     // Here you could implement specific actions
@@ -2275,10 +1753,8 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
 
   // Make navigation functions available globally
   window.navigateToThread = navigateToThread;
-  window.navigateToInvoiceTracker = navigateToInvoiceTracker;
   window.takeActionOnInvoice = takeActionOnInvoice;
   window.getInvoiceDetailsForThread = getInvoiceDetailsForThread;
-  window.highlightInvoiceInTracker = highlightInvoiceInTracker;
   
   // Debug function to help identify threads
   window.debugInvoiceThreads = function() {
@@ -2326,91 +1802,19 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
   // 1. Claim the "invoice-tracker-view" route to prevent Gmail from treating it as a search.
   // Use handleCustomRoute for simple custom views (not list views)
   sdk.Router.handleCustomRoute("invoice-tracker-view", (customRouteView) => {
-    console.log('[UI DEBUG] ✅ "invoice-tracker-view" route claimed.');
-    
-    // Set up the custom view content
-    customRouteView.setFullWidth(false);
-    
-    // --- UI CONSTRUCTION ---
+    console.log('[UI DEBUG] "invoice-tracker-view" route loaded.');
+    customRouteView.setFullWidth(true); // Use full width for the spreadsheet
     const container = document.createElement('div');
     container.style.padding = '20px';
-    container.style.fontFamily = 'Google Sans, Roboto, Arial, sans-serif';
-
-    // Show loading initially
-    container.innerHTML = `
-      <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
-        <div style="text-align: center;">
-          <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #2196F3; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
-          <p style="color: #666; margin: 0;">Loading invoice data...</p>
-        </div>
-      </div>
-      <style>
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      </style>
-    `;
-    
-    // Add the container to the custom route view
     customRouteView.getElement().appendChild(container);
 
-    // Load and display the data
-    async function loadInvoiceData() {
-      try {
-        console.log('[PROFESSIONAL SPREADSHEET] Loading invoice data...');
-        
-        // Get all invoices for spreadsheet display
-        const allInvoices = await getAllInvoicesForSpreadsheet();
-        
-        // Clear loading state
-        container.innerHTML = '';
-        
-        // Calculate professional header metrics
-        const totalAmount = allInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-        const totalInvoices = allInvoices.length;
-        const overdueCount = allInvoices.filter(invoice => {
-          const dueDate = new Date(invoice.dueDate);
-          const today = new Date();
-          return dueDate < today && invoice.status !== 'Paid';
-        }).length;
-        
-        // Create professional header
-        const headerHtml = createProfessionalHeader(totalInvoices, totalAmount, overdueCount);
-        container.innerHTML = headerHtml;
-        
-        // Create spreadsheet container
-        const spreadsheetContainer = document.createElement('div');
-        spreadsheetContainer.style.cssText = `
-          background: white;
-          border-radius: 8px;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-          overflow: hidden;
-          margin-top: 20px;
-        `;
-        container.appendChild(spreadsheetContainer);
-        
-        // Initialize professional spreadsheet
-        console.log('[PROFESSIONAL SPREADSHEET] Initializing spreadsheet with', allInvoices.length, 'invoices');
-        const spreadsheet = initializeProfessionalSpreadsheet(spreadsheetContainer, allInvoices);
-        
-        // Store spreadsheet instance globally for external access
-        window.currentSpreadsheet = spreadsheet;
-        
-      } catch (error) {
-        console.error('[PROFESSIONAL SPREADSHEET] Error loading invoice data:', error);
-        container.innerHTML = `
-          <div style="text-align: center; padding: 40px; color: #666;">
-            <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
-            <h3 style="margin: 0 0 8px 0; color: #333;">Error Loading Data</h3>
-            <p style="margin: 0; color: #666;">Unable to load invoice data. Please try again.</p>
-          </div>
-        `;
-      }
-    }
+    // Temp data for now
+    const sampleData = [
+        { invoiceNumber: 'INV-001', vendor: 'Vendor A', amount: 100, dueDate: '2023-01-15', status: 'Approved', assignedTo: 'User 1', threadId: 'thread-1' },
+        { invoiceNumber: 'INV-002', vendor: 'Vendor B', amount: 200, dueDate: '2023-02-20', status: 'Pending', assignedTo: 'User 2', threadId: 'thread-2' },
+    ];
 
-    // Load the data
-    loadInvoiceData();
+    buildSpreadsheet(container, sampleData);
   });
 
   // Register a handler for ALL route views to inject our UI when our route is active
@@ -2503,6 +1907,12 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
 
   // Initialize the UIManager, which will now only handle the sidebar content
   uiManager.initialize();
+
+  // Add Material Icons for jspreadsheet toolbar
+  const materialIconsLink = document.createElement('link');
+  materialIconsLink.rel = 'stylesheet';
+  materialIconsLink.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
+  document.head.appendChild(materialIconsLink);
 
 }).catch((error) => {
   console.error("Stamp Extension: Failed to load InboxSDK.", error);
