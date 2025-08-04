@@ -4,10 +4,127 @@ import jsuites from 'jsuites';
 import 'jspreadsheet-ce/dist/jspreadsheet.css';
 import 'jsuites/dist/jsuites.css';
 import { buildSpreadsheet } from './spreadsheet-builder.js';
+import { ThreadDataManager } from './thread-data-manager.js';
+
+// DEBUG: Verify content script is loading
+console.log('[CONTENT SCRIPT] ✅ Content script loaded and executing');
 
 // Make jspreadsheet and jsuites available globally
 window.jspreadsheet = jspreadsheet;
 window.jsuites = jsuites;
+
+// Global reference to the current worksheet for meta operations
+let currentWorksheet = null;
+
+// Utility functions for working with meta information
+function getThreadIdFromInvoiceCell(cellAddress) {
+  if (!currentWorksheet) {
+    console.warn('[META INFO] Worksheet not available - navigate to invoice tracker first');
+    return null;
+  }
+  const meta = currentWorksheet.getMeta(cellAddress);
+  return meta?.threadId || null;
+}
+
+function getIdsFromStatusCell(cellAddress) {
+  if (!currentWorksheet) {
+    console.warn('[META INFO] Worksheet not available - navigate to invoice tracker first');
+    return null;
+  }
+  const meta = currentWorksheet.getMeta(cellAddress);
+  if (meta && meta.type === 'status_tracker') {
+    return {
+      threadId: meta.threadId,
+      messageId: meta.messageId,
+      status: meta.status,
+      lastUpdated: meta.lastUpdated
+    };
+  }
+  return null;
+  }
+  
+function updateStatusMeta(cellAddress, newStatus) {
+  if (!currentWorksheet) {
+    console.warn('[META INFO] Worksheet not available - navigate to invoice tracker first');
+    return;
+  }
+  const existingMeta = currentWorksheet.getMeta(cellAddress) || {};
+  currentWorksheet.setMeta(cellAddress, {
+    ...existingMeta,
+    status: newStatus,
+    lastUpdated: new Date().toISOString()
+  });
+  console.log('[META INFO] Updated status meta for', cellAddress, 'to:', newStatus);
+  }
+  
+function getGmailUrlFromCell(cellAddress) {
+  if (!currentWorksheet) {
+    console.warn('[META INFO] Worksheet not available - navigate to invoice tracker first');
+    return null;
+  }
+  const meta = currentWorksheet.getMeta(cellAddress);
+  if (meta?.threadId) {
+    return `https://mail.google.com/mail/u/0/#inbox/${meta.threadId}`;
+  }
+  return null;
+  }
+  
+// Export utility functions for external use
+window.SpreadsheetMetaUtils = {
+  getThreadIdFromInvoiceCell,
+  getIdsFromStatusCell,
+  updateStatusMeta,
+  getGmailUrlFromCell
+};
+
+// Make it available in multiple global scopes for maximum compatibility
+if (typeof globalThis !== 'undefined') {
+  globalThis.SpreadsheetMetaUtils = window.SpreadsheetMetaUtils;
+}
+if (typeof self !== 'undefined') {
+  self.SpreadsheetMetaUtils = window.SpreadsheetMetaUtils;
+}
+// Direct assignment to global scope (works in most contexts)
+this.SpreadsheetMetaUtils = window.SpreadsheetMetaUtils;
+
+// Function to set the current worksheet (called from spreadsheet-builder.js)
+window.setCurrentWorksheet = function(worksheet) {
+  currentWorksheet = worksheet;
+  console.log('[META INFO] ✅ SpreadsheetMetaUtils now ready for use');
+  
+  // DEBUG: Test the utility functions with actual data
+  setTimeout(() => {
+    console.log('\n=== SPREADSHEET LOADED - META DATA TEST ===');
+    console.log('[DEBUG] getThreadIdFromInvoiceCell("A2"):', window.SpreadsheetMetaUtils.getThreadIdFromInvoiceCell('A2')); // First data row
+    console.log('[DEBUG] getThreadIdFromInvoiceCell("A3"):', window.SpreadsheetMetaUtils.getThreadIdFromInvoiceCell('A3')); // Second data row
+    console.log('[DEBUG] getIdsFromStatusCell("E2"):', window.SpreadsheetMetaUtils.getIdsFromStatusCell('E2')); // First data row
+    console.log('[DEBUG] getIdsFromStatusCell("E3"):', window.SpreadsheetMetaUtils.getIdsFromStatusCell('E3')); // Second data row
+    console.log('[DEBUG] getGmailUrlFromCell("A2"):', window.SpreadsheetMetaUtils.getGmailUrlFromCell('A2'));
+    console.log('[DEBUG] getGmailUrlFromCell("G2"):', window.SpreadsheetMetaUtils.getGmailUrlFromCell('G2'));
+    
+    // Show raw meta data from worksheet
+    console.log('[DEBUG] Raw meta A1 (header):', worksheet.getMeta('A1')); // Should be undefined/null
+    console.log('[DEBUG] Raw meta A2 (first data):', worksheet.getMeta('A2')); // Should have meta data
+    console.log('[DEBUG] Raw meta E2 (first status):', worksheet.getMeta('E2')); // Should have meta data
+    console.log('[DEBUG] Raw meta G2 (first thread):', worksheet.getMeta('G2')); // Should have meta data
+    console.log('==========================================\n');
+  }, 500);
+};
+
+console.log('[META INFO] ✅ SpreadsheetMetaUtils available globally');
+console.log('[DEBUG] window.SpreadsheetMetaUtils:', window.SpreadsheetMetaUtils);
+console.log('[DEBUG] typeof SpreadsheetMetaUtils:', typeof window.SpreadsheetMetaUtils);
+console.log('[DEBUG] Testing direct access - this.SpreadsheetMetaUtils:', this.SpreadsheetMetaUtils);
+
+// DEBUG: Test the utility functions and log their values
+setTimeout(() => {
+  console.log('\n=== SPREADSHEET META UTILS DEBUG TEST ===');
+  console.log('[DEBUG] Testing getThreadIdFromInvoiceCell("A2"):', window.SpreadsheetMetaUtils.getThreadIdFromInvoiceCell('A2')); // First data row
+  console.log('[DEBUG] Testing getIdsFromStatusCell("E2"):', window.SpreadsheetMetaUtils.getIdsFromStatusCell('E2')); // First data row
+  console.log('[DEBUG] Testing getGmailUrlFromCell("A2"):', window.SpreadsheetMetaUtils.getGmailUrlFromCell('A2'));
+  console.log('[DEBUG] All utility functions available:', Object.keys(window.SpreadsheetMetaUtils));
+  console.log('============================================\n');
+}, 1000);
 
 // --- CONFIGURATION ---
 // These values are injected by the build script (build.sh) as a global CONFIG object.
@@ -337,6 +454,448 @@ function getThreadStage(threadId) {
   return THREAD_STAGE_ASSIGNMENTS[threadId] || INVOICE_STAGES.PENDING_APPROVAL;
 }
 
+// Define the invoice status colors
+const INVOICE_STATUS_COLORS = {
+  submitted: {
+    backgroundColor: '#90CAF9',
+    textColor: '#000000',
+    description: 'Invoice initially detected'
+  },
+  pending: {
+    backgroundColor: '#FFC107',
+    textColor: '#000000',
+    description: 'Awaiting approval or low confidence'
+  },
+  approved: {
+    backgroundColor: '#4CAF50',
+    textColor: '#FFFFFF',
+    description: 'Explicit or high-confidence approval'
+  },
+  paid: {
+    backgroundColor: '#2196F3',
+    textColor: '#FFFFFF',
+    description: 'Payment confirmed'
+  },
+  rejected: {
+    backgroundColor: '#F44336',
+    textColor: '#FFFFFF',
+    description: 'Explicitly denied'
+  }
+};
+
+// Define the primary intent colors
+const PRIMARY_INTENT_COLORS = {
+  // Financial Intents - Blues
+  'payment_status_inquiry': {
+    backgroundColor: '#E3F2FD',
+    textColor: '#1565C0'
+  },
+  'payment_confirmation': {
+    backgroundColor: '#BBDEFB',
+    textColor: '#1565C0'
+  },
+  'refund_request': {
+    backgroundColor: '#90CAF9',
+    textColor: '#000000'
+  },
+
+  // Document Processing - Greens
+  'invoice_submission': {
+    backgroundColor: '#E8F5E9',
+    textColor: '#2E7D32'
+  },
+  'expense_report': {
+    backgroundColor: '#C8E6C9',
+    textColor: '#2E7D32'
+  },
+  'tax_documentation': {
+    backgroundColor: '#A5D6A7',
+    textColor: '#000000'
+  },
+
+  // Inquiries - Purples
+  'billing_inquiry': {
+    backgroundColor: '#F3E5F5',
+    textColor: '#6A1B9A'
+  },
+  'status_request': {
+    backgroundColor: '#E1BEE7',
+    textColor: '#6A1B9A'
+  },
+  'information_sharing': {
+    backgroundColor: '#CE93D8',
+    textColor: '#000000'
+  },
+
+  // Action Items - Warm Colors
+  'approval_request': {
+    backgroundColor: '#FFF3E0',
+    textColor: '#E65100'
+  },
+  'urgent_request': {
+    backgroundColor: '#FFE0B2',
+    textColor: '#E65100'
+  },
+  'task_assignment': {
+    backgroundColor: '#FFCC80',
+    textColor: '#000000'
+  },
+
+  // Issues & Resolution - Reds
+  'quality_issue': {
+    backgroundColor: '#FFEBEE',
+    textColor: '#C62828'
+  },
+  'dispute_resolution': {
+    backgroundColor: '#FFCDD2',
+    textColor: '#C62828'
+  },
+  'escalation': {
+    backgroundColor: '#EF9A9A',
+    textColor: '#000000'
+  },
+
+  // Administrative - Grays
+  'vendor_onboarding': {
+    backgroundColor: '#FAFAFA',
+    textColor: '#424242'
+  },
+  'account_setup': {
+    backgroundColor: '#F5F5F5',
+    textColor: '#424242'
+  },
+  'system_access': {
+    backgroundColor: '#EEEEEE',
+    textColor: '#000000'
+  },
+
+  // Communication - Teals
+  'follow_up': {
+    backgroundColor: '#E0F2F1',
+    textColor: '#00695C'
+  },
+  'routine_update': {
+    backgroundColor: '#B2DFDB',
+    textColor: '#00695C'
+  },
+  'general_communication': {
+    backgroundColor: '#80CBC4',
+    textColor: '#000000'
+  }
+};
+
+/**
+ * Creates a label object for InboxSDK from a thread label string.
+ * @param {string} labelText - The label text from the API
+ * @returns {object} InboxSDK label object
+ */
+function createLabelFromThreadLabel(labelText) {
+  if (!labelText) {
+    console.warn('[LABEL_CREATION] Received empty label text');
+    return null;
+  }
+
+  const normalizedText = labelText.toLowerCase();
+  console.log(`[LABEL_CREATION] Processing label text: "${labelText}"`);
+
+  // Check for invoice status keywords
+  for (const status of Object.keys(INVOICE_STATUS_COLORS)) {
+    if (normalizedText.includes(status)) {
+      const colorConfig = INVOICE_STATUS_COLORS[status];
+      console.log(`[LABEL_CREATION] Found invoice status keyword "${status}" in: "${normalizedText}"`, colorConfig);
+      return {
+        title: labelText,
+        backgroundColor: colorConfig.backgroundColor,
+        textColor: colorConfig.textColor,
+        iconUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+      };
+    }
+  }
+
+  // Check for primary intent keywords
+  for (const intent of Object.keys(PRIMARY_INTENT_COLORS)) {
+    if (normalizedText.includes(intent)) {
+      const colorConfig = PRIMARY_INTENT_COLORS[intent];
+      console.log(`[LABEL_CREATION] Found primary intent keyword "${intent}" in: "${normalizedText}"`, colorConfig);
+      return {
+        title: labelText,
+        backgroundColor: colorConfig.backgroundColor,
+        textColor: colorConfig.textColor,
+        iconUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+      };
+    }
+  }
+
+  // If no keywords found, use default styling
+  console.log(`[LABEL_CREATION] No status or intent keywords found in: "${normalizedText}", using default colors`);
+  return {
+    title: labelText,
+    backgroundColor: '#E0E0E0',
+    textColor: '#000000',
+    iconUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+  };
+}
+
+/**
+ * Creates multiple labels from thread labels array.
+ * @param {string[]} threadLabels - Array of label strings from API
+ * @returns {object[]} Array of InboxSDK label objects
+ */
+function createLabelsFromThreadLabels(threadLabels) {
+  if (!threadLabels || !Array.isArray(threadLabels)) {
+    return [];
+  }
+  
+  return threadLabels.map(labelText => createLabelFromThreadLabel(labelText));
+}
+
+const ENTITY_CONFIG = {
+  inv: { displayName: 'Invoice', icon: '🧾' },
+  quote: { displayName: 'Quote', icon: '📊' },
+  contract: { displayName: 'Contract', icon: '✍️' },
+  po: { displayName: 'Purchase Order', icon: '📄' },
+  statement: { displayName: 'Statement', icon: '📋' },
+  approval: { displayName: 'Approval', icon: '👍' },
+  default: { displayName: 'Document', icon: '📎' }
+};
+
+/**
+ * Transforms the raw `processed_entities` from the API into a simplified array of objects
+ * suitable for rendering as UI cards.
+ * @param {object[]} processedEntities - The array from the API response.
+ * @returns {object[]} A cleaned-up array for the UI.
+ */
+function transformProcessedEntitiesForSidebar(processedEntities) {
+  if (!processedEntities || !Array.isArray(processedEntities)) {
+    return [];
+  }
+
+  return processedEntities.map(entity => {
+    // Determine if the entity has enough details to be interactive
+    const hasDetails = !!(entity.document && entity.document.details && Object.keys(entity.document.details).length > 0);
+    const config = ENTITY_CONFIG[entity.type] || ENTITY_CONFIG.default;
+    const details = entity.document?.details || {};
+
+    // Create a standardized card data object for the UI
+    return {
+      cardType: entity.type,
+      title: `${config.displayName} ${entity.value}`,
+      icon: config.icon,
+      status: entity.document?.final_status || null,
+      messageId: entity.document?.message_id,
+      hasDetails: hasDetails,
+      fullDetails: entity,
+      // Conditionally add specific details
+      vendor: hasDetails ? (details.vendor?.name || 'Unknown Vendor') : null,
+      amount: hasDetails ? (details.amount || 0) : null,
+      currency: hasDetails ? (details.currency || 'USD') : null,
+    };
+  });
+}
+
+/**
+ * Creates the HTML for a single entity card.
+ * @param {object} cardData - A simplified entity object from transformProcessedEntitiesForSidebar.
+ * @param {string} threadId - The current Gmail thread ID for link generation.
+ * @returns {string} The HTML string for the card.
+ */
+function createEntityCard(cardData, threadId) {
+  const statusConfig = cardData.status ? (INVOICE_STATUS_COLORS[cardData.status] || { backgroundColor: '#E0E0E0', textColor: '#000000' }) : null;
+  const amountFormatted = cardData.hasDetails ? new Intl.NumberFormat('en-US', { style: 'currency', currency: cardData.currency }).format(cardData.amount) : null;
+  
+  // Card is only clickable if it has details
+  const isClickable = cardData.hasDetails;
+  const fullDetailsString = isClickable ? JSON.stringify(cardData.fullDetails).replace(/'/g, '&apos;') : '';
+  const cursorStyle = isClickable ? 'cursor: pointer;' : 'cursor: default;';
+  const cardClass = isClickable ? 'entity-card' : 'entity-card non-clickable';
+
+  // Title can be a link if a messageId is available
+  const messageLink = cardData.messageId ? `https://mail.google.com/mail/u/0/#inbox/${threadId}/${cardData.messageId}` : null;
+  const titleHtml = messageLink 
+    ? `<a href="${messageLink}" target="_blank" style="text-decoration: none; color: #1a73e8;" onclick="event.stopPropagation();">${cardData.title}</a>`
+    : cardData.title;
+
+  return `
+    <div class="${cardClass}" ${isClickable ? `data-full-details='${fullDetailsString}'` : ''} style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 12px; padding: 16px; ${cursorStyle} transition: box-shadow 0.2s;">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h4 style="margin: 0; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">${cardData.icon}</span>
+          <span>${titleHtml}</span>
+        </h4>
+        ${statusConfig ? `
+        <span class="status-tag" style="background-color: ${statusConfig.backgroundColor}; color: ${statusConfig.textColor}; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: capitalize;">
+          ${cardData.status.replace(/_/g, ' ')}
+        </span>
+        ` : ''}
+      </div>
+      ${isClickable ? `
+      <div class="card-body" style="font-size: 13px; color: #5f6368;">
+        <p style="margin: 4px 0;"><strong>Vendor:</strong> ${cardData.vendor}</p>
+        <p style="margin: 4px 0;"><strong>Amount:</strong> ${amountFormatted}</p>
+      </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+/**
+ * Creates the HTML content for the detailed view in the sidebar.
+ * @param {object} details - The full entity object to display.
+ * @returns {string} The HTML string for the detailed view.
+ */
+function createDetailsSidebarContent(details) {
+    console.log('[DETAILS] Full details object:', details);
+    
+    const doc = details.document;
+    const docDetails = doc.details;
+    
+    console.log('[DETAILS] Document object:', doc);
+    console.log('[DETAILS] Document details object:', docDetails);
+    console.log('[DETAILS] Available keys in docDetails:', Object.keys(docDetails));
+    
+    // Format amount with currency
+    const amountFormatted = new Intl.NumberFormat('en-US', { 
+      style: 'currency', 
+      currency: docDetails.currency || 'USD' 
+    }).format(docDetails.amount || 0);
+
+    // Build dynamic details HTML
+    let detailsHtml = '';
+    
+    // Add all available fields from docDetails (excluding complex objects)
+    for (const [key, value] of Object.entries(docDetails)) {
+        if (value !== null && value !== undefined && typeof value !== 'object') {
+            let displayValue = value;
+            
+            // Format special fields
+            if (key === 'amount' && docDetails.currency) {
+                displayValue = new Intl.NumberFormat('en-US', { 
+                    style: 'currency', 
+                    currency: docDetails.currency 
+                }).format(value);
+            } else if (key.includes('date') || key.includes('Date')) {
+                try {
+                    displayValue = new Date(value).toLocaleDateString();
+                } catch (e) {
+                    displayValue = value;
+                }
+            }
+            
+            detailsHtml += `
+              <div style="margin-bottom: 12px;">
+                <strong style="color: #5f6368; font-size: 12px; display: block;">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</strong>
+                <div style="font-weight: 500; font-size: 14px;">${displayValue}</div>
+              </div>
+            `;
+        }
+    }
+    
+    // Handle vendor object separately
+    if (docDetails.vendor && typeof docDetails.vendor === 'object') {
+        detailsHtml += `
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #5f6368; font-size: 12px; display: block;">Vendor Name</strong>
+            <div style="font-weight: 500; font-size: 14px;">${docDetails.vendor.name || 'N/A'}</div>
+          </div>
+        `;
+        
+        if (docDetails.vendor.email) {
+            detailsHtml += `
+              <div style="margin-bottom: 12px;">
+                <strong style="color: #5f6368; font-size: 12px; display: block;">Vendor Email</strong>
+                <div style="font-weight: 500; font-size: 14px;">${docDetails.vendor.email}</div>
+              </div>
+            `;
+        }
+    }
+    
+    // Handle line items array separately
+    if (docDetails.lineItems && Array.isArray(docDetails.lineItems) && docDetails.lineItems.length > 0) {
+        detailsHtml += `
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #5f6368; font-size: 12px; display: block;">Line Items</strong>
+            <div style="margin-top: 8px;">
+        `;
+        
+        docDetails.lineItems.forEach((item, index) => {
+            const itemAmount = item.amount ? new Intl.NumberFormat('en-US', { 
+                style: 'currency', 
+                currency: docDetails.currency || 'USD' 
+            }).format(item.amount) : 'N/A';
+            
+            detailsHtml += `
+              <div style="background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 8px; margin-bottom: 4px;">
+                <div style="font-weight: 500; font-size: 13px;">${item.description || 'No description'}</div>
+                <div style="font-size: 12px; color: #666;">
+                  Quantity: ${item.quantity || 'N/A'} | 
+                  Unit Price: ${item.unitPrice ? new Intl.NumberFormat('en-US', { style: 'currency', currency: docDetails.currency || 'USD' }).format(item.unitPrice) : 'N/A'} | 
+                  Amount: ${itemAmount}
+                </div>
+                ${item.sku ? `<div style="font-size: 11px; color: #999;">SKU: ${item.sku}</div>` : ''}
+              </div>
+            `;
+        });
+        
+        detailsHtml += `
+            </div>
+          </div>
+        `;
+    }
+    
+    // Add document-level fields
+    if (doc.final_status) {
+        detailsHtml += `
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #5f6368; font-size: 12px; display: block;">Status</strong>
+            <div style="font-weight: 500; font-size: 14px; text-transform: capitalize;">${doc.final_status}</div>
+          </div>
+        `;
+    }
+    
+    if (doc.document_name) {
+        detailsHtml += `
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #5f6368; font-size: 12px; display: block;">Document Name</strong>
+            <div style="font-weight: 500; font-size: 14px;">${doc.document_name}</div>
+          </div>
+        `;
+    }
+    
+    if (doc.message_id) {
+        detailsHtml += `
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #5f6368; font-size: 12px; display: block;">Message ID</strong>
+            <div style="font-family: monospace; font-size: 12px; color: #666;">${doc.message_id}</div>
+          </div>
+        `;
+    }
+    
+    if (doc.first_message_id && doc.first_message_id !== doc.message_id) {
+        detailsHtml += `
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #5f6368; font-size: 12px; display: block;">First Message ID</strong>
+            <div style="font-family: monospace; font-size: 12px; color: #666;">${doc.first_message_id}</div>
+          </div>
+        `;
+    }
+
+    return `
+      <div style="padding: 16px;">
+        <div style="margin-bottom: 16px;">
+          <button id="back-to-cards" style="background: #f1f3f4; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; color: #5f6368;">
+            ← Back to Documents
+          </button>
+        </div>
+        
+        <h3 style="margin: 0 0 16px 0; color: #202124; font-size: 18px;">Document Details</h3>
+        
+        <div style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px;">
+          ${detailsHtml}
+        </div>
+      </div>
+    `;
+}
+
 /**
  * Manages rendering the correct UI based on authentication state.
  */
@@ -347,6 +906,7 @@ class UIManager {
     this.apiClient = null;
     this.sidebarPanel = null;
     this.sidebarElement = null; // Add this to store the DOM element reference
+    this.dataManager = new ThreadDataManager(null); // Initialize dataManager without apiClient initially
   }
 
   setAuthService(authService) {
@@ -355,6 +915,8 @@ class UIManager {
 
   setApiClient(apiClient) {
     this.apiClient = apiClient;
+    // Update the dataManager with the apiClient
+    this.dataManager.apiClient = apiClient;
   }
 
   /**
@@ -397,188 +959,34 @@ class UIManager {
     }
   }
 
-  handleThreadView(threadView) {
-    console.log('[UI] Thread view opened:', threadView);
+  // Method to update the sidebar with invoice details for the current thread
+  async handleThreadView(threadView) {
+    const threadId = await threadView.getThreadID();
+    console.log('[UI] Thread view changed:', threadId);
+
+    // Use the data manager to get data for this specific thread
+    const threadDataMap = await this.dataManager.getThreadData([threadId]);
+    const threadInfo = threadDataMap[threadId];
     
-    // Safety check to ensure 'this' is properly bound
-    if (!this) {
-      console.error('[ERROR] handleThreadView called without proper context');
-      return;
-    }
+    // Transform all entities for the sidebar. Returns an array.
+    const cardDataArray = threadInfo && threadInfo.processedEntities 
+      ? transformProcessedEntitiesForSidebar(threadInfo.processedEntities)
+      : [];
 
-    // Get thread ID first
-    threadView.getThreadIDAsync().then(threadId => {
-      console.log('[UI] Fetched Thread ID:', threadId);
-      const invoiceDetails = getInvoiceDetailsForThread(threadId);
-
-      // Detailed logging for sidebar panel
-      console.log('[DEBUG] this.sidebarPanel:', this.sidebarPanel);
-      console.log('[DEBUG] this.sidebarElement:', this.sidebarElement);
+    if (this.sidebarElement) {
+      this.sidebarElement.innerHTML = this.createSidebarContent(threadId, cardDataArray);
       
-      if (this.sidebarPanel) {
-        console.log('[DEBUG] typeof this.sidebarPanel:', typeof this.sidebarPanel);
+      // Attach new event listeners for the cards
+      this.attachCardClickListeners(this.sidebarElement);
+      
       } else {
-        console.log('[DEBUG] this.sidebarPanel is undefined or null');
+      console.log('[DEBUG] this.sidebarElement is not available');
+    }
       }
-
-      // Update the existing Stamp sidebar content instead of creating a new panel
-      if (this.sidebarElement) {
-        console.log('[DEBUG] Using this.sidebarElement to update content');
-        
-        // Create thread information content
-        let threadInfoHtml = `
-          <div style="margin-bottom: 20px;">
-            <h3 style="margin-top: 0; color: #333;">📧 Thread Information</h3>
-            <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-              <div style="margin-bottom: 8px;">
-                <strong style="color: #666; font-size: 12px;">Thread ID</strong>
-                <div style="font-weight: 600; color: #2196F3; font-family: monospace; font-size: 12px;">${threadId}</div>
-              </div>
-              <div style="margin-bottom: 8px;">
-                <strong style="color: #666; font-size: 12px;">Message ID</strong>
-                <div style="font-weight: 600; color: #2196F3; font-family: monospace; font-size: 12px;" id="message-id-span">Loading...</div>
-              </div>
-            </div>
-          </div>
-        `;
-        
-        if (invoiceDetails && invoiceDetails.invoices && invoiceDetails.invoices.length > 0) {
-          // Show invoice information in sidebar
-          const invoice = invoiceDetails.invoices[0]; // Show first invoice
-          const stage = getThreadStage(threadId);
-          
-          const invoiceHtml = `
-            <div style="margin-bottom: 20px;">
-              <h3 style="margin-top: 0; color: #333;">🧾 Invoice Details</h3>
-              <div style="background: ${STAGE_COLORS[stage]}; color: white; padding: 8px 12px; border-radius: 6px; margin-bottom: 16px; font-size: 12px; font-weight: 600; text-transform: uppercase;">
-                ${stage}
-              </div>
-            </div>
-            
-            <div style="margin-bottom: 16px;">
-              <div style="margin-bottom: 8px;">
-                <strong style="color: #666; font-size: 12px;">Invoice Number</strong>
-                <div style="font-weight: 600; color: #2196F3;">${invoice.invoiceNumber}</div>
-              </div>
-              
-              <div style="margin-bottom: 8px;">
-                <strong style="color: #666; font-size: 12px;">Vendor</strong>
-                <div style="font-weight: 500;">${invoice.vendor}</div>
-              </div>
-              
-              <div style="margin-bottom: 8px;">
-                <strong style="color: #666; font-size: 12px;">Amount</strong>
-                <div style="font-weight: 600; color: #333; font-size: 16px;">$${invoice.amount.toLocaleString()}</div>
-              </div>
-              
-              <div style="margin-bottom: 8px;">
-                <strong style="color: #666; font-size: 12px;">Due Date</strong>
-                <div style="font-weight: 500; ${new Date(invoice.dueDate) < new Date() && stage !== INVOICE_STAGES.PAID ? 'color: #f44336;' : ''}">${new Date(invoice.dueDate).toLocaleDateString()}</div>
-              </div>
-              
-              <div style="margin-bottom: 16px;">
-                <strong style="color: #666; font-size: 12px;">Assigned To</strong>
-                <div style="font-weight: 500; color: #666;">${invoice.assignedTo}</div>
-              </div>
-            </div>
-            
-            <button id="view-in-invoice-tracker" style="
-              width: 100%;
-              padding: 10px 16px;
-              background: #2196F3;
-              color: white;
-              border: none;
-              border-radius: 6px;
-              font-size: 14px;
-              font-weight: 500;
-              cursor: pointer;
-              margin-bottom: 12px;
-            ">View in Invoice Tracker</button>
-            
-            <button id="take-action" style="
-              width: 100%;
-              padding: 10px 16px;
-              background: #4CAF50;
-              color: white;
-              border: none;
-              border-radius: 6px;
-              font-size: 14px;
-              font-weight: 500;
-              cursor: pointer;
-            ">Take Action</button>
-          `;
-          
-          this.sidebarElement.innerHTML = threadInfoHtml + invoiceHtml;
-          
-          // Add event listeners
-          this.sidebarElement.querySelector('#view-in-invoice-tracker').addEventListener('click', () => {
-            alert("The invoice tracker is currently unavailable.");
-          });
-          
-          this.sidebarElement.querySelector('#take-action').addEventListener('click', () => {
-            console.log(`[ACTION] Taking action on invoice ${invoice.invoiceNumber}`);
-            alert(`Action button clicked for ${invoice.invoiceNumber}`);
-          });
-          
-        } else {
-          // No invoice data for this thread
-          const noInvoiceHtml = `
-            <div style="margin-bottom: 20px;">
-              <h3 style="margin-top: 0; color: #333;">🧾 Invoice Data</h3>
-              <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 6px;">
-                <div style="font-size: 48px; margin-bottom: 16px;">🧾</div>
-                <h4 style="margin: 0 0 8px 0; color: #333;">No Invoice Data</h4>
-                <p style="margin: 0; color: #666; font-size: 14px;">This email thread doesn't contain invoice information.</p>
-              </div>
-            </div>
-            
-            <button id="view-invoice-tracker-general" style="
-              width: 100%;
-              padding: 10px 16px;
-              background: #2196F3;
-              color: white;
-              border: none;
-              border-radius: 6px;
-              font-size: 14px;
-              font-weight: 500;
-              cursor: pointer;
-              margin-bottom: 12px;
-            ">View Invoice Tracker</button>
-          `;
-          
-          this.sidebarElement.innerHTML = threadInfoHtml + noInvoiceHtml;
-          
-          // Add event listener for general invoice tracker navigation
-          this.sidebarElement.querySelector('#view-invoice-tracker-general').addEventListener('click', () => {
-            alert("The invoice tracker is currently unavailable.");
-          });
-        }
-        
-        // Get message ID
-        const messageViews = threadView.getMessageViews();
-        if (messageViews.length > 0) {
-          messageViews[0].getMessageIDAsync().then(messageId => {
-            console.log('[UI] Fetched Message ID:', messageId);
-            const messageIdSpan = this.sidebarElement.querySelector('#message-id-span');
-            if (messageIdSpan) {
-              messageIdSpan.textContent = messageId;
-            }
-          });
-        } else {
-          const messageIdSpan = this.sidebarElement.querySelector('#message-id-span');
-          if (messageIdSpan) {
-            messageIdSpan.textContent = 'No messages in this view.';
-          }
-        }
-      } else {
-        console.log('[DEBUG] this.sidebarElement is not available');
-      }
-    });
-  }
 
   // Method to restore the original chat interface in the sidebar
   restoreChatInterface() {
-    if (this.sidebarElement) {
+      if (this.sidebarElement) {
       console.log('[DEBUG] Restoring chat interface using this.sidebarElement');
       this.sidebarElement.innerHTML = this.createMainAppContent();
       
@@ -587,6 +995,98 @@ class UIManager {
     } else {
       console.log('[DEBUG] this.sidebarElement is not available for restore');
     }
+  }
+
+  // Updated method to create sidebar content dynamically
+  createSidebarContent(threadId, cardDataArray) {
+    // Store the current card data for later use
+    this._currentCardData = cardDataArray;
+    
+    if (cardDataArray && cardDataArray.length > 0) {
+      const cardsHtml = cardDataArray.map(cardData => {
+        const cardHtml = createEntityCard(cardData, threadId);
+        // Add thread ID to the card for restoration
+        return cardHtml.replace('class="entity-card"', `class="entity-card" data-thread-id="${threadId}"`);
+      }).join('');
+      
+      return `
+        <div style="padding: 12px; border-bottom: 1px solid #e0e0e0; background: #fafafa;">
+          <h3 style="margin: 0; font-size: 16px;">Documents in this thread</h3>
+        </div>
+        <div style="padding: 16px;">
+          ${cardsHtml}
+        </div>
+      `;
+    } else {
+      return `
+        <div style="padding: 16px;">
+          <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 6px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">🧾</div>
+            <h4 style="margin: 0 0 8px 0; color: #333;">No Documents Found</h4>
+            <p style="margin: 0; color: #666; font-size: 14px;">This email thread doesn't contain any recognized documents.</p>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // Method to attach card click event listeners
+  attachCardClickListeners(container) {
+    console.log('[CARD_CLICKS] Attaching click listeners to container');
+    
+    // Remove any existing click listeners
+    container.removeEventListener('click', this._cardClickHandler);
+    
+    // Create a bound version of the click handler
+    this._cardClickHandler = (event) => {
+        console.log('[CARD_CLICKS] Click event detected on:', event.target);
+        
+        const card = event.target.closest('.entity-card');
+        if (card && card.dataset.fullDetails) {
+            console.log('[CARD_CLICKS] Card clicked, parsing details...');
+            try {
+                const fullDetails = JSON.parse(card.dataset.fullDetails);
+                console.log('[CARD_CLICKS] Parsed details:', fullDetails);
+                
+                const detailsHtml = createDetailsSidebarContent(fullDetails);
+                
+                // Store the current thread ID and card data for restoration
+                const threadId = card.dataset.threadId;
+                const cardDataArray = this._currentCardData;
+                
+                container.innerHTML = detailsHtml;
+                console.log('[CARD_CLICKS] Updated container with details HTML');
+                
+                // Add back button functionality
+                const backButton = container.querySelector('#back-to-cards');
+                console.log('[CARD_CLICKS] Back button found:', !!backButton);
+                
+                if (backButton) {
+                    console.log('[CARD_CLICKS] Adding click listener to back button');
+                    backButton.addEventListener('click', (e) => {
+                        console.log('[CARD_CLICKS] Back button clicked');
+                        e.stopPropagation(); // Prevent event bubbling
+                        
+                        // Recreate the cards view
+                        container.innerHTML = this.createSidebarContent(threadId, cardDataArray);
+                        console.log('[CARD_CLICKS] Restored cards view');
+                        
+                        // Re-attach click listeners to the cards
+                        this.attachCardClickListeners(container);
+                    });
+                } else {
+                    console.error('[CARD_CLICKS] Back button not found in container');
+                }
+            } catch (e) {
+                console.error("Error parsing card details or showing details:", e);
+            }
+        } else {
+            console.log('[CARD_CLICKS] Click was not on a card or card has no details');
+        }
+    };
+    
+    // Attach the click handler
+    container.addEventListener('click', this._cardClickHandler);
   }
 
   // Method to attach chat event listeners
@@ -1301,512 +1801,91 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
   console.log("Stamp Extension: InboxSDK loaded successfully.");
 
   // --- SETUP GLOBAL COMPONENTS ---
-  // This allows the SDK to manage waiting for the correct DOM elements.
+  // Create apiClient first so we can pass it to dataManager
+  const apiClient = new ApiClient();
+  const dataManager = new ThreadDataManager(apiClient);
 
-  // --- LABEL-BASED EMAIL CLASSIFICATION SYSTEM ---
+  // --- DYNAMIC LABELING FOR THREAD ROWS (WITH BATCHING/DEBOUNCING) ---
 
-  // Mock invoice details data with real thread IDs
-  // In a real app, this would come from your backend API
-  const INVOICE_DETAILS = {
-    '1985f8728a45ce6b': {
-      invoices: [
-        {
-          invoiceNumber: 'INV-001',
-          vendor: 'Vendor ABC',
-          amount: 1500.00,
-          currency: 'USD',
-          dueDate: '2024-01-30',
-          issueDate: '2024-01-01',
-          status: INVOICE_STAGES.PENDING_APPROVAL,
-          category: 'Software Services',
-          assignedTo: 'john@company.com'
+  // We need a temporary place to store the thread row views as they appear.
+  const threadViewRegistry = new Map();
+  let debounceTimer = null;
+
+  // This function will be called after a short delay to process all collected threads at once.
+  const processThreadQueue = async () => {
+    if (threadViewRegistry.size === 0) {
+      return; // Nothing to do
+    }
+
+    // Get a copy of the thread IDs to process and clear the registry for the next batch.
+    const idsToProcess = [...threadViewRegistry.keys()];
+    const viewsToUpdate = new Map(threadViewRegistry); // Make a copy of the views map
+    threadViewRegistry.clear();
+
+    console.log(`[Batching] Processing batch of ${idsToProcess.length} threads.`, { threadIds: idsToProcess });
+
+    try {
+      // Make ONE single API call for the entire batch of threads.
+      const threadDataMap = await dataManager.getThreadData(idsToProcess);
+      console.log('[Batching] Received data from ThreadDataManager:', threadDataMap);
+
+      // Now, iterate over the API results and apply labels to the corresponding views.
+      for (const threadId in threadDataMap) {
+        const threadInfo = threadDataMap[threadId];
+        const threadRowView = viewsToUpdate.get(threadId);
+
+        console.log(`[LABEL_APPLY] Preparing to apply labels for thread: ${threadId}`, { hasView: !!threadRowView, isDestroyed: threadRowView ? threadRowView.destroyed : 'N/A', threadInfo });
+
+        // Ensure we have a view and that it hasn't been destroyed by Gmail
+        if (threadRowView && !threadRowView.destroyed && threadInfo) {
+          
+          // Handle new API response format with thread_labels array
+          if (threadInfo.threadLabels && Array.isArray(threadInfo.threadLabels) && threadInfo.threadLabels.length > 0) {
+            console.log(`[LABEL_APPLY] Found ${threadInfo.threadLabels.length} labels to apply.`, { labels: threadInfo.threadLabels });
+            
+            // Create and apply labels from thread_labels array
+            threadInfo.threadLabels.forEach(labelText => {
+              const label = createLabelFromThreadLabel(labelText);
+              if (label) {
+                console.log(`[LABEL_APPLY] ADDING label to view for thread ${threadId}:`, label);
+                threadRowView.addLabel(label);
+              } else {
+                console.warn(`[LABEL_APPLY] SKIPPED adding a null or invalid label for text: "${labelText}"`);
+              }
+            });
+          } else {
+              console.log(`[LABEL_APPLY] No labels to apply for thread ${threadId}.`, { threadLabels: threadInfo.threadLabels });
+          }
+        } else {
+            console.warn(`[LABEL_APPLY] Skipped applying labels for thread ${threadId} due to invalid view or missing info.`);
         }
-      ]
-    },
-    '197f8e706fbe9a78': {
-      invoices: [
-        {
-          invoiceNumber: 'INV-002',
-          vendor: 'Vendor XYZ',
-          amount: 2300.00,
-          currency: 'USD',
-          dueDate: '2024-01-25',
-          issueDate: '2024-01-05',
-          status: INVOICE_STAGES.PENDING_APPROVAL,
-          category: 'Marketing Services',
-          assignedTo: 'sarah@company.com'
-        }
-      ]
-    },
-    '1985d4b9df0f880d': {
-      invoices: [
-        {
-          invoiceNumber: 'INV-008',
-          vendor: 'Tech Solutions Inc',
-          amount: 4500.00,
-          currency: 'USD',
-          dueDate: '2024-02-10',
-          issueDate: '2024-01-20',
-          status: INVOICE_STAGES.PENDING_APPROVAL,
-          category: 'IT Services',
-          assignedTo: 'tech@company.com'
-        }
-      ]
-    },
-    '198610cb7f43f9d6': {
-      invoices: [
-        {
-          invoiceNumber: 'INV-014',
-          vendor: 'Printing Solutions',
-          amount: 950.00,
-          currency: 'USD',
-          dueDate: '2024-02-05',
-          issueDate: '2024-01-15',
-          status: INVOICE_STAGES.PENDING_APPROVAL,
-          category: 'Printing Services',
-          assignedTo: 'marketing@company.com'
-        }
-      ]
-    },
-    '1980f4557688b088': {
-      invoices: [
-        {
-          invoiceNumber: 'INV-003',
-          vendor: 'Vendor DEF',
-          amount: 800.00,
-          currency: 'USD',
-          dueDate: '2024-01-20',
-          issueDate: '2024-01-10',
-          status: INVOICE_STAGES.IN_REVIEW,
-          category: 'Office Supplies',
-          assignedTo: 'mike@company.com'
-        }
-      ]
-    },
-    '1985ff48522d033e': {
-      invoices: [
-        {
-          invoiceNumber: 'INV-009',
-          vendor: 'Creative Agency Pro',
-          amount: 2800.00,
-          currency: 'USD',
-          dueDate: '2024-01-28',
-          issueDate: '2024-01-08',
-          status: INVOICE_STAGES.IN_REVIEW,
-          category: 'Design Services',
-          assignedTo: 'marketing@company.com'
-        }
-      ]
-    },
-    '1985df699de1d999': {
-      invoices: [
-        {
-          invoiceNumber: 'INV-015',
-          vendor: 'Maintenance Plus',
-          amount: 2200.00,
-          currency: 'USD',
-          dueDate: '2024-01-27',
-          issueDate: '2024-01-07',
-          status: INVOICE_STAGES.IN_REVIEW,
-          category: 'Maintenance Services',
-          assignedTo: 'facilities@company.com'
-        }
-      ]
-    },
-    '1985c5c28c8b93fc': {
-      invoices: [
-        {
-          invoiceNumber: 'INV-004',
-          vendor: 'Vendor GHI',
-          amount: 3200.00,
-          currency: 'USD',
-          dueDate: '2024-02-15',
-          issueDate: '2024-01-15',
-          status: INVOICE_STAGES.APPROVED,
-          category: 'Consulting Services',
-          assignedTo: 'lisa@company.com'
-        }
-      ]
-    },
-    '1985b51cce81485c': {
-      invoices: [
-        {
-          invoiceNumber: 'INV-010',
-          vendor: 'Office Supply Co',
-          amount: 650.00,
-          currency: 'USD',
-          dueDate: '2024-01-22',
-          issueDate: '2024-01-12',
-          status: INVOICE_STAGES.APPROVED,
-          category: 'Office Supplies',
-          assignedTo: 'admin@company.com'
-        }
-      ]
-    },
-    '1985a8b7e2f1c9d8': {
-      invoices: [
-        {
-          invoiceNumber: 'INV-005',
-          vendor: 'Vendor JKL',
-          amount: 950.00,
-          currency: 'USD',
-          dueDate: '2024-01-10',
-          issueDate: '2024-01-01',
-          status: INVOICE_STAGES.PAID,
-          category: 'Utilities',
-          assignedTo: 'finance@company.com'
-        }
-      ]
-    },
-    '198599c6d3e2f1a0': {
-      invoices: [
-        {
-          invoiceNumber: 'INV-011',
-          vendor: 'Cloud Hosting Ltd',
-          amount: 1200.00,
-          currency: 'USD',
-          dueDate: '2024-01-15',
-          issueDate: '2024-01-01',
-          status: INVOICE_STAGES.PAID,
-          category: 'Hosting Services',
-          assignedTo: 'it@company.com'
-        }
-      ]
-    },
-    '19858ad5e4f3g2b1': {
-      invoices: [
-        {
-          invoiceNumber: 'INV-006',
-          vendor: 'Vendor MNO',
-          amount: 1800.00,
-          currency: 'USD',
-          dueDate: '2024-01-05',
-          issueDate: '2023-12-15',
-          status: INVOICE_STAGES.OVERDUE,
-          category: 'Legal Services',
-          assignedTo: 'legal@company.com'
-        }
-      ]
-    },
-    '19857be4f5g4h3c2': {
-      invoices: [
-        {
-          invoiceNumber: 'INV-012',
-          vendor: 'Security Systems Corp',
-          amount: 3500.00,
-          currency: 'USD',
-          dueDate: '2024-01-03',
-          issueDate: '2023-12-20',
-          status: INVOICE_STAGES.OVERDUE,
-          category: 'Security Services',
-          assignedTo: 'security@company.com'
-        }
-      ]
-    },
-    '19856cf3g6h5i4d3': {
-      invoices: [
-        {
-          invoiceNumber: 'INV-007',
-          vendor: 'Vendor PQR',
-          amount: 1200.00,
-          currency: 'USD',
-          dueDate: '2024-01-15',
-          issueDate: '2024-01-01',
-          status: INVOICE_STAGES.REJECTED,
-          category: 'Travel Expenses',
-          assignedTo: 'hr@company.com'
-        }
-      ]
-    },
-    '19855dg2h7i6j5e4': {
-      invoices: [
-        {
-          invoiceNumber: 'INV-013',
-          vendor: 'Training Institute',
-          amount: 1800.00,
-          currency: 'USD',
-          dueDate: '2024-01-18',
-          issueDate: '2024-01-05',
-          status: INVOICE_STAGES.REJECTED,
-          category: 'Training Services',
-          assignedTo: 'hr@company.com'
-        }
-      ]
+      }
+    } catch (error) {
+      console.error('[Batching] Failed to process thread queue:', error);
     }
   };
 
-  // Track all thread row views as they're created
-  const trackedThreadRowViews = new Map();
-
-  // Helper function to assign a stage to a thread (for testing)
-  function assignStageToThread(threadId, stage) {
-    if (!Object.values(INVOICE_STAGES).includes(stage)) {
-      console.error(`[LABELS] Invalid stage: ${stage}. Valid stages are:`, Object.values(INVOICE_STAGES));
-      return false;
-    }
-    
-    THREAD_STAGE_ASSIGNMENTS[threadId] = stage;
-    console.log(`[LABELS] Assigned stage "${stage}" to thread ${threadId}`);
-    
-    // Refresh the invoice tracker view if it's currently open
-    const currentRoute = sdk.Router.getCurrentRouteView();
-    if (currentRoute && currentRoute.getRouteID() === 'invoice-tracker-view') {
-      console.log('[LABELS] Refreshing invoice tracker view...');
-      // Trigger a refresh by navigating to the same route
-      sdk.Router.goto('invoice-tracker-view');
-    }
-    
-    return true;
-  }
-
-  // Example: Assign some stages to common Gmail thread patterns
-  // You can call these functions in the browser console to test
-  window.assignInvoiceStage = assignStageToThread;
-  window.INVOICE_STAGES = INVOICE_STAGES;
-  
-  // Example assignments for testing (uncomment and modify as needed)
-  // assignStageToThread('your-actual-thread-id-here', INVOICE_STAGES.INCOMING);
-  // assignStageToThread('another-thread-id', INVOICE_STAGES.WORKING_ON);
-
-  // Auto-assign stages to the first few threads for testing
-  let autoAssignCounter = 0;
-  const autoAssignStages = [
-    INVOICE_STAGES.PENDING_APPROVAL,
-    INVOICE_STAGES.PENDING_APPROVAL,
-    INVOICE_STAGES.IN_REVIEW,
-    INVOICE_STAGES.APPROVED,
-    INVOICE_STAGES.PAID,
-    INVOICE_STAGES.OVERDUE,
-    INVOICE_STAGES.REJECTED,
-    INVOICE_STAGES.PENDING_APPROVAL,
-    INVOICE_STAGES.IN_REVIEW,
-    INVOICE_STAGES.APPROVED,
-    INVOICE_STAGES.PAID,
-    INVOICE_STAGES.OVERDUE,
-    INVOICE_STAGES.REJECTED,
-    INVOICE_STAGES.PENDING_APPROVAL,
-    INVOICE_STAGES.IN_REVIEW
-  ];
-
-  // Function to auto-assign stages to new threads for testing
-  function autoAssignStageToNewThread(threadId) {
-    if (autoAssignCounter < autoAssignStages.length) {
-      const stage = autoAssignStages[autoAssignCounter];
-      assignStageToThread(threadId, stage);
-      autoAssignCounter++;
-      console.log(`[AUTO-ASSIGN] Assigned "${stage}" to thread ${threadId} (${autoAssignCounter}/${autoAssignStages.length})`);
-    }
-  }
-
-  // Make auto-assign function available globally
-  window.autoAssignStageToNewThread = autoAssignStageToNewThread;
-
-  // Function to create label descriptor for a stage
-  function createStageLabel(stage) {
-    return {
-      title: stage,
-      backgroundColor: STAGE_COLORS[stage],
-      foregroundColor: '#fff',
-      iconUrl: chrome.runtime.getURL('stamp-logo.png'),
-      maxWidth: '120px'
-    };
-  }
-
-  // Register thread row handler to add labels to email threads and track them
+  // This is the "doorman" function that runs for every single thread row.
   sdk.Lists.registerThreadRowViewHandler(function (threadRowView) {
     const threadId = threadRowView.getThreadID();
-    let stage = getThreadStage(threadId);
     
-    // Auto-assign stage if this is a new thread and we haven't assigned it yet
-    if (stage === INVOICE_STAGES.PENDING_APPROVAL && !THREAD_STAGE_ASSIGNMENTS[threadId]) {
-      autoAssignStageToNewThread(threadId);
-      stage = getThreadStage(threadId); // Get the updated stage
-    }
-    
-    console.log(`[LABELS] Adding label "${stage}" to thread ${threadId}`);
-    
-    // Track this thread row view for later use
-    trackedThreadRowViews.set(threadId, {
-      threadRowView,
-      stage,
-      timestamp: Date.now()
-    });
-    
-    // Add the stage label to this thread
-    threadRowView.addLabel(createStageLabel(stage));
-    
-    // Optional: Add additional labels for more granular classification
-    if (stage === INVOICE_STAGES.PENDING_APPROVAL) {
-      threadRowView.addLabel({
-        title: 'Invoice',
-        backgroundColor: '#2196F3',
-        foregroundColor: '#fff',
-        maxWidth: '80px'
-      });
-    }
-    
-    if (stage === INVOICE_STAGES.IN_REVIEW) {
-      threadRowView.addLabel({
-        title: 'Review',
-        backgroundColor: '#FF9800',
-        foregroundColor: '#fff',
-        maxWidth: '100px'
-      });
-    }
+    // Instead of fetching immediately, we just add the thread's view to our list.
+    threadViewRegistry.set(threadId, threadRowView);
+
+    // Every time a new thread appears, we reset our timer.
+    clearTimeout(debounceTimer);
+
+    // After 150ms of no new threads appearing, we'll process the entire batch.
+    debounceTimer = setTimeout(processThreadQueue, 150);
   });
 
-  // Function to get all invoices for a specific stage
-  async function getInvoicesForStage(stage) {
-    const invoicesForStage = [];
-    
-    // Use our tracked thread row views and invoice details
-    for (const [threadId, threadData] of trackedThreadRowViews) {
-      if (threadData.stage === stage) {
-        const invoiceDetails = INVOICE_DETAILS[threadId];
-        if (invoiceDetails && invoiceDetails.invoices) {
-          for (const invoice of invoiceDetails.invoices) {
-            invoicesForStage.push({
-              threadId,
-              ...invoice,
-              stage: threadData.stage
-            });
-          }
-        }
-      }
-    }
-    
-    return invoicesForStage;
-  }
-
-  // Function to get all stages with their counts and totals
-  async function getStagesWithCounts() {
-    const stages = Object.values(INVOICE_STAGES);
-    const stageCounts = {};
-    const stageTotals = {};
-    
-    // Initialize counts and totals
-    stages.forEach(stage => {
-      stageCounts[stage] = 0;
-      stageTotals[stage] = 0;
-    });
-    
-    // Count invoices and calculate totals for each stage
-    for (const [threadId, threadData] of trackedThreadRowViews) {
-      const stage = threadData.stage;
-      const invoiceDetails = INVOICE_DETAILS[threadId];
-      
-      if (invoiceDetails && invoiceDetails.invoices) {
-        stageCounts[stage] = (stageCounts[stage] || 0) + invoiceDetails.invoices.length;
-        stageTotals[stage] = (stageTotals[stage] || 0) + invoiceDetails.invoices.reduce((sum, inv) => sum + inv.amount, 0);
-      }
-    }
-    
-    return stages.map(stage => ({
-      name: stage,
-      color: STAGE_COLORS[stage],
-      count: stageCounts[stage] || 0,
-      total: stageTotals[stage] || 0
-    }));
-  }
-
-  // Function to get tracked threads info for debugging
-  function getTrackedThreadsInfo() {
-    const info = [];
-    for (const [threadId, threadData] of trackedThreadRowViews) {
-      info.push({
-        threadId,
-        stage: threadData.stage,
-        timestamp: new Date(threadData.timestamp).toLocaleTimeString()
-      });
-    }
-    return info;
-  }
-
-  // Make debugging functions available globally
-  window.getTrackedThreadsInfo = getTrackedThreadsInfo;
-  window.trackedThreadRowViews = trackedThreadRowViews;
-
-  // Navigation functions for bidirectional navigation
-  function getInvoiceDetailsForThread(threadId) {
-    return INVOICE_DETAILS[threadId] || null;
-  }
-
-  function getThreadIdForInvoice(invoiceNumber) {
-    for (const [threadId, invoiceData] of Object.entries(INVOICE_DETAILS)) {
-      if (invoiceData.invoices && invoiceData.invoices.some(inv => inv.invoiceNumber === invoiceNumber)) {
-        return threadId;
-      }
-    }
-    return null;
-  }
-
-  function navigateToThread(threadId) {
-    console.log(`[NAVIGATION] Navigating to thread: ${threadId}`);
-    sdk.Router.goto(sdk.Router.NativeRouteIDs.THREAD, { threadID: threadId });
-  }
-
-  function takeActionOnInvoice(invoiceNumber) {
-    console.log(`[ACTION] Taking action on invoice ${invoiceNumber}`);
-    // Here you could implement specific actions
-    alert(`Action button clicked for ${invoiceNumber}`);
-  }
-
-  // Make navigation functions available globally
-  window.navigateToThread = navigateToThread;
-  window.takeActionOnInvoice = takeActionOnInvoice;
-  window.getInvoiceDetailsForThread = getInvoiceDetailsForThread;
-  
-  // Debug function to help identify threads
-  window.debugInvoiceThreads = function() {
-    console.log('[DEBUG] Available invoice threads:');
-    for (const [threadId, invoiceData] of Object.entries(INVOICE_DETAILS)) {
-      if (invoiceData.invoices && invoiceData.invoices.length > 0) {
-        const invoice = invoiceData.invoices[0];
-        console.log(`Thread ID: ${threadId} -> Invoice: ${invoice.invoiceNumber} (${invoice.vendor})`);
-      }
-    }
-    console.log('[DEBUG] Sample threads:');
-    console.log('sample-thread-INV-001, sample-thread-INV-002, sample-thread-INV-003, etc.');
-  };
-  
-  // Function to navigate to a real thread for testing
-  window.testSampleThread = function(invoiceNumber) {
-    // Map invoice numbers to real thread IDs
-    const threadIdMap = {
-      'INV-001': '1985f8728a45ce6b',
-      'INV-002': '197f8e706fbe9a78',
-      'INV-003': '1980f4557688b088',
-      'INV-004': '1985c5c28c8b93fc',
-      'INV-005': '1985a8b7e2f1c9d8',
-      'INV-006': '19858ad5e4f3g2b1',
-      'INV-007': '19856cf3g6h5i4d3',
-      'INV-008': '1985d4b9df0f880d',
-      'INV-009': '1985ff48522d033e',
-      'INV-010': '1985b51cce81485c',
-      'INV-011': '198599c6d3e2f1a0',
-      'INV-012': '19857be4f5g4h3c2',
-      'INV-013': '19855dg2h7i6j5e4',
-      'INV-014': '198610cb7f43f9d6',
-      'INV-015': '1985df699de1d999'
-    };
-    
-    const threadId = threadIdMap[invoiceNumber];
-    if (threadId) {
-      console.log(`[TEST] Navigating to real thread: ${threadId} for invoice ${invoiceNumber}`);
-      navigateToThread(threadId);
-    } else {
-      console.error(`[TEST] No thread ID found for invoice ${invoiceNumber}`);
-    }
-  };
 
   // 1. Claim the "invoice-tracker-view" route to prevent Gmail from treating it as a search.
-  // Use handleCustomRoute for simple custom views (not list views)
   sdk.Router.handleCustomRoute("invoice-tracker-view", async (customRouteView) => {
     console.log('[UI DEBUG] "invoice-tracker-view" route loaded.');
     customRouteView.setFullWidth(true); // Use full width for the spreadsheet
     
     const container = document.createElement('div');
-    // Enhanced container setup for CSS isolation
     container.style.cssText = `
       padding: 0 !important;
       height: 100% !important;
@@ -1819,24 +1898,11 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
     
     customRouteView.getElement().appendChild(container);
 
-    // Enhanced sample data for testing scrolling
-    const sampleData = [
-        { invoiceNumber: 'INV-001', vendor: 'Vendor A', amount: 1500, dueDate: '2023-01-15', status: 'Approved', assignedTo: 'User 1', threadId: 'thread-1' },
-        { invoiceNumber: 'INV-002', vendor: 'Vendor B', amount: 2300, dueDate: '2023-02-20', status: 'Pending Approval', assignedTo: 'User 2', threadId: 'thread-2' },
-        { invoiceNumber: 'INV-003', vendor: 'Vendor C', amount: 800, dueDate: '2023-01-20', status: 'In Review', assignedTo: 'User 3', threadId: 'thread-3' },
-        { invoiceNumber: 'INV-004', vendor: 'Vendor D', amount: 3200, dueDate: '2023-02-15', status: 'Approved', assignedTo: 'User 4', threadId: 'thread-4' },
-        { invoiceNumber: 'INV-005', vendor: 'Vendor E', amount: 950, dueDate: '2023-01-10', status: 'Paid', assignedTo: 'User 5', threadId: 'thread-5' },
-        { invoiceNumber: 'INV-006', vendor: 'Vendor F', amount: 1800, dueDate: '2023-01-05', status: 'Overdue', assignedTo: 'User 6', threadId: 'thread-6' },
-        { invoiceNumber: 'INV-007', vendor: 'Vendor G', amount: 1200, dueDate: '2023-01-15', status: 'Rejected', assignedTo: 'User 7', threadId: 'thread-7' },
-        { invoiceNumber: 'INV-008', vendor: 'Tech Solutions Inc', amount: 4500, dueDate: '2023-02-10', status: 'Pending Approval', assignedTo: 'User 8', threadId: 'thread-8' },
-        { invoiceNumber: 'INV-009', vendor: 'Creative Agency Pro', amount: 2800, dueDate: '2023-01-28', status: 'In Review', assignedTo: 'User 9', threadId: 'thread-9' },
-        { invoiceNumber: 'INV-010', vendor: 'Office Supply Co', amount: 650, dueDate: '2023-01-22', status: 'Approved', assignedTo: 'User 10', threadId: 'thread-10' },
-        { invoiceNumber: 'INV-011', vendor: 'Cloud Hosting Ltd', amount: 1200, dueDate: '2023-01-15', status: 'Paid', assignedTo: 'User 11', threadId: 'thread-11' },
-        { invoiceNumber: 'INV-012', vendor: 'Security Systems Corp', amount: 3500, dueDate: '2023-01-03', status: 'Overdue', assignedTo: 'User 12', threadId: 'thread-12' },
-    ];
-
-    // Build spreadsheet with clean Shadow DOM approach
-    await buildSpreadsheet(container, sampleData);
+    // Fetch live data from our data manager instead of using a static sample
+    const allInvoices = await dataManager.getAllInvoices();
+        
+    // Build spreadsheet with the live data
+    await buildSpreadsheet(container, allInvoices);
     
     // Handle route cleanup
     customRouteView.on('destroy', () => {
@@ -1930,7 +1996,7 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
   // 1. Create instances
   const uiManager = new UIManager(sdk);
   const authService = new AuthService(uiManager);
-  const apiClient = new ApiClient();
+  // apiClient is already created above
 
   // 2. Link them
   uiManager.setAuthService(authService);

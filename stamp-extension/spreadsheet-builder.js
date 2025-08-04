@@ -15,66 +15,55 @@ export async function buildSpreadsheet(container, data) {
   // Define columns with enhanced Phase 1 interactive features
   const columns = [
     { 
-      type: 'text', 
       title: 'Invoice #', 
-      width: 120, 
-      readOnly: true 
+      width: 150, 
+      type: 'text',
+      align: 'left'
     },
     { 
-      type: 'text', 
       title: 'Vendor', 
-      width: 200,
-      autocomplete: true,
-      source: getVendorList(data) // Dynamically populate vendors
+      width: 200, 
+      type: 'text',
+      align: 'left'
     },
     { 
-      type: 'numeric', 
       title: 'Amount', 
-      width: 120, 
-      mask: '$ #,##0.00',
-      decimal: '.',
+      width: 100, 
+      type: 'numeric', 
+      mask: '$ #,##.00',
       align: 'right'
     },
     { 
-      type: 'calendar', 
       title: 'Due Date', 
-      width: 120,
-      options: { 
-        format: 'MM/DD/YYYY',
-        readonly: false,
-        placeholder: 'Select date...'
-      }
+      width: 120, 
+      type: 'calendar', 
+      options: { format: 'YYYY-MM-DD' } 
     },
     { 
-      type: 'dropdown', 
       title: 'Status', 
-      width: 150,
-      source: ['Pending Approval', 'Approved', 'Paid', 'Overdue', 'Rejected'],
-      autocomplete: true,
-      multiple: false,
-      placeholder: 'Select status...'
+      width: 150, 
+      type: 'dropdown',
+      source: Object.values(INVOICE_STAGES)
     },
     { 
-      type: 'text', 
       title: 'Assigned To', 
-      width: 150 
+      width: 150, 
+      type: 'text' 
     },
-    {
-      type: 'text',
-      title: 'Thread ID',
-      width: 150,
-      readOnly: true
-    },
-    {
+    // The 'Thread ID' column is now removed
+    { 
+      title: 'Actions', 
+      width: 120, 
       type: 'html',
-      title: 'Actions',
-      width: 120,
-      readOnly: true,
+      readOnly: true
     }
   ];
 
   // Transform the raw invoice data to fit the spreadsheet structure
   const spreadsheetData = transformDataForSpreadsheet(data);
+  
+  // Generate meta information for Invoice Number and Status cells
+  const metaInformation = generateMetaInformation(data);
   
   // Calculate container dimensions for optimal scrolling
   const containerDimensions = calculateOptimalDimensions(container);
@@ -86,6 +75,7 @@ export async function buildSpreadsheet(container, data) {
     worksheets: [{
       data: spreadsheetData,
       columns: columns,
+      meta: metaInformation,  // Hidden metadata for linking to Gmail threads/messages
       
       // === USE JSPREADSHEET DEFAULTS ===
       allowComments: true,
@@ -94,6 +84,9 @@ export async function buildSpreadsheet(container, data) {
       editable: true,
       allowInsertRow: true,
       allowDeleteRow: true,
+      allowInsertColumn: true,
+      allowDeleteColumn: true,
+      allowRenameColumn: true,  // Enable column header editing
       columnSorting: true,
       columnResize: true,
       rowResize: true,
@@ -101,9 +94,43 @@ export async function buildSpreadsheet(container, data) {
       filters: true,
       
       // === MINIMAL EVENT HANDLING ===
-      onload: function(worksheet) {
+      onload: function(element, instance) {
         console.log('[SHADOW DOM] Spreadsheet loaded with default jspreadsheet behavior');
         console.log('[SHADOW DOM] All native features should work: editing, selection, navigation, toolbar');
+        
+        // The `worksheet` is the second argument in the v5 onload event
+        const worksheet = instance;
+        if (!worksheet) {
+          console.error('[META INFO] 💥 CRITICAL: jspreadsheet instance not received in onload event.');
+          return;
+        }
+
+        // Set the worksheet reference for utility functions in content.js scope
+        if (typeof window !== 'undefined' && window.setCurrentWorksheet) {
+          window.setCurrentWorksheet(worksheet);
+        } else {
+          // Fallback: use window to pass the worksheet directly
+          window.currentWorksheet = worksheet;
+          console.log('[META INFO] ✅ SpreadsheetMetaUtils now ready for use');
+        }
+        
+        // DEBUG: Test the utility functions with actual data
+        setTimeout(() => {
+          console.log('\n=== SPREADSHEET LOADED - META DATA TEST ===');
+          console.log('[DEBUG] getThreadIdFromInvoiceCell("A2"):', window.SpreadsheetMetaUtils.getThreadIdFromInvoiceCell('A2')); // First data row
+          console.log('[DEBUG] getThreadIdFromInvoiceCell("A3"):', window.SpreadsheetMetaUtils.getThreadIdFromInvoiceCell('A3')); // Second data row
+          console.log('[DEBUG] getIdsFromStatusCell("E2"):', window.SpreadsheetMetaUtils.getIdsFromStatusCell('E2')); // First data row
+          console.log('[DEBUG] getIdsFromStatusCell("E3"):', window.SpreadsheetMetaUtils.getIdsFromStatusCell('E3')); // Second data row
+          console.log('[DEBUG] getGmailUrlFromCell("A2"):', window.SpreadsheetMetaUtils.getGmailUrlFromCell('A2'));
+          console.log('[DEBUG] getGmailUrlFromCell("G2"):', window.SpreadsheetMetaUtils.getGmailUrlFromCell('G2'));
+          
+          // Show raw meta data from worksheet
+          console.log('[DEBUG] Raw meta A1 (header):', worksheet.getMeta('A1')); // Should be undefined/null
+          console.log('[DEBUG] Raw meta A2 (first data):', worksheet.getMeta('A2')); // Should have meta data
+          console.log('[DEBUG] Raw meta E2 (first status):', worksheet.getMeta('E2')); // Should have meta data
+          console.log('[DEBUG] Raw meta G2 (first thread):', worksheet.getMeta('G2')); // Should have meta data
+          console.log('==========================================\n');
+        }, 500);
       }
     }]
   });
@@ -131,13 +158,30 @@ async function setupShadowDOMContainer(container) {
     try {
       console.log('[SHADOW DOM] Loading local CSS files...');
       
-      // Read jspreadsheet CSS content
-      const jspreadsheetResponse = await fetch(chrome.runtime.getURL('jspreadsheet.css'));
-      const jspreadsheetCss = await jspreadsheetResponse.text();
+      // Get CSS file URLs
+      const jspreadsheetUrl = chrome.runtime.getURL('jspreadsheet.css');
+      const jsuitesUrl = chrome.runtime.getURL('jsuites.css');
       
-      // Read jsuites CSS content
-      const jsuitesResponse = await fetch(chrome.runtime.getURL('jsuites.css'));
+      console.log('[SHADOW DOM] CSS URLs:', {
+        jspreadsheet: jspreadsheetUrl,
+        jsuites: jsuitesUrl
+      });
+      
+      // Read jspreadsheet CSS content with better error handling
+      const jspreadsheetResponse = await fetch(jspreadsheetUrl);
+      if (!jspreadsheetResponse.ok) {
+        throw new Error(`Failed to fetch jspreadsheet.css: ${jspreadsheetResponse.status} ${jspreadsheetResponse.statusText}`);
+      }
+      const jspreadsheetCss = await jspreadsheetResponse.text();
+      console.log('[SHADOW DOM] ✅ jspreadsheet.css loaded, size:', jspreadsheetCss.length);
+      
+      // Read jsuites CSS content with better error handling
+      const jsuitesResponse = await fetch(jsuitesUrl);
+      if (!jsuitesResponse.ok) {
+        throw new Error(`Failed to fetch jsuites.css: ${jsuitesResponse.status} ${jsuitesResponse.statusText}`);
+      }
       const jsuitesCss = await jsuitesResponse.text();
+      console.log('[SHADOW DOM] ✅ jsuites.css loaded, size:', jsuitesCss.length);
       
       // Create style element with combined CSS content
       const styleElement = document.createElement('style');
@@ -157,6 +201,13 @@ async function setupShadowDOMContainer(container) {
       return true;
     } catch (error) {
       console.error('[SHADOW DOM] ❌ Error loading local CSS files:', error);
+      console.error('[SHADOW DOM] ❌ Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // No fallback possible due to CORS restrictions
+      console.error('[SHADOW DOM] ❌ CSS loading failed - ensure jspreadsheet.css and jsuites.css are in dist/ directory');
       return false;
     }
   };
@@ -940,7 +991,7 @@ function convertDataToCSV(data) {
   }
   
   // Create CSV with headers
-  const headers = ['Invoice #', 'Vendor', 'Amount', 'Due Date', 'Status', 'Assigned To', 'Thread ID', 'Actions'];
+  const headers = ['Invoice #', 'Vendor', 'Amount', 'Due Date', 'Status', 'Assigned To', 'Actions'];
   const csvRows = [headers];
   
   // Add data rows, excluding HTML content in Actions column
@@ -983,7 +1034,49 @@ function transformDataForSpreadsheet(invoices) {
     invoice.dueDate,
     invoice.status,
     invoice.assignedTo,
-    invoice.threadId,
+    // The threadId for the removed column is no longer here
     `<button class="view-thread-btn" data-thread-id="${invoice.threadId}">View Thread</button>`
   ]);
-} 
+}
+
+// Helper function to generate meta information for spreadsheet cells
+function generateMetaInformation(invoices) {
+  if (!invoices || invoices.length === 0) {
+    return {};
+  }
+  
+  const metaInfo = {};
+  
+  invoices.forEach((invoice, rowIndex) => {
+    const row = rowIndex + 2; // jspreadsheet rows are 1-indexed + 1 for header row
+    
+    // Meta information for Invoice Number cells (Column A)
+    // Store threadId for linking back to Gmail thread
+    const invoiceCell = `A${row}`;
+    metaInfo[invoiceCell] = {
+      threadId: invoice.threadId,
+      invoiceNumber: invoice.invoiceNumber,
+      type: 'invoice_identifier'
+    };
+    
+    // Meta information for Status cells (Column E) 
+    // Store both threadId and messageId for precise message linking
+    const statusCell = `E${row}`;
+    metaInfo[statusCell] = {
+      threadId: invoice.threadId,
+      messageId: invoice.messageId || invoice.threadId, // Fallback to threadId if messageId not available
+      status: invoice.status,
+      type: 'status_tracker',
+      lastUpdated: new Date().toISOString()
+    };
+    
+    // The meta information for the 'Thread ID' column is now removed
+  });
+  
+  console.log('[META INFO] Generated metadata for', Object.keys(metaInfo).length, 'cells');
+  console.log('[META INFO] Sample meta data:', metaInfo);
+  
+  return metaInfo;
+}
+
+ 
