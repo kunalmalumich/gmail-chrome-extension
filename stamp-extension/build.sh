@@ -69,6 +69,15 @@ echo "=> Copying CSS files for jspreadsheet..."
 cp jspreadsheet.css dist/ 2>/dev/null || echo "   Warning: jspreadsheet.css not found"
 cp jsuites.css dist/ 2>/dev/null || echo "   Warning: jsuites.css not found"
 
+# Copy floating chat files
+echo "=> Copying floating chat files..."
+if [ -d "floating-chat" ]; then
+  cp -r floating-chat dist/
+  echo "   Floating chat files copied successfully"
+else
+  echo "   Warning: floating-chat directory not found"
+fi
+
 echo
 echo "Build complete! 🎉"
 echo "The complete extension has been built into the 'dist' directory."

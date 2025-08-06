@@ -5,6 +5,7 @@ import 'jspreadsheet-ce/dist/jspreadsheet.css';
 import 'jsuites/dist/jsuites.css';
 import { buildSpreadsheet } from './spreadsheet-builder.js';
 import { ThreadDataManager } from './thread-data-manager.js';
+import { createLoadingController } from './ai-loading-component.js';
 
 // DEBUG: Verify content script is loading
 console.log('[CONTENT SCRIPT] ✅ Content script loaded and executing');
@@ -159,6 +160,12 @@ class ApiClient {
    * The backend will handle token refresh and validation.
    */
   async makeAuthenticatedRequest(endpoint, options = {}) {
+    // Context Guard: If the extension context is invalidated, stop immediately.
+    if (!chrome.runtime?.id) {
+      console.warn('[API] Extension context invalidated. Halting request.');
+      return Promise.reject(new Error('Extension context invalidated.'));
+    }
+
     const { installationId, userEmail } = await chrome.storage.local.get(['installationId', 'userEmail']);
     
     if (!installationId) {
@@ -224,6 +231,18 @@ class ApiClient {
   async getEmailStatus() {
     const response = await this.makeAuthenticatedRequest('/status');
     return response.json();
+  }
+
+  /**
+   * Gets detailed invoice data from the backend.
+   */
+  async getDetailedInvoices() {
+    console.log('[API] 🚀 Starting getDetailedInvoices request...');
+    const response = await this.makeAuthenticatedRequest('/api/finops/invoices/detailed');
+    console.log('[API] ✅ Raw response received from /api/finops/invoices/detailed');
+    const jsonData = await response.json();
+    console.log('[API] 📊 Parsed JSON response. It is an array of length:', jsonData?.length || 0);
+    return jsonData;
   }
 }
 
@@ -318,6 +337,22 @@ class AuthService {
       isLoggedIn: !!installationId,
       userEmail: userEmail || null
     };
+  }
+
+  /**
+   * Gets the user email from local storage.
+   */
+  async getUserEmail() {
+    const { userEmail } = await chrome.storage.local.get(['userEmail']);
+    return userEmail || null;
+  }
+
+  /**
+   * Gets the installation ID from local storage.
+   */
+  async getInstallationId() {
+    const { installationId } = await chrome.storage.local.get(['installationId']);
+    return installationId || null;
   }
 
   /**
@@ -907,6 +942,7 @@ class UIManager {
     this.sidebarPanel = null;
     this.sidebarElement = null; // Add this to store the DOM element reference
     this.dataManager = new ThreadDataManager(null); // Initialize dataManager without apiClient initially
+    this.floatingChatManager = null; // Add floating chat manager
   }
 
   setAuthService(authService) {
@@ -917,6 +953,71 @@ class UIManager {
     this.apiClient = apiClient;
     // Update the dataManager with the apiClient
     this.dataManager.apiClient = apiClient;
+  }
+
+  initializeFloatingChat() {
+    console.log('[FLOATING CHAT] Starting initialization...');
+    try {
+      // Load floating chat scripts
+      this.loadFloatingChatScripts().then(() => {
+        console.log('[FLOATING CHAT] Scripts loaded successfully');
+        // Initialize floating chat manager
+        this.floatingChatManager = new FloatingChatManager(this);
+        console.log('[FLOATING CHAT] Manager initialized:', this.floatingChatManager);
+      }).catch(error => {
+        console.error('[FLOATING CHAT] Failed to load scripts:', error);
+      });
+    } catch (error) {
+      console.error('[FLOATING CHAT] Failed to initialize floating chat:', error);
+    }
+  }
+
+  async loadFloatingChatScripts() {
+    console.log('[FLOATING CHAT] Loading scripts...');
+    return new Promise((resolve, reject) => {
+      // Load floating chat CSS
+      const cssLink = document.createElement('link');
+      cssLink.rel = 'stylesheet';
+      cssLink.href = chrome.runtime.getURL('floating-chat/floating-chat.css');
+      console.log('[FLOATING CHAT] CSS URL:', cssLink.href);
+      document.head.appendChild(cssLink);
+
+      // Load floating chat JavaScript
+      const script = document.createElement('script');
+      script.src = chrome.runtime.getURL('floating-chat/floating-chat.js');
+      console.log('[FLOATING CHAT] JS URL:', script.src);
+      script.onload = () => {
+        console.log('[FLOATING CHAT] Main script loaded');
+        // Load floating chat manager
+        const managerScript = document.createElement('script');
+        managerScript.src = chrome.runtime.getURL('floating-chat/floating-chat-manager.js');
+        console.log('[FLOATING CHAT] Manager URL:', managerScript.src);
+        managerScript.onload = () => {
+          console.log('[FLOATING CHAT] Manager script loaded');
+          resolve();
+        };
+        managerScript.onerror = (error) => {
+          console.error('[FLOATING CHAT] Manager script failed:', error);
+          reject(error);
+        };
+        document.head.appendChild(managerScript);
+      };
+      script.onerror = (error) => {
+        console.error('[FLOATING CHAT] Main script failed:', error);
+        reject(error);
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  // Test method for floating chat (can be called from console)
+  testFloatingChat() {
+    if (this.floatingChatManager) {
+      console.log('[TEST] Floating chat state:', this.floatingChatManager.getState());
+      this.floatingChatManager.addMessage('This is a test message from the console!', 'assistant');
+    } else {
+      console.log('[TEST] Floating chat manager not initialized');
+    }
   }
 
   /**
@@ -948,6 +1049,9 @@ class UIManager {
       if (isLoggedIn) {
         console.log('[UI DEBUG] 2. User is logged in. Calling renderMainView.');
         this.renderMainView();
+        
+        // Initialize floating chat after main view is rendered
+        this.initializeFloatingChat();
       } else {
         console.log('[UI DEBUG] 2. User is NOT logged in. Calling renderLoginView.');
         this.renderLoginView();
@@ -1266,7 +1370,7 @@ class UIManager {
         self.showLoading(assistantDiv);
 
         // Make API call
-        const response = await self.apiClient.makeAuthenticatedRequest('/api/finops', {
+        const response = await self.apiClient.makeAuthenticatedRequest('/api/finops/stream', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1278,20 +1382,39 @@ class UIManager {
           }),
         });
 
+        console.log('[CHAT] Raw response object:', response);
+        console.log('[CHAT] Response headers:', {
+          contentType: response.headers.get('content-type'),
+          status: response.status,
+          statusText: response.statusText
+        });
+
         // Hide loading state
         self.hideLoading(assistantDiv);
 
         // Check if response is streaming
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('text/event-stream')) {
-          // Handle streaming response
+          console.log('[CHAT] Handling streaming response');
           await self.handleStreamingResponse(response, assistantDiv);
         } else {
-          // Handle JSON response
+          console.log('[CHAT] Handling JSON response');
           const data = await response.json();
-          if (data.answer) {
+          console.log('[CHAT] Parsed response data:', data);
+          console.log('[CHAT] Response data type:', typeof data);
+          console.log('[CHAT] Response keys:', Object.keys(data));
+          
+          if (data.response) {
+            console.log('[CHAT] Found response content:', data.response);
+            assistantDiv.querySelector('#main-content').textContent = data.response;
+          } else if (data.AGENT_OUTPUT) {
+            console.log('[CHAT] Found AGENT_OUTPUT:', data.AGENT_OUTPUT);
+            assistantDiv.querySelector('#main-content').textContent = data.AGENT_OUTPUT;
+          } else if (data.answer) {
+            console.log('[CHAT] Found answer:', data.answer);
             assistantDiv.querySelector('#main-content').textContent = data.answer;
           } else {
+            console.warn('[CHAT] No recognized response format found in:', data);
             assistantDiv.querySelector('#main-content').textContent = 'I received your question but no response was provided.';
           }
         }
@@ -1320,6 +1443,128 @@ class UIManager {
       questionInput.style.height = Math.min(questionInput.scrollHeight, 120) + 'px';
     });
   }
+
+  async handleStreamingResponse(response, assistantDiv) {
+    console.log('[STREAM] Starting to handle streaming response...');
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    const mainContent = assistantDiv.querySelector('#main-content');
+    let buffer = '';
+    let contentBuffer = ''; // For accumulating actual content
+    let reasoningBuffer = ''; // For accumulating reasoning content
+
+    mainContent.textContent = ''; // Clear any previous content
+
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+                console.log('[STREAM] Stream finished.');
+                break;
+            }
+
+            buffer += decoder.decode(value, { stream: true });
+            console.log(`[STREAM] Received chunk, buffer is now: "${buffer}"`);
+
+            // Parse Server-Sent Events
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const eventData = JSON.parse(line.slice(6)); // Remove 'data: ' prefix
+                        console.log('[STREAM] Parsed event:', eventData);
+                        console.log('[STREAM] Event type:', eventData.type);
+
+                        // Handle different event types
+                        if (eventData.type === 'content') {
+                            const content = eventData.data.content || '';
+                            contentBuffer += content;
+                            
+                            // Create or update content display
+                            let contentDiv = mainContent.querySelector('#content-display');
+                            if (!contentDiv) {
+                                contentDiv = document.createElement('div');
+                                contentDiv.id = 'content-display';
+                                contentDiv.style.marginTop = '10px';
+                                mainContent.appendChild(contentDiv);
+                            }
+                            contentDiv.textContent = contentBuffer;
+                            
+                        } else if (eventData.type === 'reasoning') {
+                            const reasoning = eventData.data.content || '';
+                            reasoningBuffer += reasoning + '\n';
+                            
+                            // Create or update reasoning display
+                            let reasoningDiv = mainContent.querySelector('#reasoning-display');
+                            if (!reasoningDiv) {
+                                reasoningDiv = document.createElement('div');
+                                reasoningDiv.id = 'reasoning-display';
+                                reasoningDiv.style.color = '#666';
+                                reasoningDiv.style.fontStyle = 'italic';
+                                reasoningDiv.style.marginBottom = '10px';
+                                reasoningDiv.style.borderLeft = '3px solid #ddd';
+                                reasoningDiv.style.paddingLeft = '10px';
+                                mainContent.appendChild(reasoningDiv);
+                            }
+                            reasoningDiv.textContent = reasoningBuffer;
+                            
+                        } else if (eventData.type === 'workflow_start') {
+                            console.log('[STREAM] Workflow started');
+                            
+                        } else if (eventData.type === 'agent_start') {
+                            console.log('[STREAM] Agent started:', eventData.data.agent_name);
+                            
+                        } else if (eventData.type === 'synthesis') {
+                            console.log('[STREAM] Synthesis step completed');
+                            
+                        } else if (eventData.type === 'workflow_complete') {
+                            console.log('[STREAM] Workflow completed successfully');
+                            
+                        } else if (eventData.type === 'tool_call') {
+                            // Skip tool calls - don't show them to users
+                            console.log('[STREAM] Tool call (hidden from user):', eventData.data.tool_name);
+                            
+                        } else if (eventData.type === 'tool_result') {
+                            // Skip tool results - don't show them to users
+                            console.log('[STREAM] Tool result (hidden from user):', eventData.data.tool_name);
+                            
+                        } else if (eventData.type === 'error') {
+                            const errorDiv = document.createElement('div');
+                            errorDiv.style.color = '#d32f2f';
+                            errorDiv.style.fontWeight = 'bold';
+                            errorDiv.textContent = `❌ Error: ${eventData.data.error}`;
+                            mainContent.appendChild(errorDiv);
+                            
+                        } else {
+                            // Log any unhandled event types
+                            console.log('[STREAM] Unhandled event type:', eventData.type, eventData);
+                        }
+
+                    } catch (parseError) {
+                        console.error('[STREAM] Failed to parse event:', line, parseError);
+                    }
+                }
+            }
+
+            // Scroll to the bottom of the chat output
+            const chatOutput = assistantDiv.closest('#chat-output');
+            if (chatOutput) {
+                chatOutput.scrollTop = chatOutput.scrollHeight;
+            }
+        }
+    } catch (error) {
+        console.error('[STREAM] Error reading from stream:', error);
+        const errorDiv = document.createElement('div');
+        errorDiv.style.color = '#d32f2f';
+        errorDiv.textContent = '[Error reading stream]';
+        mainContent.appendChild(errorDiv);
+    } finally {
+        console.log('[STREAM] Final content:', contentBuffer);
+        console.log('[STREAM] Final reasoning:', reasoningBuffer);
+    }
+};
 
   createLoginContent() {
       return `
@@ -1898,11 +2143,37 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
     
     customRouteView.getElement().appendChild(container);
 
-    // Fetch live data from our data manager instead of using a static sample
-    const allInvoices = await dataManager.getAllInvoices();
-        
-    // Build spreadsheet with the live data
-    await buildSpreadsheet(container, allInvoices);
+    // Initialize AI-style loading controller
+    const loadingController = createLoadingController(container);
+    
+    try {
+      // Step 1: Start fetching invoices
+      loadingController.startFetching();
+      console.log('[AI LOADING] 🚀 Starting invoice fetch...');
+      
+      // Fetch live data from our data manager
+      const allInvoices = await dataManager.getAllInvoices();
+      loadingController.completeFetching();
+      console.log('[AI LOADING] ✅ Invoice fetch completed');
+      
+      // Step 2: Start processing details (immediate)
+      loadingController.startDetails();
+      loadingController.completeDetails();
+      console.log('[AI LOADING] ✅ Invoice details processed');
+      
+      // Step 3: Start status processing (immediate)
+      loadingController.startStatus();
+      loadingController.completeStatus();
+      console.log('[AI LOADING] ✅ Invoice status processed');
+      
+      // Build spreadsheet immediately with the live data
+      await buildSpreadsheet(container, allInvoices);
+      console.log('[AI LOADING] 🎯 Spreadsheet built successfully');
+      
+    } catch (error) {
+      console.error('[AI LOADING] ❌ Error during invoice loading:', error);
+      loadingController.showError(error);
+    }
     
     // Handle route cleanup
     customRouteView.on('destroy', () => {
@@ -2004,6 +2275,38 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
 
   // Initialize the UIManager, which will now only handle the sidebar content
   uiManager.initialize();
+
+  // Make UIManager globally accessible for testing
+  window.uiManager = uiManager;
+
+  // Global test function for console access
+  window.testFloatingChat = () => {
+    console.log('[GLOBAL TEST] Testing floating chat...');
+    if (window.uiManager) {
+      window.uiManager.testFloatingChat();
+    } else {
+      console.log('[GLOBAL TEST] UIManager not available');
+    }
+  };
+
+  // Global function to manually create floating chat
+  window.createFloatingChat = () => {
+    console.log('[GLOBAL TEST] Manually creating floating chat...');
+    if (window.uiManager && window.uiManager.apiClient && window.uiManager.authService) {
+      try {
+        const floatingChat = new FloatingChat(
+          window.uiManager.apiClient,
+          window.uiManager.authService
+        );
+        console.log('[GLOBAL TEST] Floating chat created:', floatingChat);
+        return floatingChat;
+      } catch (error) {
+        console.error('[GLOBAL TEST] Failed to create floating chat:', error);
+      }
+    } else {
+      console.log('[GLOBAL TEST] UIManager or dependencies not available');
+    }
+  };
 
   // Add Material Icons for jspreadsheet toolbar
   const materialIconsLink = document.createElement('link');

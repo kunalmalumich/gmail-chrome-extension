@@ -18,20 +18,43 @@ export async function buildSpreadsheet(container, data) {
       title: 'Invoice #', 
       width: 150, 
       type: 'text',
-      align: 'left'
     },
     { 
-      title: 'Vendor', 
+      title: 'Entity Name', 
       width: 200, 
       type: 'text',
-      align: 'left'
+    },
+    { 
+      title: 'Vendor Name', 
+      width: 200, 
+      type: 'text',
+    },
+    { 
+      title: 'Invoice Description', 
+      width: 150, 
+      type: 'text',
+    },
+    { 
+      title: 'Period', 
+      width: 120, 
+      type: 'text',
     },
     { 
       title: 'Amount', 
       width: 100, 
       type: 'numeric', 
       mask: '$ #,##.00',
-      align: 'right'
+    },
+    {
+      title: 'Currency',
+      width: 80,
+      type: 'text'
+    },
+    { 
+      title: 'Issue Date', 
+      width: 120, 
+      type: 'calendar', 
+      options: { format: 'YYYY-MM-DD' } 
     },
     { 
       title: 'Due Date', 
@@ -39,18 +62,27 @@ export async function buildSpreadsheet(container, data) {
       type: 'calendar', 
       options: { format: 'YYYY-MM-DD' } 
     },
+    {
+      title: 'Terms',
+      width: 100,
+      type: 'text'
+    },
     { 
       title: 'Status', 
-      width: 150, 
+      width: 120, 
       type: 'dropdown',
-      source: Object.values(INVOICE_STAGES)
+      source: [ 'approved', 'pending', 'rejected', 'in_review' ]
     },
-    { 
-      title: 'Assigned To', 
-      width: 150, 
-      type: 'text' 
+    {
+      title: 'Approver',
+      width: 150,
+      type: 'text'
     },
-    // The 'Thread ID' column is now removed
+    {
+      title: 'Notes',
+      width: 250,
+      type: 'text'
+    },
     { 
       title: 'Actions', 
       width: 120, 
@@ -61,6 +93,8 @@ export async function buildSpreadsheet(container, data) {
 
   // Transform the raw invoice data to fit the spreadsheet structure
   const spreadsheetData = transformDataForSpreadsheet(data);
+  console.log('[SPREADSHEET] 📊 Transformed data for jspreadsheet:', spreadsheetData);
+  console.log('[SPREADSHEET] 📋 Number of rows to display:', spreadsheetData.length);
   
   // Generate meta information for Invoice Number and Status cells
   const metaInformation = generateMetaInformation(data);
@@ -80,7 +114,6 @@ export async function buildSpreadsheet(container, data) {
       // === USE JSPREADSHEET DEFAULTS ===
       allowComments: true,
       tableOverflow: true,  // Built-in scrolling
-      toolbar: true,        // Built-in toolbar 
       editable: true,
       allowInsertRow: true,
       allowDeleteRow: true,
@@ -156,6 +189,12 @@ async function setupShadowDOMContainer(container) {
   // Load CSS content from local files and inject into shadow DOM
   const loadLocalCSS = async () => {
     try {
+      // Context Guard: If the extension context is invalidated, stop immediately.
+      if (!chrome.runtime?.id) {
+        console.warn('[SHADOW DOM] Extension context invalidated. Halting CSS load.');
+        return false;
+      }
+
       console.log('[SHADOW DOM] Loading local CSS files...');
       
       // Get CSS file URLs
@@ -1027,16 +1066,27 @@ function transformDataForSpreadsheet(invoices) {
     if (!invoices) {
         return [];
     }
-  return invoices.map(invoice => [
-    invoice.invoiceNumber,
-    invoice.vendor,
-    invoice.amount,
-    invoice.dueDate,
-    invoice.status,
-    invoice.assignedTo,
-    // The threadId for the removed column is no longer here
-    `<button class="view-thread-btn" data-thread-id="${invoice.threadId}">View Thread</button>`
-  ]);
+  return invoices.map(invoice => {
+    const extracted = invoice.extracted_data || {};
+    const threadId = invoice.locations?.[0]?.thread_id || '';
+
+    return [
+      invoice.invoice_number || '',
+      extracted.entityName || '',
+      extracted.vendor?.name || '',
+      extracted.complete_extraction?.documentDetails?.kind || '',
+      extracted.complete_extraction?.documentDetails?.period || '',
+      extracted.amount || '',
+      extracted.currency || '',
+      extracted.issueDate || '',
+      extracted.dueDate || '',
+      extracted.paymentTerms || '',
+      invoice.final_status || '',
+      `${invoice.approvers?.actual_approvers?.join(', ') || ''}${invoice.approvers?.pending_approvers?.length ? ` | Pending: ${invoice.approvers.pending_approvers.join(', ')}` : ''}`,
+      extracted.notes || '',
+      threadId ? `<button class="view-thread-btn" data-thread-id="${threadId}">View Thread</button>` : ''
+    ];
+  });
 }
 
 // Helper function to generate meta information for spreadsheet cells

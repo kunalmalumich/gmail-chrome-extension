@@ -118,10 +118,35 @@ export class ThreadDataManager {
      * @returns {Promise<Array<object>>} A promise that resolves to an array of all invoices.
      */
     async getAllInvoices() {
-        console.log('[ThreadDataManager] getAllInvoices called.');
-        // --- MOCK API CALL ---
-        return getMockAllInvoices();
-        // --- END MOCK ---
+        console.log('[ThreadDataManager] 🎯 getAllInvoices called.');
+        if (!this.apiClient) {
+          console.warn('[ThreadDataManager] ⚠️ No API client available, returning empty data for invoices.');
+          return [];
+        }
+        
+        try {
+          console.log('[ThreadDataManager] 📡 Fetching detailed invoices from the backend...');
+          const invoices = await this.apiClient.getDetailedInvoices();
+          console.log('[ThreadDataManager] ✅ Received detailed invoices response:', invoices);
+          console.log('[ThreadDataManager] 📊 Response type:', typeof invoices);
+          console.log('[ThreadDataManager] 📋 Invoices array length:', invoices?.length || 0);
+          
+          console.log('[ThreadDataManager] 🎯 Returning invoices array with', (invoices || []).length, 'items');
+          
+          // Log first invoice structure for debugging
+          if (invoices && invoices.length > 0) {
+            console.log('[ThreadDataManager] 📝 Sample invoice structure:', invoices[0]);
+          }
+          
+          return invoices || [];
+        } catch (error) {
+          console.error('[ThreadDataManager] ❌ Failed to fetch detailed invoices:', error);
+          console.error('[ThreadDataManager] ❌ Error details:', {
+            message: error.message,
+            stack: error.stack
+          });
+          return []; // Return an empty array on error to prevent UI crashes
+        }
     }
 
     /**
