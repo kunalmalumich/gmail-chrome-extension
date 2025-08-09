@@ -109,12 +109,10 @@ class FloatingChat {
     const header = this.container.querySelector('.floating-chat-header');
     
     header.addEventListener('mousedown', (e) => {
-      if (this.isMinimized) return;
       this.startDragging(e);
     });
 
     header.addEventListener('touchstart', (e) => {
-      if (this.isMinimized) return;
       this.startDragging(e);
     });
 
@@ -145,8 +143,6 @@ class FloatingChat {
   }
 
   startDragging(e) {
-    if (this.isMinimized) return;
-    
     this.isDragging = true;
     const rect = this.container.getBoundingClientRect();
     const clientX = e.clientX || e.touches[0].clientX;
@@ -304,80 +300,58 @@ class FloatingChat {
         }),
       });
 
-      // Handle streaming response
-      await this.handleStreamingResponse(response);
+      // Hide typing indicator
+      this.hideTypingIndicator();
+
+      // Check if response is streaming
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/event-stream')) {
+        console.log('[FLOATING CHAT] Handling streaming response');
+        
+        // Create a temporary div for the shared handler
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = `
+          <div id="main-content" style="color: #374151; line-height: 1.6; font-size: 15px;"></div>
+        `;
+        
+        // Use the shared handler from content.js
+        await window.sharedHandleStreamingResponse(response, tempDiv);
+        
+        // Extract the final content and add to floating chat
+        const mainContent = tempDiv.querySelector('#main-content');
+        const contentDisplay = mainContent.querySelector('#content-display');
+        const reasoningDisplay = mainContent.querySelector('#reasoning-display');
+        
+        // Add reasoning if present
+        if (reasoningDisplay && reasoningDisplay.textContent.trim()) {
+          this.addMessage(reasoningDisplay.textContent, 'assistant');
+        }
+        
+        // Add content if present
+        if (contentDisplay && contentDisplay.textContent.trim()) {
+          this.addMessage(contentDisplay.textContent, 'assistant');
+        }
+      } else {
+        console.log('[FLOATING CHAT] Handling JSON response');
+        const data = await response.json();
+        console.log('[FLOATING CHAT] Parsed response data:', data);
+        
+        if (data.response) {
+          this.addMessage(data.response, 'assistant');
+        } else if (data.AGENT_OUTPUT) {
+          this.addMessage(data.AGENT_OUTPUT, 'assistant');
+        } else if (data.answer) {
+          this.addMessage(data.answer, 'assistant');
+        } else {
+          console.warn('[FLOATING CHAT] No recognized response format found in:', data);
+          this.addMessage('I received your question but no response was provided.', 'assistant');
+        }
+      }
 
     } catch (error) {
       console.error('[FLOATING CHAT] Error sending message:', error);
       this.hideTypingIndicator();
       this.addMessage('Sorry, I encountered an error. Please try again.', 'assistant');
-    }
-  }
-
-  async handleStreamingResponse(response) {
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let contentBuffer = '';
-    let reasoningBuffer = '';
-
-    this.hideTypingIndicator();
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const eventData = JSON.parse(line.slice(6));
-              
-              if (eventData.type === 'content') {
-                const content = eventData.data.content || '';
-                contentBuffer += content;
-                
-                // Update or create content message
-                let contentMessage = this.messagesContainer.querySelector('#current-content');
-                if (!contentMessage) {
-                  contentMessage = document.createElement('div');
-                  contentMessage.className = 'floating-chat-message assistant';
-                  contentMessage.id = 'current-content';
-                  this.messagesContainer.appendChild(contentMessage);
-                }
-                contentMessage.textContent = contentBuffer;
-                
-              } else if (eventData.type === 'reasoning') {
-                const reasoning = eventData.data.content || '';
-                reasoningBuffer += reasoning + '\n';
-                
-                // Update or create reasoning message
-                let reasoningMessage = this.messagesContainer.querySelector('#current-reasoning');
-                if (!reasoningMessage) {
-                  reasoningMessage = document.createElement('div');
-                  reasoningMessage.className = 'floating-chat-message assistant';
-                  reasoningMessage.id = 'current-reasoning';
-                  reasoningMessage.style.fontStyle = 'italic';
-                  reasoningMessage.style.opacity = '0.8';
-                  this.messagesContainer.appendChild(reasoningMessage);
-                }
-                reasoningMessage.textContent = reasoningBuffer;
-              }
-              
-              this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
-            } catch (parseError) {
-              console.error('[FLOATING CHAT] Failed to parse event:', line, parseError);
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('[FLOATING CHAT] Error reading stream:', error);
-      this.addMessage('Sorry, I encountered an error while processing your request.', 'assistant');
     }
   }
 

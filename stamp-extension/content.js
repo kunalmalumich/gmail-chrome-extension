@@ -958,7 +958,7 @@ class UIManager {
   initializeFloatingChat() {
     console.log('[FLOATING CHAT] Starting initialization...');
     try {
-      // Load floating chat scripts
+      // Load floating chat scripts using chrome.scripting.executeScript
       this.loadFloatingChatScripts().then(() => {
         console.log('[FLOATING CHAT] Scripts loaded successfully');
         // Initialize floating chat manager
@@ -973,41 +973,31 @@ class UIManager {
   }
 
   async loadFloatingChatScripts() {
-    console.log('[FLOATING CHAT] Loading scripts...');
-    return new Promise((resolve, reject) => {
-      // Load floating chat CSS
+    console.log('[FLOATING CHAT] Requesting script injection from background script...');
+    
+    try {
+      // Load CSS (this is allowed in content scripts)
       const cssLink = document.createElement('link');
       cssLink.rel = 'stylesheet';
       cssLink.href = chrome.runtime.getURL('floating-chat/floating-chat.css');
-      console.log('[FLOATING CHAT] CSS URL:', cssLink.href);
+      console.log('[FLOATING CHAT] Injected CSS link.');
       document.head.appendChild(cssLink);
 
-      // Load floating chat JavaScript
-      const script = document.createElement('script');
-      script.src = chrome.runtime.getURL('floating-chat/floating-chat.js');
-      console.log('[FLOATING CHAT] JS URL:', script.src);
-      script.onload = () => {
-        console.log('[FLOATING CHAT] Main script loaded');
-        // Load floating chat manager
-        const managerScript = document.createElement('script');
-        managerScript.src = chrome.runtime.getURL('floating-chat/floating-chat-manager.js');
-        console.log('[FLOATING CHAT] Manager URL:', managerScript.src);
-        managerScript.onload = () => {
-          console.log('[FLOATING CHAT] Manager script loaded');
-          resolve();
-        };
-        managerScript.onerror = (error) => {
-          console.error('[FLOATING CHAT] Manager script failed:', error);
-          reject(error);
-        };
-        document.head.appendChild(managerScript);
-      };
-      script.onerror = (error) => {
-        console.error('[FLOATING CHAT] Main script failed:', error);
-        reject(error);
-      };
-      document.head.appendChild(script);
-    });
+      // Send a message to the background script to inject the JS files
+      const response = await chrome.runtime.sendMessage({
+        type: 'INJECT_FLOATING_CHAT_SCRIPTS'
+      });
+
+      if (response && response.success) {
+        console.log('[FLOATING CHAT] Background script confirmed injection.');
+      } else {
+        throw new Error(response.error || 'Unknown error during script injection.');
+      }
+
+    } catch (error) {
+      console.error('[FLOATING CHAT] Failed to load scripts via background script:', error);
+      throw error;
+    }
   }
 
   // Test method for floating chat (can be called from console)
@@ -1065,7 +1055,7 @@ class UIManager {
 
   // Method to update the sidebar with invoice details for the current thread
   async handleThreadView(threadView) {
-    const threadId = await threadView.getThreadID();
+    const threadId = await threadView.getThreadIDAsync();
     console.log('[UI] Thread view changed:', threadId);
 
     // Use the data manager to get data for this specific thread
@@ -1542,29 +1532,29 @@ class UIManager {
                             console.log('[STREAM] Unhandled event type:', eventData.type, eventData);
                         }
 
+                        // Scroll to the bottom of the chat output
+                        const chatOutput = assistantDiv.closest('#chat-output');
+                        if (chatOutput) {
+                            chatOutput.scrollTop = chatOutput.scrollHeight;
+                        }
+
                     } catch (parseError) {
                         console.error('[STREAM] Failed to parse event:', line, parseError);
                     }
                 }
             }
-
-            // Scroll to the bottom of the chat output
-            const chatOutput = assistantDiv.closest('#chat-output');
-            if (chatOutput) {
-                chatOutput.scrollTop = chatOutput.scrollHeight;
-            }
         }
     } catch (error) {
-        console.error('[STREAM] Error reading from stream:', error);
+        console.error('[STREAM] Error reading stream:', error);
         const errorDiv = document.createElement('div');
         errorDiv.style.color = '#d32f2f';
-        errorDiv.textContent = '[Error reading stream]';
+        errorDiv.style.fontWeight = 'bold';
+        errorDiv.textContent = `❌ Error reading stream: ${error.message}`;
         mainContent.appendChild(errorDiv);
-    } finally {
-        console.log('[STREAM] Final content:', contentBuffer);
-        console.log('[STREAM] Final reasoning:', reasoningBuffer);
     }
-};
+  }
+
+
 
   createLoginContent() {
       return `
@@ -2111,8 +2101,8 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
   };
 
   // This is the "doorman" function that runs for every single thread row.
-  sdk.Lists.registerThreadRowViewHandler(function (threadRowView) {
-    const threadId = threadRowView.getThreadID();
+  sdk.Lists.registerThreadRowViewHandler(async function (threadRowView) {
+    const threadId = await threadRowView.getThreadIDAsync();
     
     // Instead of fetching immediately, we just add the thread's view to our list.
     threadViewRegistry.set(threadId, threadRowView);
@@ -2278,6 +2268,9 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
 
   // Make UIManager globally accessible for testing
   window.uiManager = uiManager;
+
+  // Make handleStreamingResponse globally available for floating chat
+  window.sharedHandleStreamingResponse = uiManager.handleStreamingResponse.bind(uiManager);
 
   // Global test function for console access
   window.testFloatingChat = () => {

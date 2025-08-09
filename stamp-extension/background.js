@@ -86,6 +86,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Indicates an async response
   }
 
+  // --- Message Handler 3: Inject Floating Chat Scripts ---
+  if (message.type === 'INJECT_FLOATING_CHAT_SCRIPTS') {
+    (async () => {
+      try {
+        console.log('[Background] Handling INJECT_FLOATING_CHAT_SCRIPTS');
+        const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
+        if (tab) {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: [
+              'floating-chat/floating-chat.js',
+              'floating-chat/floating-chat-manager.js'
+            ]
+          });
+          console.log('[Background] Successfully injected floating chat scripts.');
+          sendResponse({ success: true });
+        } else {
+          throw new Error('No active tab found to inject scripts into.');
+        }
+      } catch (error) {
+        console.error('[Background] Failed to inject floating chat scripts:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true; // Indicates an async response
+  }
+
   // Log unhandled message types
   console.warn('[Background] Unhandled message type:', message.type);
   return false;

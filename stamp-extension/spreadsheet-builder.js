@@ -71,7 +71,7 @@ export async function buildSpreadsheet(container, data) {
       title: 'Status', 
       width: 120, 
       type: 'dropdown',
-      source: [ 'approved', 'pending', 'rejected', 'in_review' ]
+      source: [ 'pending', 'approved', 'rejected', 'paid', 'on_hold', 'requires_review', 'partially_approved', 'ready_for_payment', 'duplicate', 'unknown' ]
     },
     {
       title: 'Approver',
@@ -1067,23 +1067,42 @@ function transformDataForSpreadsheet(invoices) {
         return [];
     }
   return invoices.map(invoice => {
-    const extracted = invoice.extracted_data || {};
-    const threadId = invoice.locations?.[0]?.thread_id || '';
+    // The detailed data is now nested in the 'invoice_details' object
+    const details = invoice.invoice_details || invoice;
+    const threadId = invoice.thread_id || '';
+
+    // Process involvementHistory to get the latest action for each person
+    const latestActions = new Map();
+    if (Array.isArray(invoice.involvementHistory)) {
+      invoice.involvementHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      
+      invoice.involvementHistory.forEach(entry => {
+        const person = entry.actor?.name || entry.actor?.email;
+        if (person && !latestActions.has(person)) {
+          latestActions.set(person, entry.action_type || 'No action specified');
+        }
+      });
+    }
+    
+    // Format the latest actions for display
+    const involvementText = Array.from(latestActions)
+      .map(([person, action]) => `${person} | ${action}`)
+      .join('\n');
 
     return [
-      invoice.invoice_number || '',
-      extracted.entityName || '',
-      extracted.vendor?.name || '',
-      extracted.complete_extraction?.documentDetails?.kind || '',
-      extracted.complete_extraction?.documentDetails?.period || '',
-      extracted.amount || '',
-      extracted.currency || '',
-      extracted.issueDate || '',
-      extracted.dueDate || '',
-      extracted.paymentTerms || '',
-      invoice.final_status || '',
-      `${invoice.approvers?.actual_approvers?.join(', ') || ''}${invoice.approvers?.pending_approvers?.length ? ` | Pending: ${invoice.approvers.pending_approvers.join(', ')}` : ''}`,
-      extracted.notes || '',
+      details.invoiceNumber || invoice.invoice_number || 'N/A',
+      details.entityName || '',
+      details.vendor?.name || 'N/A',
+      details.description || invoice.description || '',
+      details.period || invoice.period || '',
+      details.amount || null,
+      details.currency || 'USD',
+      details.issueDate || '',
+      details.dueDate || '',
+      details.paymentTerms || '',
+      invoice.status || 'unknown', // Status is at the top-level of the invoice object
+      involvementText || '',
+      details.notes || '',
       threadId ? `<button class="view-thread-btn" data-thread-id="${threadId}">View Thread</button>` : ''
     ];
   });
