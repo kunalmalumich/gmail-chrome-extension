@@ -1,5 +1,12 @@
 /* Floating Chat Styles for MoleView */
 
+/* Override MoleView Titlebar */
+.inboxsdk__mole_view_titlebar {
+  background: #1A8A76 !important; /* Dark bright green background for the header */
+  color: #FFFFFF !important; /* White text for the header */
+  border-bottom: 1px solid #3BAE9A;
+}
+
 /* The MoleView provides the container. We style the content element we added. */
 .stamp-chat-mole-content {
   display: flex;
@@ -7,7 +14,7 @@
   height: 100%;
   min-height: 400px; /* Give the chat window a reasonable default height */
   overflow: hidden;
-  background: #f8f9fa; /* A light, clean background */
+  background: #1A8A76; /* Dark bright green background */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
@@ -17,7 +24,7 @@
   flex-basis: 0;
   padding: 16px;
   overflow-y: auto; /* Enable vertical scrolling */
-  color: #333;
+  color: #FFFFFF; /* White text for messages */
   min-height: 0; /* Necessary for flexbox scrolling */
 }
 
@@ -32,23 +39,31 @@
 }
 
 .floating-chat-message.user {
-  background: #d1e7fd; /* Light blue for user messages */
-  color: #0d6efd;
+  background: #167866; /* Darker green for user messages */
+  color: #FFFFFF;
   margin-left: auto;
   border-bottom-right-radius: 2px;
   text-align: right;
 }
 
 .floating-chat-message.assistant {
-  background: #e9ecef; /* Light gray for assistant messages */
-  color: #495057;
+  background: #2A9884; /* Lighter card background for assistant */
+  color: #FFFFFF;
   margin-right: auto;
   border-bottom-left-radius: 2px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #3BAE9A;
+}
+
+.floating-chat-message.assistant b {
+  font-weight: 600;
+  color: #FFFFFF;
 }
 
 .floating-chat-message.assistant.reasoning {
   background: transparent;
-  color: #6c757d; /* Muted gray color */
+  color: #B2E4DD; /* Muted light green for reasoning */
   font-size: 12px;
   font-style: italic;
   padding: 4px 12px;
@@ -60,17 +75,17 @@
 .floating-chat-input-container {
   flex: 0 0 auto; /* CRITICAL: Prevent this area from shrinking */
   padding: 12px 16px;
-  border-top: 1px solid #dee2e6;
-  background: #fff;
+  border-top: 1px solid #3BAE9A;
+  background: #1A8A76;
 }
 
 .floating-chat-input {
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid #ced4da;
+  border: 1px solid #3BAE9A;
   border-radius: 8px;
-  background: #fff;
-  color: #495057;
+  background: #167866;
+  color: #FFFFFF;
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -78,12 +93,12 @@
 }
 
 .floating-chat-input::placeholder {
-  color: #adb5bd;
+  color: #B2E4DD;
 }
 
 .floating-chat-input:focus {
-  border-color: #86b7fe;
-  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  border-color: #50C8B3; /* A brighter green for focus */
+  box-shadow: 0 0 0 0.25rem rgba(80, 200, 179, 0.25);
 }
 
 .floating-chat-typing-indicator {
@@ -91,7 +106,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  color: #6c757d;
+  color: #B2E4DD;
   font-size: 13px;
   font-style: italic;
 }
@@ -104,7 +119,7 @@
 .floating-chat-typing-dot {
   width: 6px;
   height: 6px;
-  background: #6c757d;
+  background: #B2E4DD;
   border-radius: 50%;
   animation: typing-pulse 1.4s infinite;
 }
