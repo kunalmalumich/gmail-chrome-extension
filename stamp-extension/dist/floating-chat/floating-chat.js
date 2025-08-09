@@ -1,73 +1,22 @@
 class FloatingChat {
   constructor(apiClient, authService) {
-    console.log('[FLOATING CHAT] Constructor called');
-    console.log('[FLOATING CHAT] apiClient:', apiClient);
-    console.log('[FLOATING CHAT] authService:', authService);
+    console.log('[FLOATING CHAT UI] Constructor called');
     
     this.apiClient = apiClient;
     this.authService = authService;
-    this.isMinimized = false;
-    this.isExpanded = false;
-    this.isDragging = false;
-    this.position = { x: 20, y: 20 };
-    this.dragOffset = { x: 0, y: 0 };
     this.messages = [];
     this.isTyping = false;
     
-    console.log('[FLOATING CHAT] Creating floating element...');
-    this.createFloatingElement();
-    console.log('[FLOATING CHAT] Loading state...');
-    this.loadState();
-    console.log('[FLOATING CHAT] Setting up event listeners...');
-    this.setupEventListeners();
-    console.log('[FLOATING CHAT] Constructor completed');
+    // This class now acts as a UI builder.
+    // The main container will be created by the render() method.
+    this.container = null;
   }
 
-  createFloatingElement() {
-    console.log('[FLOATING CHAT] createFloatingElement called');
-    
-    // Create main container
+  render() {
+    // Create the main container for our chat UI
     this.container = document.createElement('div');
-    this.container.className = 'floating-chat-container minimized';
-    this.container.style.left = `${this.position.x}px`;
-    this.container.style.top = `${this.position.y}px`;
-    console.log('[FLOATING CHAT] Container created:', this.container);
-
-    // Create header
-    const header = document.createElement('div');
-    header.className = 'floating-chat-header';
+    this.container.className = 'stamp-chat-mole-content';
     
-    const title = document.createElement('div');
-    title.className = 'floating-chat-title';
-    title.innerHTML = `
-      <div class="stamp-icon">S</div>
-      <span>Stamp Chat</span>
-    `;
-    
-    const controls = document.createElement('div');
-    controls.className = 'floating-chat-controls';
-    
-    this.minimizeBtn = document.createElement('button');
-    this.minimizeBtn.className = 'floating-chat-btn';
-    this.minimizeBtn.innerHTML = '−';
-    this.minimizeBtn.title = 'Minimize';
-    
-    this.maximizeBtn = document.createElement('button');
-    this.maximizeBtn.className = 'floating-chat-btn';
-    this.maximizeBtn.innerHTML = '□';
-    this.maximizeBtn.title = 'Maximize';
-    
-    controls.appendChild(this.minimizeBtn);
-    controls.appendChild(this.maximizeBtn);
-    
-    header.appendChild(title);
-    header.appendChild(controls);
-
-    // Create content area
-    this.content = document.createElement('div');
-    this.content.className = 'floating-chat-content';
-    this.content.style.display = 'none';
-
     // Create messages container
     this.messagesContainer = document.createElement('div');
     this.messagesContainer.className = 'floating-chat-messages';
@@ -78,56 +27,23 @@ class FloatingChat {
     
     this.input = document.createElement('input');
     this.input.className = 'floating-chat-input';
-    this.input.placeholder = 'Ask about invoices, payments, or anything...';
+    this.input.placeholder = 'Ask a question...';
     this.input.type = 'text';
     
     this.inputContainer.appendChild(this.input);
 
-    // Create minimized content
-    this.minimizedContent = document.createElement('div');
-    this.minimizedContent.className = 'floating-chat-minimized-content';
-    this.minimizedContent.textContent = 'Click to chat with Stamp';
-
     // Assemble the component
-    this.content.appendChild(this.messagesContainer);
-    this.content.appendChild(this.inputContainer);
-    
-    this.container.appendChild(header);
-    this.container.appendChild(this.content);
-    this.container.appendChild(this.minimizedContent);
+    this.container.appendChild(this.messagesContainer);
+    this.container.appendChild(this.inputContainer);
 
-    // Add to DOM
-    console.log('[FLOATING CHAT] Adding container to DOM...');
-    document.body.appendChild(this.container);
-    console.log('[FLOATING CHAT] Container added to DOM. Container:', this.container);
-    console.log('[FLOATING CHAT] Container visible:', this.container.offsetWidth > 0 && this.container.offsetHeight > 0);
-    console.log('[FLOATING CHAT] Container position:', this.container.style.left, this.container.style.top);
+    // Set up event listeners now that elements are created
+    this.setupEventListeners();
+
+    console.log('[FLOATING CHAT UI] Chat UI element rendered and ready.');
+    return this.container;
   }
 
   setupEventListeners() {
-    // Header drag events
-    const header = this.container.querySelector('.floating-chat-header');
-    
-    header.addEventListener('mousedown', (e) => {
-      this.startDragging(e);
-    });
-
-    header.addEventListener('touchstart', (e) => {
-      this.startDragging(e);
-    });
-
-    // Minimize/Maximize buttons
-    this.minimizeBtn.addEventListener('click', () => this.toggleMinimize());
-    this.maximizeBtn.addEventListener('click', () => this.toggleMaximize());
-
-    // Minimized content click
-    this.minimizedContent.addEventListener('click', () => {
-      if (this.isMinimized) {
-        this.expand();
-      }
-    });
-
-    // Input events
     this.input.addEventListener('keypress', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -135,118 +51,38 @@ class FloatingChat {
       }
     });
 
-    // Global mouse/touch events for dragging
-    document.addEventListener('mousemove', (e) => this.onDrag(e));
-    document.addEventListener('mouseup', () => this.stopDragging());
-    document.addEventListener('touchmove', (e) => this.onDrag(e));
-    document.addEventListener('touchend', () => this.stopDragging());
+    // Add focus listeners to help with event propagation
+    this.input.addEventListener('focus', (e) => e.stopPropagation());
+    this.container.addEventListener('keydown', (e) => e.stopPropagation());
   }
 
-  startDragging(e) {
-    this.isDragging = true;
-    const rect = this.container.getBoundingClientRect();
-    const clientX = e.clientX || e.touches[0].clientX;
-    const clientY = e.clientY || e.touches[0].clientY;
-    
-    this.dragOffset.x = clientX - rect.left;
-    this.dragOffset.y = clientY - rect.top;
-    
-    this.container.style.cursor = 'grabbing';
-  }
-
-  onDrag(e) {
-    if (!this.isDragging) return;
-    
-    e.preventDefault();
-    const clientX = e.clientX || e.touches[0].clientX;
-    const clientY = e.clientY || e.touches[0].clientY;
-    
-    const newX = clientX - this.dragOffset.x;
-    const newY = clientY - this.dragOffset.y;
-    
-    // Boundary checking
-    const maxX = window.innerWidth - this.container.offsetWidth;
-    const maxY = window.innerHeight - this.container.offsetHeight;
-    
-    this.position.x = Math.max(0, Math.min(newX, maxX));
-    this.position.y = Math.max(0, Math.min(newY, maxY));
-    
-    this.container.style.left = `${this.position.x}px`;
-    this.container.style.top = `${this.position.y}px`;
-  }
-
-  stopDragging() {
-    if (this.isDragging) {
-      this.isDragging = false;
-      this.container.style.cursor = 'move';
-      this.saveState();
-    }
-  }
-
-  toggleMinimize() {
-    if (this.isMinimized) {
-      this.expand();
-    } else {
-      this.minimize();
-    }
-  }
-
-  toggleMaximize() {
-    if (this.isExpanded) {
-      this.collapse();
-    } else {
-      this.expand();
-    }
-  }
-
-  minimize() {
-    this.isMinimized = true;
-    this.isExpanded = false;
-    this.container.className = 'floating-chat-container minimized';
-    this.content.style.display = 'none';
-    this.minimizedContent.style.display = 'flex';
-    this.maximizeBtn.innerHTML = '□';
-    this.maximizeBtn.title = 'Maximize';
-    this.saveState();
-  }
-
-  expand() {
-    this.isMinimized = false;
-    this.isExpanded = true;
-    this.container.className = 'floating-chat-container expanded';
-    this.content.style.display = 'flex';
-    this.minimizedContent.style.display = 'none';
-    this.maximizeBtn.innerHTML = '□';
-    this.maximizeBtn.title = 'Collapse';
-    this.input.focus();
-    this.saveState();
-  }
-
-  collapse() {
-    this.isMinimized = false;
-    this.isExpanded = false;
-    this.container.className = 'floating-chat-container';
-    this.content.style.display = 'flex';
-    this.minimizedContent.style.display = 'none';
-    this.maximizeBtn.innerHTML = '□';
-    this.maximizeBtn.title = 'Maximize';
-    this.saveState();
-  }
+  // REMOVED: startDragging, onDrag, stopDragging
+  // REMOVED: toggleMinimize, toggleMaximize, minimize, expand, collapse
+  // The MoleView handles all of this UI logic natively.
 
   addMessage(content, type = 'assistant') {
     const messageDiv = document.createElement('div');
     messageDiv.className = `floating-chat-message ${type}`;
-    messageDiv.textContent = content;
-    
+    // Basic markdown for bolding and newlines
+    messageDiv.innerHTML = content
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+        .replace(/\n/g, '<br>');
+
     this.messagesContainer.appendChild(messageDiv);
     this.messages.push({ content, type });
     
     // Auto-scroll to bottom
-    this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
-    
-    // Auto-expand if minimized
-    if (this.isMinimized) {
-      this.expand();
+    this.scrollToBottom();
+  }
+
+  scrollToBottom() {
+    // Only auto-scroll if the user is near the bottom
+    const isScrolledNearBottom = this.messagesContainer.scrollHeight - this.messagesContainer.clientHeight <= this.messagesContainer.scrollTop + 100;
+
+    if (isScrolledNearBottom) {
+      requestAnimationFrame(() => {
+        this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+      });
     }
   }
 
@@ -264,7 +100,7 @@ class FloatingChat {
     `;
     typingDiv.id = 'typing-indicator';
     this.messagesContainer.appendChild(typingDiv);
-    this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+    this.scrollToBottom();
   }
 
   hideTypingIndicator() {
@@ -303,51 +139,13 @@ class FloatingChat {
       // Hide typing indicator
       this.hideTypingIndicator();
 
-      // Check if response is streaming
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('text/event-stream')) {
-        console.log('[FLOATING CHAT] Handling streaming response');
-        
-        // Create a temporary div for the shared handler
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = `
-          <div id="main-content" style="color: #374151; line-height: 1.6; font-size: 15px;"></div>
-        `;
-        
-        // Use the shared handler from content.js
-        await window.sharedHandleStreamingResponse(response, tempDiv);
-        
-        // Extract the final content and add to floating chat
-        const mainContent = tempDiv.querySelector('#main-content');
-        const contentDisplay = mainContent.querySelector('#content-display');
-        const reasoningDisplay = mainContent.querySelector('#reasoning-display');
-        
-        // Add reasoning if present
-        if (reasoningDisplay && reasoningDisplay.textContent.trim()) {
-          this.addMessage(reasoningDisplay.textContent, 'assistant');
-        }
-        
-        // Add content if present
-        if (contentDisplay && contentDisplay.textContent.trim()) {
-          this.addMessage(contentDisplay.textContent, 'assistant');
-        }
+        await this.handleStreamingResponse(response);
       } else {
-        console.log('[FLOATING CHAT] Handling JSON response');
         const data = await response.json();
-        console.log('[FLOATING CHAT] Parsed response data:', data);
-        
-        if (data.response) {
-          this.addMessage(data.response, 'assistant');
-        } else if (data.AGENT_OUTPUT) {
-          this.addMessage(data.AGENT_OUTPUT, 'assistant');
-        } else if (data.answer) {
-          this.addMessage(data.answer, 'assistant');
-        } else {
-          console.warn('[FLOATING CHAT] No recognized response format found in:', data);
-          this.addMessage('I received your question but no response was provided.', 'assistant');
-        }
+        this.handleJsonResponse(data);
       }
-
     } catch (error) {
       console.error('[FLOATING CHAT] Error sending message:', error);
       this.hideTypingIndicator();
@@ -355,48 +153,114 @@ class FloatingChat {
     }
   }
 
-  saveState() {
-    const state = {
-      position: this.position,
-      isMinimized: this.isMinimized,
-      isExpanded: this.isExpanded,
-      messages: this.messages
-    };
-    
-    chrome.storage.local.set({ floatingChatState: state }, () => {
-      console.log('[FLOATING CHAT] State saved');
-    });
+  handleJsonResponse(data) {
+    console.log('[FLOATING CHAT] Handling JSON response');
+    console.log('[FLOATING CHAT] Parsed response data:', data);
+
+    if (data.response) {
+      this.addMessage(data.response, 'assistant');
+    } else if (data.AGENT_OUTPUT) {
+      this.addMessage(data.AGENT_OUTPUT, 'assistant');
+    } else if (data.answer) {
+      this.addMessage(data.answer, 'assistant');
+    } else {
+      console.warn('[FLOATING CHAT] No recognized response format found in:', data);
+      this.addMessage('I received your question but no response was provided.', 'assistant');
+    }
   }
 
-  loadState() {
-    chrome.storage.local.get(['floatingChatState'], (result) => {
-      if (result.floatingChatState) {
-        const state = result.floatingChatState;
-        this.position = state.position || this.position;
-        this.messages = state.messages || [];
-        
-        this.container.style.left = `${this.position.x}px`;
-        this.container.style.top = `${this.position.y}px`;
-        
-        // Restore messages
-        this.messages.forEach(msg => {
-          this.addMessage(msg.content, msg.type);
-        });
-        
-        // Restore minimized state
-        if (state.isMinimized) {
-          this.minimize();
-        } else if (state.isExpanded) {
-          this.expand();
+  async handleStreamingResponse(response) {
+    console.log('[FLOATING CHAT] Handling streaming response');
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    let buffer = '';
+    let assistantMessageDiv = null;
+    let fullResponse = '';
+
+    const processLine = (line) => {
+        if (!line.startsWith('data: ')) {
+            return;
         }
-      }
-    });
+        const jsonString = line.substring(6).trim();
+        if (!jsonString) {
+            return;
+        }
+
+        try {
+            const event = JSON.parse(jsonString);
+            const { type, data } = event;
+
+            if (type === 'reasoning') {
+                const reasoningDiv = document.createElement('div');
+                reasoningDiv.className = 'floating-chat-message assistant reasoning';
+                reasoningDiv.innerHTML = data.content
+                    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                    .replace(/\n/g, '<br>');
+                this.messagesContainer.appendChild(reasoningDiv);
+                this.scrollToBottom();
+            } else if (type === 'content') {
+                if (!assistantMessageDiv) {
+                    assistantMessageDiv = document.createElement('div');
+                    assistantMessageDiv.className = 'floating-chat-message assistant';
+                    this.messagesContainer.appendChild(assistantMessageDiv);
+                }
+
+                if (data.is_final) {
+                    fullResponse = data.content;
+                } else {
+                    fullResponse += data.content;
+                }
+
+                assistantMessageDiv.innerHTML = fullResponse
+                    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                    .replace(/\n/g, '<br>');
+
+                this.scrollToBottom();
+            }
+            // All other event types are ignored.
+        } catch (e) {
+            console.error('Error parsing streaming event:', e, `"${jsonString}"`);
+        }
+    };
+
+    const processText = async () => {
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) {
+                if (buffer) processLine(buffer);
+                // Add the final message to history
+                if (fullResponse) {
+                    this.messages.push({ content: fullResponse, type: 'assistant' });
+                }
+                break;
+            }
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // keep last partial line
+            for (const line of lines) {
+                if (line.trim()) {
+                    processLine(line);
+                }
+            }
+        }
+    };
+
+    await processText();
   }
+  // REMOVED: saveState and loadState
+  // The MoleView's state is not something we should manage manually.
+  // We can re-introduce message history persistence later if needed.
 
   destroy() {
-    if (this.container && this.container.parentNode) {
-      this.container.parentNode.removeChild(this.container);
-    }
+    // The MoleView's destroy method handles removing the element from the DOM.
+    // We just need to null out our references.
+    console.log('[FLOATING CHAT UI] Destroying chat UI instance.');
+    this.messagesContainer = null;
+    this.inputContainer = null;
+    this.input = null;
+    this.container = null;
   }
 }
 

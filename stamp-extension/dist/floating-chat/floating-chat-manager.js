@@ -71,11 +71,7 @@ class FloatingChatManager {
         this.toggleFloatingChat();
       }
       
-      // Escape: Minimize floating chat
-      if (e.key === 'Escape' && this.floatingChat && !this.floatingChat.isMinimized) {
-        e.preventDefault();
-        this.floatingChat.minimize();
-      }
+      // Escape: Minimize floating chat (MoleView handles this natively)
     });
   }
 
@@ -87,28 +83,41 @@ class FloatingChatManager {
     }
     
     try {
-      console.log('[FLOATING CHAT MANAGER] Creating FloatingChat instance...');
-      console.log('[FLOATING CHAT MANAGER] apiClient:', this.uiManager.apiClient);
-      console.log('[FLOATING CHAT MANAGER] authService:', this.uiManager.authService);
-      
-      this.floatingChat = new FloatingChat(
+      // Step 1: Create an instance of our chat UI builder.
+      this.chatUI = new FloatingChat(
         this.uiManager.apiClient,
         this.uiManager.authService
       );
+
+      // Step 2: Render the chat UI to get the complete HTML element.
+      const chatElement = this.chatUI.render();
+      
+      console.log('[FLOATING CHAT MANAGER] Creating MoleView with pre-built chat element...');
+      
+      // Step 3: Show the MoleView and pass the fully constructed element to it.
+      // This is the correct pattern.
+      this.moleView = this.uiManager.sdk.Widgets.showMoleView({
+        title: 'Stamp Chat',
+        el: chatElement,
+        minimized: false, // Start un-minimized to be visible
+      });
+
+      // Keep a reference for toggling, but don't interact with its elements.
+      this.floatingChat = this.moleView;
       this.isEnabled = true;
       
-      console.log('[FLOATING CHAT MANAGER] FloatingChat created successfully:', this.floatingChat);
+      console.log('[FLOATING CHAT MANAGER] MoleView created successfully.');
       
-      // Add welcome message
+      // Add a welcome message after a short delay.
       setTimeout(() => {
-        if (this.floatingChat) {
+        if (this.chatUI) {
           console.log('[FLOATING CHAT MANAGER] Adding welcome message...');
-          this.floatingChat.addMessage(
-            'Hello! I\'m Stamp, your AI assistant for invoice and payment queries. How can I help you today?',
+          this.chatUI.addMessage(
+            "Hello! I'm Stamp, your AI assistant. How can I help?",
             'assistant'
           );
         }
-      }, 1000);
+      }, 500);
       
     } catch (error) {
       console.error('[FLOATING CHAT MANAGER] Failed to enable floating chat:', error);
@@ -119,77 +128,77 @@ class FloatingChatManager {
   disableFloatingChat() {
     if (!this.isEnabled) return;
     
-    if (this.floatingChat) {
-      this.floatingChat.destroy();
-      this.floatingChat = null;
+    if (this.moleView) {
+      this.moleView.destroy();
+      this.moleView = null;
     }
     
+    // Also clean up the chat UI instance if it exists
+    if (this.chatUI) {
+        this.chatUI = null;
+    }
+
+    this.floatingChat = null;
     this.isEnabled = false;
     console.log('[FLOATING CHAT] Disabled floating chat');
   }
 
   toggleFloatingChat() {
-    if (!this.floatingChat) {
+    if (!this.moleView) {
       this.enableFloatingChat();
       return;
     }
 
-    if (this.floatingChat.isMinimized) {
-      this.floatingChat.expand();
+    if (this.moleView.isMinimized()) {
+      this.moleView.setMinimized(false);
     } else {
-      this.floatingChat.minimize();
+      this.moleView.setMinimized(true);
     }
   }
 
   showFloatingChat() {
-    if (this.floatingChat) {
-      this.floatingChat.expand();
+    if (this.moleView) {
+      this.moleView.setMinimized(false);
     } else {
       this.enableFloatingChat();
     }
   }
 
   hideFloatingChat() {
-    if (this.floatingChat) {
-      this.floatingChat.minimize();
+    if (this.moleView) {
+      this.moleView.setMinimized(true);
     }
   }
 
   // Method to add a message programmatically (for testing)
   addMessage(content, type = 'assistant') {
-    if (this.floatingChat) {
-      this.floatingChat.addMessage(content, type);
+    if (this.chatUI) {
+      this.chatUI.addMessage(content, type);
     }
   }
 
   // Method to get current state
   getState() {
-    if (!this.floatingChat) {
+    if (!this.moleView) {
       return { enabled: false };
     }
     
     return {
       enabled: true,
-      isMinimized: this.floatingChat.isMinimized,
-      isExpanded: this.floatingChat.isExpanded,
-      position: this.floatingChat.position,
-      messageCount: this.floatingChat.messages.length
+      isMinimized: this.moleView.isMinimized(),
+      messageCount: this.chatUI ? this.chatUI.messages.length : 0
+      // Position is now handled by MoleView, so we don't track it
     };
   }
 
   // Method to reset floating chat
   reset() {
-    if (this.floatingChat) {
-      this.floatingChat.destroy();
-      this.floatingChat = null;
-    }
+    this.disableFloatingChat();
     
-    // Clear stored state
+    // Clear stored state (if any was used for the old chat)
     chrome.storage.local.remove(['floatingChatState'], () => {
       console.log('[FLOATING CHAT] State cleared');
     });
-    
-    this.isEnabled = false;
   }
 }
 
