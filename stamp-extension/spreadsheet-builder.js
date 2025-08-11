@@ -14,6 +14,12 @@ export async function buildSpreadsheet(container, data) {
   
   // Define columns with enhanced Phase 1 interactive features
   const columns = [
+    {
+      title: '📤',
+      width: 60,
+      type: 'html',
+      readOnly: true
+    },
     { 
       title: 'Invoice #', 
       width: 150, 
@@ -111,6 +117,10 @@ export async function buildSpreadsheet(container, data) {
       columns: columns,
       meta: metaInformation,  // Hidden metadata for linking to Gmail threads/messages
       
+      // === ROW HEIGHT CONFIGURATION ===
+      defaultRowHeight: 25, // Reduce default row height by half (from ~50px to 25px)
+      minDimensions: [15, 100], // [columns, rows] - ensure we have enough space
+      
       // === USE JSPREADSHEET DEFAULTS ===
       allowComments: true,
       tableOverflow: true,  // Built-in scrolling
@@ -124,49 +134,39 @@ export async function buildSpreadsheet(container, data) {
       columnResize: true,
       rowResize: true,
       search: true,
-      filters: true,
-      
-      // === MINIMAL EVENT HANDLING ===
-      onload: function(element, instance) {
-        console.log('[SHADOW DOM] Spreadsheet loaded with default jspreadsheet behavior');
-        console.log('[SHADOW DOM] All native features should work: editing, selection, navigation, toolbar');
-        
-        // The `worksheet` is the second argument in the v5 onload event
-        const worksheet = instance;
-        if (!worksheet) {
-          console.error('[META INFO] 💥 CRITICAL: jspreadsheet instance not received in onload event.');
-          return;
-        }
-
-        // Set the worksheet reference for utility functions in content.js scope
-        if (typeof window !== 'undefined' && window.setCurrentWorksheet) {
-          window.setCurrentWorksheet(worksheet);
-        } else {
-          // Fallback: use window to pass the worksheet directly
-          window.currentWorksheet = worksheet;
-          console.log('[META INFO] ✅ SpreadsheetMetaUtils now ready for use');
-        }
-        
-        // DEBUG: Test the utility functions with actual data
-        setTimeout(() => {
-          console.log('\n=== SPREADSHEET LOADED - META DATA TEST ===');
-          console.log('[DEBUG] getThreadIdFromInvoiceCell("A2"):', window.SpreadsheetMetaUtils.getThreadIdFromInvoiceCell('A2')); // First data row
-          console.log('[DEBUG] getThreadIdFromInvoiceCell("A3"):', window.SpreadsheetMetaUtils.getThreadIdFromInvoiceCell('A3')); // Second data row
-          console.log('[DEBUG] getIdsFromStatusCell("E2"):', window.SpreadsheetMetaUtils.getIdsFromStatusCell('E2')); // First data row
-          console.log('[DEBUG] getIdsFromStatusCell("E3"):', window.SpreadsheetMetaUtils.getIdsFromStatusCell('E3')); // Second data row
-          console.log('[DEBUG] getGmailUrlFromCell("A2"):', window.SpreadsheetMetaUtils.getGmailUrlFromCell('A2'));
-          console.log('[DEBUG] getGmailUrlFromCell("G2"):', window.SpreadsheetMetaUtils.getGmailUrlFromCell('G2'));
-          
-          // Show raw meta data from worksheet
-          console.log('[DEBUG] Raw meta A1 (header):', worksheet.getMeta('A1')); // Should be undefined/null
-          console.log('[DEBUG] Raw meta A2 (first data):', worksheet.getMeta('A2')); // Should have meta data
-          console.log('[DEBUG] Raw meta E2 (first status):', worksheet.getMeta('E2')); // Should have meta data
-          console.log('[DEBUG] Raw meta G2 (first thread):', worksheet.getMeta('G2')); // Should have meta data
-          console.log('==========================================\n');
-        }, 500);
-      }
+      filters: true
     }]
   });
+
+  // Add click event handler for Gmail popout icons directly after spreadsheet creation
+  console.log('[POPOUT] Setting up click event delegation on spreadsheet container');
+
+  // Wait a bit for jspreadsheet to fully render
+  setTimeout(() => {
+    cleanContainer.addEventListener('click', function(e) {
+      const clickedElement = e.target.closest('.gmail-popout-icon');
+
+      if (clickedElement) {
+        console.log('[POPOUT] Clicked on Gmail popout icon');
+        const threadId = clickedElement.getAttribute('data-thread-id');
+        const messageId = clickedElement.getAttribute('data-message-id');
+
+        console.log('[POPOUT] Retrieved data from icon:', { threadId, messageId });
+
+        if (messageId && messageId !== 'undefined') {
+          const gmailMessageUrl = `https://mail.google.com/mail/u/0/#inbox/${messageId}`;
+          console.log('[POPOUT] Opening Gmail message with sidebar action:', gmailMessageUrl);
+          window.location.href = `${gmailMessageUrl}?stamp_action=open_sidebar`;
+        } else if (threadId && threadId !== 'undefined') {
+          const gmailThreadUrl = `https://mail.google.com/mail/u/0/#inbox/${threadId}`;
+          console.log('[POPOUT] Opening Gmail thread with sidebar action:', gmailThreadUrl);
+          window.location.href = `${gmailThreadUrl}?stamp_action=open_sidebar`;
+        } else {
+          console.warn('[POPOUT] No valid threadId or messageId found on the icon.');
+        }
+      }
+    });
+  }, 500);
 
   return spreadsheet;
 }
@@ -1069,7 +1069,19 @@ function transformDataForSpreadsheet(invoices) {
   return invoices.map(invoice => {
     // The detailed data is now nested in the 'invoice_details' object
     const details = invoice.invoice_details || invoice;
-    const threadId = invoice.thread_id || '';
+    const threadId = invoice.statusThreadId || invoice.thread_id || '';
+    const messageId = invoice.statusMessageId || invoice.messageId || invoice.message_id || '';
+
+    // Create popout icon with click handler
+    const popoutIcon = threadId || messageId ?
+      `<span class="gmail-popout-icon" 
+            data-thread-id="${threadId}" 
+            data-message-id="${messageId}"
+            title="Open in Gmail"
+            style="cursor: pointer; font-size: 14px; color: #1a73e8; padding: 2px; margin: 0; line-height: 1; height: 20px; width: 20px; display: flex; align-items: center; justify-content: center; user-select: none;">
+         📤
+       </span>` :
+      '<span style="color: #ccc; font-size: 12px;">-</span>';
 
     // Process involvementHistory to get the latest action for each person
     const latestActions = new Map();
@@ -1090,6 +1102,7 @@ function transformDataForSpreadsheet(invoices) {
       .join('\n');
 
     return [
+      popoutIcon, // New first column with popout icon
       details.invoiceNumber || invoice.invoice_number || 'N/A',
       details.entityName || '',
       details.vendor?.name || 'N/A',
@@ -1117,29 +1130,47 @@ function generateMetaInformation(invoices) {
   const metaInfo = {};
   
   invoices.forEach((invoice, rowIndex) => {
-    const row = rowIndex + 2; // jspreadsheet rows are 1-indexed + 1 for header row
+    // Row mapping: 
+    // - Row 1 (A1, B1, etc.) = Header row (no metadata)
+    // - Row 2 (A2, B2, etc.) = Invoice 0 (first invoice)
+    // - Row 3 (A3, B3, etc.) = Invoice 1 (second invoice)
+    const row = rowIndex + 2; // rowIndex 0 -> row 2, rowIndex 1 -> row 3, etc.
     
-    // Meta information for Invoice Number cells (Column A)
-    // Store threadId for linking back to Gmail thread
-    const invoiceCell = `A${row}`;
-    metaInfo[invoiceCell] = {
-      threadId: invoice.threadId,
-      invoiceNumber: invoice.invoiceNumber,
-      type: 'invoice_identifier'
-    };
+    // Debug: Show what fields are available in the invoice
+    console.log(`[META DEBUG] Invoice ${rowIndex} raw data:`, {
+      statusThreadId: invoice.statusThreadId,
+      thread_id: invoice.thread_id, 
+      statusMessageId: invoice.statusMessageId,
+      messageId: invoice.messageId,
+      message_id: invoice.message_id,
+      invoiceNumber: invoice.invoice_details?.invoiceNumber || invoice.invoice_number
+    });
     
-    // Meta information for Status cells (Column E) 
-    // Store both threadId and messageId for precise message linking
-    const statusCell = `E${row}`;
-    metaInfo[statusCell] = {
-      threadId: invoice.threadId,
-      messageId: invoice.messageId || invoice.threadId, // Fallback to threadId if messageId not available
-      status: invoice.status,
-      type: 'status_tracker',
-      lastUpdated: new Date().toISOString()
-    };
-    
-    // The meta information for the 'Thread ID' column is now removed
+    // Only create metadata if we have valid threadId or messageId
+    const threadId = invoice.statusThreadId || invoice.thread_id;
+    const messageId = invoice.statusMessageId || invoice.messageId || invoice.message_id;
+
+    if (threadId || messageId) {
+      // Meta information for Invoice Number cells (Column B - shifted from A)
+      const invoiceCell = `B${row}`;
+      metaInfo[invoiceCell] = {
+        threadId: threadId,
+        invoiceNumber: invoice.invoiceNumber,
+        type: 'invoice_identifier'
+      };
+      
+      // Meta information for Status cells (Column L - shifted from E) 
+      const statusCell = `L${row}`;
+      metaInfo[statusCell] = {
+        threadId: threadId,
+        messageId: messageId,
+        status: invoice.status,
+        type: 'status_tracker',
+        lastUpdated: new Date().toISOString()
+      };
+    } else {
+      console.log(`[META DEBUG] Invoice ${rowIndex} -> Cell A${row} SKIPPED (no threadId/messageId)`);
+    }
   });
   
   console.log('[META INFO] Generated metadata for', Object.keys(metaInfo).length, 'cells');

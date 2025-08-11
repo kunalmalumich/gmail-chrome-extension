@@ -6,6 +6,18 @@ import 'jsuites/dist/jsuites.css';
 import { buildSpreadsheet } from './spreadsheet-builder.js';
 import { ThreadDataManager } from './thread-data-manager.js';
 import { createLoadingController } from './ai-loading-component.js';
+// Simple debounce utility function
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
 
 // DEBUG: Verify content script is loading
 console.log('[CONTENT SCRIPT] ✅ Content script loaded and executing');
@@ -724,6 +736,9 @@ function transformProcessedEntitiesForSidebar(processedEntities) {
       vendor: hasDetails ? (details.vendor?.name || 'Unknown Vendor') : null,
       amount: hasDetails ? (details.amount || 0) : null,
       currency: hasDetails ? (details.currency || 'USD') : null,
+      // Add status message information for invoices
+      statusMessageId: entity.document?.status_message_id || null,
+      statusThreadId: entity.document?.status_thread_id || null,
     };
   });
 }
@@ -750,8 +765,10 @@ function createEntityCard(cardData, threadId) {
     ? `<a href="${messageLink}" target="_blank" style="text-decoration: none; color: #1a73e8;" onclick="event.stopPropagation();">${cardData.title}</a>`
     : cardData.title;
 
+
+
   return `
-    <div class="${cardClass}" ${isClickable ? `data-full-details='${fullDetailsString}'` : ''} style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 12px; padding: 16px; ${cursorStyle} transition: box-shadow 0.2s;">
+    <div class="${cardClass}" ${isClickable ? `data-full-details='${fullDetailsString}'` : ''} style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 0; padding: 16px; ${cursorStyle} transition: box-shadow 0.2s;">
       <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h4 style="margin: 0; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
           <span style="font-size: 18px;">${cardData.icon}</span>
@@ -1014,29 +1031,14 @@ class UIManager {
    * Initializes the UI by checking the auth state and rendering the correct view.
    */
   async initialize() {
-    console.log('[UI DEBUG] 1. UIManager initialize() called.');
-    if (!this.authService) {
-      console.error('[UI DEBUG] AuthService not set on UIManager. Cannot initialize.');
-      return;
-    }
-
-    // Register thread view handler with proper binding
-    this.sdk.Conversations.registerThreadViewHandler(this.handleThreadView.bind(this));
+    console.log('[UI DEBUG] 1. UIManager initializing...');
     
-    // Register route change handler to restore chat interface when leaving threads
-    this.sdk.Router.handleAllRoutes((routeView) => {
-      const routeId = routeView.getRouteID();
-      console.log('[UI] Route changed to:', routeId);
-      
-      // If we're not in a thread view, restore the chat interface
-      if (routeId !== 'thread' && routeId !== 'thread/:threadID') {
-        this.restoreChatInterface();
-      }
-    });
+    // Start listening for URL changes to handle actions like opening the sidebar.
+    this.setupURLObserver();
 
     try {
-      const { isLoggedIn } = await this.authService.getAuthState();
-      if (isLoggedIn) {
+      const authState = await this.authService.getAuthState();
+      if (authState.isLoggedIn) {
         console.log('[UI DEBUG] 2. User is logged in. Calling renderMainView.');
         this.renderMainView();
         
@@ -1061,6 +1063,16 @@ class UIManager {
     // Use the data manager to get data for this specific thread
     const threadDataMap = await this.dataManager.getThreadData([threadId]);
     const threadInfo = threadDataMap[threadId];
+
+    // Add labels into the open thread header (inside the email)
+    try {
+      const labels = (threadInfo && threadInfo.threadLabels) ? threadInfo.threadLabels : [];
+      await this.applyLabelsToThreadView(threadView, labels);
+      // Persist labels into shared cache so both list and thread share the same source
+      try { await this.dataManager.addThreadLabels(threadId, labels); } catch {}
+    } catch (e) {
+      console.warn('[ThreadViewLabels] Failed to apply labels to open thread:', e);
+    }
     
     // Transform all entities for the sidebar. Returns an array.
     const cardDataArray = threadInfo && threadInfo.processedEntities 
@@ -1073,10 +1085,21 @@ class UIManager {
       // Attach new event listeners for the cards
       this.attachCardClickListeners(this.sidebarElement);
       
+      // Auto-open the sidebar if there are documents to show
+      if (cardDataArray && cardDataArray.length > 0) {
+        console.log('[UI] Auto-opening sidebar for thread with documents:', threadId);
+        // Use a short delay to ensure the content is rendered
+        setTimeout(() => {
+          this.openSidebar();
+        }, 500);
       } else {
+        console.log('[UI] No documents found for thread, keeping sidebar closed:', threadId);
+      }
+      
+    } else {
       console.log('[DEBUG] this.sidebarElement is not available');
     }
-      }
+  }
 
   // Method to restore the original chat interface in the sidebar
   restoreChatInterface() {
@@ -1099,8 +1122,41 @@ class UIManager {
     if (cardDataArray && cardDataArray.length > 0) {
       const cardsHtml = cardDataArray.map(cardData => {
         const cardHtml = createEntityCard(cardData, threadId);
-        // Add thread ID to the card for restoration
-        return cardHtml.replace('class="entity-card"', `class="entity-card" data-thread-id="${threadId}"`);
+        const cardWithThreadId = cardHtml.replace('class="entity-card"', `class="entity-card" data-thread-id="${threadId}"`);
+        
+        // Add status message link below the card for invoice entities
+        const statusMessageLink = (cardData.cardType === 'inv' && cardData.statusMessageId && cardData.statusThreadId) 
+          ? `https://mail.google.com/mail/u/0/#inbox/${cardData.statusThreadId}/${cardData.statusMessageId}` 
+          : null;
+        
+        // Debug logging for status message data
+        if (cardData.cardType === 'inv') {
+          console.log(`[SIDEBAR] Invoice ${cardData.title} status message data:`, {
+            statusMessageId: cardData.statusMessageId,
+            statusThreadId: cardData.statusThreadId,
+            statusMessageLink: statusMessageLink
+          });
+        }
+        
+        if (statusMessageLink) {
+          return `
+            <div class="card-container" style="margin-bottom: 16px;">
+              ${cardWithThreadId}
+              <div style="margin-top: 8px; padding: 8px 12px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #1a73e8;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 14px;">📧</span>
+                  <div>
+                    <div style="font-size: 12px; font-weight: 600; color: #5f6368; margin-bottom: 2px;">Status Update Message</div>
+                    <a href="${statusMessageLink}" target="_blank" style="color: #1a73e8; text-decoration: none; font-size: 13px; font-weight: 500;" onclick="event.stopPropagation();">
+                      View in Gmail →
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+        } else {
+          return `<div class="card-container" style="margin-bottom: 16px;">${cardWithThreadId}</div>`;
+        }
       }).join('');
       
       return `
@@ -1978,17 +2034,22 @@ class UIManager {
 
     const el = this.createAndMount(this.createMainAppContent(), async (el) => {
         // Create the sidebar panel first
-    this.sidebarPanel = await this.sdk.Global.addSidebarContentPanel({
+        console.log('[UI DEBUG] Creating sidebar panel...');
+        this.sidebarPanel = await this.sdk.Global.addSidebarContentPanel({
             title: 'Stamp',
             iconUrl: chrome.runtime.getURL('stamp-logo.png'),
             el: el,
         });
         
+        console.log('[UI DEBUG] Sidebar panel created:', this.sidebarPanel);
+        
         // Store the DOM element reference for later use
         this.sidebarElement = el;
+        console.log('[UI DEBUG] Sidebar element stored:', this.sidebarElement);
 
         // Now set up event listeners
         this.attachChatEventListeners(el); // Call the new method here
+        console.log('[UI DEBUG] Chat event listeners attached');
     });
   }
 
@@ -2027,6 +2088,157 @@ class UIManager {
         onMount(el);
         return el;
   }
+
+  // Method to open the sidebar panel
+  openSidebar() {
+    if (this.sidebarPanel) {
+      console.log('[UI] Programmatically opening sidebar panel.');
+      try {
+        this.sidebarPanel.open();
+        console.log('[UI] Sidebar panel opened successfully.');
+      } catch (error) {
+        console.error('[UI] Error opening sidebar panel:', error);
+      }
+    } else {
+      console.warn('[UI] Sidebar panel reference not available. Cannot open.');
+      console.log('[UI] Sidebar panel state:', {
+        hasSidebarPanel: !!this.sidebarPanel,
+        hasSidebarElement: !!this.sidebarElement,
+        sidebarPanelType: this.sidebarPanel ? typeof this.sidebarPanel : 'undefined'
+      });
+    }
+  }
+
+  // Sets up the MutationObserver to watch for URL changes
+  setupURLObserver() {
+    const titleObserver = new MutationObserver(() => this.handleStampURLActions());
+    const titleElement = document.querySelector('title');
+    if (titleElement) {
+      titleObserver.observe(titleElement, { childList: true });
+    }
+  }
+  
+  // Handles Stamp-specific actions from URL parameters
+  handleStampURLActions() {
+    const url = new URL(window.location.href);
+    const stampAction = url.searchParams.get('stamp_action');
+
+    if (stampAction === 'open_sidebar') {
+      console.log('[STAMP ACTION] Detected "open_sidebar" action.');
+      
+      // Use a short delay to ensure the sidebar has been created
+      setTimeout(() => {
+        this.openSidebar();
+      }, 1000);
+
+      // Clean up the URL
+      url.searchParams.delete('stamp_action');
+      window.history.replaceState({}, document.title, url.href);
+    }
+  }
+
+  // Adds labels into the open thread header using InboxSDK ThreadView.addLabel
+  async applyLabelsToThreadView(threadView, threadLabels) {
+    try {
+      if (!Array.isArray(threadLabels) || threadLabels.length === 0) {
+        return;
+      }
+
+      // Prepare map for tracking SimpleElementView handles per thread
+      if (!this._threadViewLabelHandles) {
+        this._threadViewLabelHandles = new Map();
+      }
+
+      const threadId = await threadView.getThreadIDAsync();
+
+      // Remove any labels we previously added for this thread
+      const previousHandles = this._threadViewLabelHandles.get(threadId) || [];
+      for (const handle of previousHandles) {
+        try { handle.remove(); } catch (e) { /* ignore */ }
+      }
+
+      const applyOnce = () => {
+        const newHandles = [];
+        for (const labelText of threadLabels) {
+          const labelDescriptor = createLabelFromThreadLabel(labelText);
+          if (!labelDescriptor) continue;
+          try {
+            const handle = threadView.addLabel(labelDescriptor);
+            newHandles.push(handle);
+          } catch (err) {
+            console.warn('[ThreadViewLabels] addLabel failed for', labelText, err);
+            throw err;
+          }
+        }
+        this._threadViewLabelHandles.set(threadId, newHandles);
+        console.log('[ThreadViewLabels] Added', newHandles.length, 'labels to open thread header');
+      };
+
+      const hasHeaderContainer = () => !!document.querySelector('.ha .J-J5-Ji');
+
+      const delays = [0, 120, 240, 400, 600, 900, 1200, 1600];
+      let attempt = 0;
+
+      const tryApplyWithRetry = () => {
+        if (threadView.destroyed) {
+          console.warn('[ThreadViewLabels] Aborting label apply: threadView destroyed');
+          return;
+        }
+        const delay = delays[Math.min(attempt, delays.length - 1)];
+        setTimeout(() => {
+          const containerPresent = hasHeaderContainer();
+          console.log('[ThreadViewLabels] Attempt', attempt + 1, 'containerPresent:', containerPresent);
+          try {
+            if (!containerPresent) throw new Error('Header label container not ready');
+            applyOnce();
+
+            // Verify at least one pill is visible; if not, fallback-inject
+            const container = document.querySelector('.ha .J-J5-Ji');
+            const hasAnyPill = !!(container && container.querySelector('.inboxsdk__thread_label, .inboxsdk__label, .stamp-fallback-pill'));
+            if (!hasAnyPill && container) {
+              const fallback = document.createElement('span');
+              fallback.className = 'stamp-fallback-pill';
+              fallback.textContent = (Array.isArray(threadLabels) && threadLabels[0]) ? threadLabels[0] : 'Stamp';
+              fallback.style.cssText = 'display:inline-block;padding:2px 8px;background:#E0F2F1;color:#00695C;border-radius:12px;margin-left:6px;font-size:11px;font-weight:600;';
+              container.appendChild(fallback);
+              // Track for cleanup
+              if (!this._threadViewFallbackPills) this._threadViewFallbackPills = new Map();
+              const arr = this._threadViewFallbackPills.get(threadId) || [];
+              arr.push(fallback);
+              this._threadViewFallbackPills.set(threadId, arr);
+              console.log('[ThreadViewLabels] Fallback-injected a visible label pill');
+            }
+          } catch (e) {
+            attempt++;
+            if (attempt < delays.length) {
+              tryApplyWithRetry();
+            } else {
+              console.warn('[ThreadViewLabels] Giving up after retries:', e);
+            }
+          }
+        }, delay);
+      };
+
+      tryApplyWithRetry();
+
+      // Cleanup when the thread view is destroyed
+      threadView.on('destroy', () => {
+        const handles = this._threadViewLabelHandles.get(threadId) || [];
+        for (const handle of handles) {
+          try { handle.remove(); } catch (e) { /* ignore */ }
+        }
+        this._threadViewLabelHandles.delete(threadId);
+        // Cleanup fallback pills
+        const fallbacks = (this._threadViewFallbackPills && this._threadViewFallbackPills.get(threadId)) || [];
+        for (const node of fallbacks) {
+          try { node.remove(); } catch (e) { /* ignore */ }
+        }
+        if (this._threadViewFallbackPills) this._threadViewFallbackPills.delete(threadId);
+      });
+    } catch (error) {
+      console.warn('[ThreadViewLabels] Failed to apply labels to thread view:', error);
+    }
+  }
 }
 
 
@@ -2034,12 +2246,11 @@ class UIManager {
 
 InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
   console.log("Stamp Extension: InboxSDK loaded successfully.");
-
-  // --- SETUP GLOBAL COMPONENTS ---
-  // Create apiClient first so we can pass it to dataManager
+  
+  // Initialize your core extension components
   const apiClient = new ApiClient();
   const dataManager = new ThreadDataManager(apiClient);
-
+  
   // --- DYNAMIC LABELING FOR THREAD ROWS (WITH BATCHING/DEBOUNCING) ---
 
   // We need a temporary place to store the thread row views as they appear.
@@ -2088,6 +2299,8 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
                 console.warn(`[LABEL_APPLY] SKIPPED adding a null or invalid label for text: "${labelText}"`);
               }
             });
+            // Persist labels to the shared cache so open-thread view can reuse
+            try { await dataManager.addThreadLabels(threadId, threadInfo.threadLabels); } catch (e) { console.warn('[LABEL_APPLY] Failed to persist labels to cache', e); }
           } else {
               console.log(`[LABEL_APPLY] No labels to apply for thread ${threadId}.`, { threadLabels: threadInfo.threadLabels });
           }
@@ -2100,20 +2313,21 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
     }
   };
 
+  const debouncedProcessThreadQueue = debounce(processThreadQueue, 100);
+
   // This is the "doorman" function that runs for every single thread row.
-  sdk.Lists.registerThreadRowViewHandler(async function (threadRowView) {
+  sdk.Lists.registerThreadRowViewHandler(async function(threadRowView) {
     const threadId = await threadRowView.getThreadIDAsync();
     
-    // Instead of fetching immediately, we just add the thread's view to our list.
+    // If we haven't seen this thread before, add it to our registry.
     threadViewRegistry.set(threadId, threadRowView);
 
     // Every time a new thread appears, we reset our timer.
     clearTimeout(debounceTimer);
 
     // After 150ms of no new threads appearing, we'll process the entire batch.
-    debounceTimer = setTimeout(processThreadQueue, 150);
+    debounceTimer = setTimeout(debouncedProcessThreadQueue, 150);
   });
-
 
   // 1. Claim the "invoice-tracker-view" route to prevent Gmail from treating it as a search.
   sdk.Router.handleCustomRoute("invoice-tracker-view", async (customRouteView) => {
@@ -2306,6 +2520,22 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
   materialIconsLink.rel = 'stylesheet';
   materialIconsLink.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
   document.head.appendChild(materialIconsLink);
+
+  // Expose the uiManager to the window for debugging and extensions
+  window.stampUIManager = uiManager;
+
+  // --- ROUTE HANDLING FOR AP TRACKER ---
+  
+  // When a thread is opened, show the invoice details in the sidebar.
+  sdk.Conversations.registerThreadViewHandler(async (threadView) => {
+    await uiManager.handleThreadView(threadView);
+  });
+
+  // Register a handler for ALL route views to inject our UI when our route is active
+  sdk.Router.handleAllRoutes(routeView => {
+    // Only log route changes for debugging, don't try to modify non-custom routes
+    console.log('[ROUTE DEBUG] Route changed:', routeView.getRouteID(), routeView.getRouteType());
+  });
 
 }).catch((error) => {
   console.error("Stamp Extension: Failed to load InboxSDK.", error);

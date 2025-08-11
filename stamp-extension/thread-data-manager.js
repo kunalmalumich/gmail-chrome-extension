@@ -150,6 +150,46 @@ export class ThreadDataManager {
     }
 
     /**
+     * Merges and persists labels for a given thread into the same cache used by both
+     * thread row labeling and open-thread labeling flows.
+     * @param {string} threadId
+     * @param {string[]} labels
+     */
+    async addThreadLabels(threadId, labels) {
+        try {
+            if (!threadId || !Array.isArray(labels) || labels.length === 0) return;
+
+            const cache = await this._getCache();
+            const now = Date.now();
+
+            // Ensure a cache entry exists with expected shape
+            const existing = cache[threadId]?.data || {
+                threadId,
+                threadLabels: [],
+                processedEntities: [],
+                entities: []
+            };
+
+            const existingLabels = Array.isArray(existing.threadLabels) ? existing.threadLabels : [];
+            const merged = Array.from(new Set([...existingLabels, ...labels]));
+
+            const updatedEntry = {
+                data: {
+                    ...existing,
+                    threadLabels: merged
+                },
+                timestamp: now
+            };
+
+            cache[threadId] = updatedEntry;
+            await this._setCache(cache);
+            console.log('[ThreadDataManager] 🗂️ Cache labels updated for thread', threadId, merged);
+        } catch (err) {
+            console.warn('[ThreadDataManager] Failed to update cached thread labels:', err);
+        }
+    }
+
+    /**
      * Private helper to get the cache from chrome.storage.local.
      */
     async _getCache() {
