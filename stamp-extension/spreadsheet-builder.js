@@ -6,96 +6,143 @@
  */
 
 // Core function to initialize the spreadsheet with clean Shadow DOM approach
-export async function buildSpreadsheet(container, data) {
+export async function buildSpreadsheet(container, data, opts = {}) {
   console.log('[SHADOW DOM] Starting clean jspreadsheet integration...');
   
   // Setup clean Shadow DOM container instead of CSS isolation
   const { cleanContainer, shadowRoot } = await setupShadowDOMContainer(container);
   
-  // Define columns with enhanced Phase 1 interactive features
+  // Initialize corrections batcher (requires apiClient from opts)
+  const correctionsBatcher = opts.apiClient ? new CorrectionsBatcher(opts.apiClient) : null;
+  if (!correctionsBatcher) {
+    console.warn('[CORRECTIONS] No API client provided - corrections will not be sent');
+  }
+  
+  // Define columns with field mapping metadata for edit tracking
   const columns = [
     {
-      title: '📤',
-      width: 60,
+      title: '📄', // Document icon column (preview/open)
+      width: 40,
       type: 'html',
-      readOnly: true
+      readOnly: true,
+      fieldName: null,
+      editable: false
     },
     { 
       title: 'Invoice #', 
-      width: 150, 
+      width: 100, 
       type: 'text',
+      fieldName: 'invoiceNumber',
+      editable: true
     },
     { 
       title: 'Entity Name', 
-      width: 200, 
+      width: 120, 
       type: 'text',
+      fieldName: 'entityName',
+      editable: true
     },
     { 
       title: 'Vendor Name', 
-      width: 200, 
+      width: 120, 
       type: 'text',
+      fieldName: 'vendor.name',
+      editable: true
     },
     { 
       title: 'Invoice Description', 
-      width: 150, 
+      width: 100, 
       type: 'text',
+      fieldName: 'description',
+      editable: true
     },
     { 
       title: 'Period', 
-      width: 120, 
+      width: 80, 
       type: 'text',
+      fieldName: 'period',
+      editable: true
     },
     { 
       title: 'Amount', 
-      width: 100, 
+      width: 80, 
       type: 'numeric', 
       mask: '$ #,##.00',
+      fieldName: 'amount',
+      editable: true
     },
     {
       title: 'Currency',
-      width: 80,
-      type: 'text'
+      width: 60,
+      type: 'text',
+      fieldName: 'currency',
+      editable: true
     },
     { 
       title: 'Issue Date', 
-      width: 120, 
+      width: 90, 
       type: 'calendar', 
-      options: { format: 'YYYY-MM-DD' } 
+      options: { format: 'YYYY-MM-DD' },
+      fieldName: 'issueDate',
+      editable: true
     },
     { 
       title: 'Due Date', 
-      width: 120, 
+      width: 90, 
       type: 'calendar', 
-      options: { format: 'YYYY-MM-DD' } 
+      options: { format: 'YYYY-MM-DD' },
+      fieldName: 'dueDate',
+      editable: true
     },
     {
       title: 'Terms',
-      width: 100,
-      type: 'text'
+      width: 70,
+      type: 'text',
+      fieldName: 'paymentTerms',
+      editable: true
     },
     { 
       title: 'Status', 
-      width: 120, 
+      width: 90, 
       type: 'dropdown',
-      source: [ 'pending', 'approved', 'rejected', 'paid', 'on_hold', 'requires_review', 'partially_approved', 'ready_for_payment', 'duplicate', 'unknown' ]
+      source: [ 'pending', 'approved', 'rejected', 'paid', 'on_hold', 'requires_review', 'partially_approved', 'ready_for_payment', 'duplicate', 'unknown' ],
+      fieldName: 'status',
+      editable: true
+    },
+    {
+      title: '📤', // Gmail icon column (moved next to Status)
+      width: 60,
+      type: 'html',
+      readOnly: true,
+      fieldName: null,
+      editable: false
     },
     {
       title: 'Approver',
       width: 150,
-      type: 'text'
+      type: 'text',
+      fieldName: null, // Computed field from involvementHistory
+      editable: false
     },
     {
       title: 'Notes',
       width: 250,
-      type: 'text'
+      type: 'text',
+      fieldName: 'notes',
+      editable: true
     },
     { 
       title: 'Actions', 
       width: 120, 
       type: 'html',
-      readOnly: true
+      readOnly: true,
+      fieldName: null,
+      editable: false
     }
   ];
+
+  // Simple in-memory PDF cache for the session
+  const pdfCache = new Map(); // key: `${messageId}|${documentName}` => objectUrl
 
   // Transform the raw invoice data to fit the spreadsheet structure
   const spreadsheetData = transformDataForSpreadsheet(data);
@@ -109,7 +156,8 @@ export async function buildSpreadsheet(container, data) {
   const containerDimensions = calculateOptimalDimensions(container);
   const isLargeDataset = spreadsheetData.length > 50;
 
-  // Create the spreadsheet with clean default configuration
+  // Create the spreadsheet with clean default configuration and field edit handling
+  console.log('[JS001] Creating jspreadsheet, data rows:', spreadsheetData.length);
   const spreadsheet = jspreadsheet(cleanContainer, {
     root: shadowRoot,  // Critical parameter for Shadow DOM event handling
     worksheets: [{
@@ -118,7 +166,7 @@ export async function buildSpreadsheet(container, data) {
       meta: metaInformation,  // Hidden metadata for linking to Gmail threads/messages
       
       // === ROW HEIGHT CONFIGURATION ===
-      defaultRowHeight: 25, // Reduce default row height by half (from ~50px to 25px)
+      defaultRowHeight: 16, // Further reduced row height for more compact view
       minDimensions: [15, 100], // [columns, rows] - ensure we have enough space
       
       // === USE JSPREADSHEET DEFAULTS ===
@@ -135,14 +183,47 @@ export async function buildSpreadsheet(container, data) {
       rowResize: true,
       search: true,
       filters: true
-    }]
-  });
+    }],
+    
+    // === FIELD EDIT HANDLER (v5 top-level) ===
+    onchange: function(instance, cell, x, y, value) {
+      console.log('[JS002] Cell edit triggered, x:', x, 'y:', y, 'value:', value);
+      const columnIndex = parseInt(x);
+      const rowIndex = parseInt(y);
+        
+      // Get column definition and field mapping
+      const columnDef = columns[columnIndex];
+      if (!columnDef || !columnDef.fieldName || !columnDef.editable) {
+        return; // Not an editable field
+      }
+      
+      // Get the invoice data
+      const invoice = data[rowIndex]; // No header row adjustment needed
+      if (!invoice) return;
+      
+      // Check if field is in editableFields array
+      if (!invoice.editableFields || !invoice.editableFields.includes(columnDef.fieldName)) {
+        console.warn(`[EDIT] Field "${columnDef.fieldName}" is not editable for this invoice`);
 
-  // Add click event handler for Gmail popout icons directly after spreadsheet creation
+        // Revert to original value
+        const originalValue = getOriginalValue(invoice, columnDef.fieldName);
+        instance.setValueFromCoords(x, y, originalValue);
+        return;
+      }
+      
+      console.log(`[JS003] Processing field: ${columnDef.fieldName} = ${value}`);
+      handleFieldEdit(invoice, columnDef.fieldName, value, rowIndex, correctionsBatcher);
+    }
+  });
+  const sheet = Array.isArray(spreadsheet) ? spreadsheet[0] : spreadsheet;
+  console.log('[JS005] sheets:', Array.isArray(spreadsheet) ? spreadsheet.length : 1);
+
+  // Add delegated handlers for Gmail icon, document preview, and inline PDF overlay
   console.log('[POPOUT] Setting up click event delegation on spreadsheet container');
 
   // Wait a bit for jspreadsheet to fully render
   setTimeout(() => {
+    // Gmail popout click
     cleanContainer.addEventListener('click', function(e) {
       const clickedElement = e.target.closest('.gmail-popout-icon');
 
@@ -166,9 +247,120 @@ export async function buildSpreadsheet(container, data) {
         }
       }
     });
+
+    // Document hover preview (thumbnail) and click to open inline overlay
+    let previewEl = null;
+    let overlayEl = null;
+
+    const showPreview = (iconEl) => {
+      // Preview remains optional; we use thumbnail url if present
+      const docUrl = iconEl.getAttribute('data-doc-url');
+      if (!docUrl) return;
+      const rect = iconEl.getBoundingClientRect();
+      if (!previewEl) {
+        previewEl = document.createElement('div');
+        previewEl.style.cssText = 'position:fixed; z-index:2147483646; width:280px; height:210px; background:#fff; box-shadow:0 8px 24px rgba(60,64,67,0.3); border:1px solid #e0e0e0; border-radius:8px; overflow:hidden;';
+        document.body.appendChild(previewEl);
+      }
+      previewEl.innerHTML = `<iframe src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1" style="width:100%;height:100%;border:0;" loading="eager"></iframe>`;
+      const rectLeft = Math.max(8, rect.left - 40);
+      previewEl.style.top = `${Math.round(rect.bottom + 8)}px`;
+      previewEl.style.left = `${Math.round(rectLeft)}px`;
+      previewEl.style.display = 'block';
+    };
+
+    const hidePreview = () => {
+      if (previewEl) previewEl.style.display = 'none';
+    };
+
+    const ensureOverlay = () => {
+      if (!overlayEl) {
+        overlayEl = document.createElement('div');
+        overlayEl.style.cssText = 'position:fixed; inset:0; background:rgba(32,33,36,0.6); z-index:2147483647; display:flex; align-items:center; justify-content:center;';
+        overlayEl.innerHTML = `
+          <div style="width:80vw; height:80vh; background:#fff; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.35); display:flex; flex-direction:column; overflow:hidden;">
+            <div style="padding:10px; border-bottom:1px solid #e0e0e0; display:flex; align-items:center; justify-content:space-between;">
+              <div style="font-weight:600; color:#202124;">Document Preview</div>
+              <button id="stamp-doc-close" style="border:none; background:#eef2f7; color:#1f2937; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600;">Close</button>
+            </div>
+            <iframe id="stamp-doc-frame" src="" style="flex:1; width:100%; border:0;" loading="eager"></iframe>
+          </div>`;
+        document.body.appendChild(overlayEl);
+        overlayEl.addEventListener('click', (evt) => {
+          if (evt.target && (evt.target.id === 'stamp-doc-close' || evt.target === overlayEl)) {
+            overlayEl.style.display = 'none';
+          }
+        });
+      }
+      return overlayEl;
+    };
+
+    const openOverlayUrl = (url) => {
+      const el = ensureOverlay();
+      el.querySelector('#stamp-doc-frame').setAttribute('src', url);
+      el.style.display = 'flex';
+    };
+
+    cleanContainer.addEventListener('mouseover', (e) => {
+      const icon = e.target.closest('.doc-preview-icon');
+      if (icon && icon.getAttribute('data-has-doc') === '1') showPreview(icon);
+    });
+
+    cleanContainer.addEventListener('mouseout', (e) => {
+      const icon = e.target.closest('.doc-preview-icon');
+      if (icon) hidePreview();
+    });
+
+    cleanContainer.addEventListener('click', async (e) => {
+      const icon = e.target.closest('.doc-preview-icon');
+      if (!icon) return;
+      const hasDoc = icon.getAttribute('data-has-doc') === '1';
+      if (!hasDoc) return;
+
+      const threadId = icon.getAttribute('data-thread-id');
+      const documentName = icon.getAttribute('data-doc-name');
+      const cacheKey = `${threadId}|${documentName}`;
+
+      // Try cache first
+      let objectUrl = pdfCache.get(cacheKey);
+      if (objectUrl) {
+        console.log('[DOC] Cache hit for', cacheKey);
+        openOverlayUrl(objectUrl);
+        return;
+      }
+
+      // No cache: fetch via authenticated client hook
+      try {
+        console.log('[DOC] Cache miss. Fetching PDF via hook for', { threadId, documentName });
+        if (!opts.fetchPdf) {
+          console.warn('[DOC] No fetchPdf hook provided. Cannot stream PDF.');
+          return;
+        }
+        const blob = await opts.fetchPdf({ threadId, documentName });
+        objectUrl = URL.createObjectURL(blob);
+        // Small LRU: cap at 25 items
+        if (pdfCache.size > 25) {
+          const firstKey = pdfCache.keys().next().value;
+          const oldUrl = pdfCache.get(firstKey);
+          if (oldUrl) URL.revokeObjectURL(oldUrl);
+          pdfCache.delete(firstKey);
+        }
+        pdfCache.set(cacheKey, objectUrl);
+        openOverlayUrl(objectUrl);
+      } catch (err) {
+        console.error('[DOC] Failed to fetch PDF:', err);
+      }
+    });
   }, 500);
 
-  return spreadsheet;
+  // Return spreadsheet and corrections batcher
+  return { 
+    spreadsheet, 
+    correctionsBatcher,
+    cleanup: () => {
+      console.log('[CLEANUP] Spreadsheet cleanup called');
+    }
+  };
 }
 
 // Create a Shadow DOM container for complete CSS isolation
@@ -238,493 +430,70 @@ async function setupShadowDOMContainer(container) {
       
       console.log('[SHADOW DOM] ✅ Local CSS files loaded successfully');
       return true;
-    } catch (error) {
-      console.error('[SHADOW DOM] ❌ Error loading local CSS files:', error);
-      console.error('[SHADOW DOM] ❌ Error details:', {
-        message: error.message,
-        stack: error.stack
-      });
-      
-      // No fallback possible due to CORS restrictions
-      console.error('[SHADOW DOM] ❌ CSS loading failed - ensure jspreadsheet.css and jsuites.css are in dist/ directory');
+    } catch (err) {
+      console.error('[SHADOW DOM] Failed to load local CSS files:', err);
       return false;
     }
   };
-  
-  // Load CSS first, then create container
-  await loadLocalCSS();
-  
-  // Create clean container inside shadow DOM
+
+  // Minimal inline CSS fallback injected into the Shadow DOM if local CSS fails
+  function injectMinimalCSSFallback() {
+    const style = document.createElement('style');
+    style.textContent = `
+      :host { all: initial; }
+      .jspreadsheet-clean-container {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        color: #111827;
+        background: #ffffff;
+      }
+      /* Basic table appearance so jspreadsheet remains readable without full CSS */
+      .jexcel, .jspreadsheet, .jss_container, .jss_worksheet {
+        font-size: 12px;
+        line-height: 1.2;
+      }
+      .jexcel td, .jspreadsheet td, .jexcel th, .jspreadsheet th {
+        border: 1px solid #e5e7eb;
+        padding: 2px 6px;
+        height: 16px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        background: #fff;
+      }
+      .jexcel tr, .jspreadsheet tr { height: 16px; }
+      .jexcel thead th, .jspreadsheet thead th {
+        background: #f9fafb;
+        font-weight: 600;
+      }
+      .jexcel .selected, .jspreadsheet .selected { outline: 2px solid #10b981; }
+      .jexcel .highlight, .jspreadsheet .highlight { background: #f3f4f6; }
+    `;
+    shadowRoot.appendChild(style);
+  }
+
+  // Create a clean container element for jspreadsheet
   const cleanContainer = document.createElement('div');
+  cleanContainer.className = 'jspreadsheet-clean-container';
   cleanContainer.style.cssText = `
     width: 100%;
     height: 100%;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 14px;
+    position: relative;
   `;
-  shadowRoot.appendChild(cleanContainer);
-  
-  // Replace container content with shadow host
+
+  // Attach the shadow host to the provided container
   container.innerHTML = '';
   container.appendChild(shadowHost);
-  
-  console.log('[SHADOW DOM] ✅ Shadow DOM container created with isolated CSS');
+  shadowRoot.appendChild(cleanContainer);
+
+  // Attempt to load local CSS, and if not available, fall back to a minimal inline style
+  const loaded = await loadLocalCSS();
+  if (!loaded) {
+    console.warn('[SHADOW DOM] Falling back to minimal inline CSS due to load failure');
+    injectMinimalCSSFallback();
+  }
+
   return { cleanContainer, shadowRoot };
 }
-
-// OLD FUNCTION - Inject comprehensive CSS overrides for jspreadsheet styling
-function injectJspreadsheetStyleOverrides_OLD() {
-  const styleId = 'jspreadsheet-style-overrides';
-  console.log('[STYLE DEBUG] Starting CSS injection process...');
-  
-  if (document.getElementById(styleId)) {
-    console.log('[STYLE DEBUG] CSS overrides already exist, skipping injection');
-    return;
-  }
-
-  console.log('[STYLE DEBUG] Creating new style element...');
-
-  const style = document.createElement('style');
-  style.id = styleId;
-  style.setAttribute('data-source', 'jspreadsheet-stamp-extension');
-  style.textContent = `
-    /* STAMP EXTENSION - Force jspreadsheet styling with maximum specificity */
-    html body div.jspreadsheet-isolation-wrapper,
-    html body div.jspreadsheet-isolation-wrapper * {
-      box-sizing: border-box !important;
-    }
-    
-    html body div.jspreadsheet-isolation-wrapper .jexcel,
-    html body div.jspreadsheet-isolation-wrapper .jspreadsheet,
-    html body div.jspreadsheet-isolation-wrapper .jss_worksheet {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-      font-size: 14px !important;
-      border-collapse: separate !important;
-      border-spacing: 0 !important;
-      background: #fff !important;
-      color: #000 !important;
-    }
-    
-    /* Table cells with maximum specificity */
-    html body div.jspreadsheet-isolation-wrapper .jexcel td,
-    html body div.jspreadsheet-isolation-wrapper .jspreadsheet td,
-    html body div.jspreadsheet-isolation-wrapper .jss_worksheet td,
-    html body div.jspreadsheet-isolation-wrapper table td {
-      border: 1px solid #e0e0e0 !important;
-      padding: 8px !important;
-      font-size: 14px !important;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-      background: #fff !important;
-      color: #000 !important;
-      line-height: 1.4 !important;
-    }
-    
-    /* Headers with maximum specificity */
-    html body div.jspreadsheet-isolation-wrapper .jexcel th,
-    html body div.jspreadsheet-isolation-wrapper .jspreadsheet th,
-    html body div.jspreadsheet-isolation-wrapper table th {
-      background: #f5f5f5 !important;
-      border: 1px solid #e0e0e0 !important;
-      padding: 8px !important;
-      font-weight: 500 !important;
-      font-size: 14px !important;
-      color: #333 !important;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-    }
-    
-    /* Input fields with forced styling */
-    html body div.jspreadsheet-isolation-wrapper .jexcel input,
-    html body div.jspreadsheet-isolation-wrapper .jspreadsheet input,
-    html body div.jspreadsheet-isolation-wrapper input {
-      border: none !important;
-      background: transparent !important;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-      font-size: 14px !important;
-      color: #000 !important;
-      outline: none !important;
-      width: 100% !important;
-      padding: 4px !important;
-      margin: 0 !important;
-      box-shadow: none !important;
-    }
-    
-    /* Additional comprehensive styling for all jspreadsheet elements */
-    html body div.jspreadsheet-isolation-wrapper .jexcel-toolbar,
-    html body div.jspreadsheet-isolation-wrapper .jspreadsheet-toolbar {
-      background: #f8f9fa !important;
-      border-bottom: 1px solid #e0e0e0 !important;
-      padding: 8px !important;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-      font-size: 14px !important;
-    }
-    
-    /* Row numbers - first cell in each row (jspreadsheet v5 structure) */
-    html body div.jspreadsheet-isolation-wrapper .jss_worksheet tr td:first-child {
-      background: #f5f5f5 !important;
-      font-weight: 500 !important;
-      text-align: center !important;
-      color: #666 !important;
-      border: 1px solid #e0e0e0 !important;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-      font-size: 14px !important;
-      padding: 8px !important;
-    }
-    
-    /* Column headers - first row cells (jspreadsheet v5 structure) */
-    html body div.jspreadsheet-isolation-wrapper .jss_worksheet tr:first-child td {
-      background: #f5f5f5 !important;
-      font-weight: 500 !important;
-      text-align: center !important;
-      color: #666 !important;
-      border: 1px solid #e0e0e0 !important;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-      font-size: 14px !important;
-      padding: 8px !important;
-    }
-    
-    /* Select-all corner cell */
-    html body div.jspreadsheet-isolation-wrapper .jss_selectall {
-      background: #f5f5f5 !important;
-      border: 1px solid #e0e0e0 !important;
-    }
-    
-    /* Dropdowns and context menus */
-    html body div.jspreadsheet-isolation-wrapper .jdropdown,
-    html body div.jspreadsheet-isolation-wrapper .jsuites-dropdown {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-      font-size: 14px !important;
-      border: 1px solid #ccc !important;
-      background: #fff !important;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-    }
-    
-    html body div.jspreadsheet-isolation-wrapper .jdropdown-item,
-    html body div.jspreadsheet-isolation-wrapper .jsuites-dropdown-item {
-      padding: 8px 12px !important;
-      font-size: 14px !important;
-      color: #333 !important;
-      background: #fff !important;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-    }
-    
-    html body div.jspreadsheet-isolation-wrapper .jdropdown-item:hover,
-    html body div.jspreadsheet-isolation-wrapper .jsuites-dropdown-item:hover {
-      background: #f0f0f0 !important;
-    }
-    
-    /* Selection and editing states */
-    html body div.jspreadsheet-isolation-wrapper .jexcel-selection,
-    html body div.jspreadsheet-isolation-wrapper .jspreadsheet-selection {
-      background: rgba(66, 133, 244, 0.15) !important;
-      border: 2px solid #4285f4 !important;
-    }
-    
-    /* Editor input when editing cell */
-    html body div.jspreadsheet-isolation-wrapper .jexcel-editor,
-    html body div.jspreadsheet-isolation-wrapper .jspreadsheet-editor {
-      border: 2px solid #4285f4 !important;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-      font-size: 14px !important;
-      padding: 4px !important;
-      background: #fff !important;
-      outline: none !important;
-    }
-    
-    /* Context menu styling */
-    html body div.jspreadsheet-isolation-wrapper .jcontextmenu,
-    html body div.jspreadsheet-isolation-wrapper .jsuites-contextmenu {
-      background: #fff !important;
-      border: 1px solid #ccc !important;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-      font-size: 14px !important;
-    }
-    
-    /* Calendar and date picker */
-    html body div.jspreadsheet-isolation-wrapper .jcalendar,
-    html body div.jspreadsheet-isolation-wrapper .jsuites-calendar {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-      font-size: 14px !important;
-      background: #fff !important;
-      border: 1px solid #ccc !important;
-    }
-    
-    /* Force clean table appearance */
-    html body div.jspreadsheet-isolation-wrapper table {
-      border-spacing: 0 !important;
-      border-collapse: separate !important;
-      background: #fff !important;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-      font-size: 14px !important;
-    }
-    
-    /* Phase 1: Enhanced interactive styling */
-    html body div.jspreadsheet-isolation-wrapper .jcalendar {
-      border: 1px solid #dadce0 !important;
-      border-radius: 8px !important;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-    }
-    
-    html body div.jspreadsheet-isolation-wrapper .jdropdown-container {
-      border: 1px solid #dadce0 !important;
-      border-radius: 4px !important;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-    }
-    
-    html body div.jspreadsheet-isolation-wrapper .jdropdown-item:hover {
-      background: #f0f0f0 !important;
-      transition: background-color 0.2s !important;
-    }
-    
-    /* Loading spinner animation for Phase 3 */
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    /* Force jspreadsheet styling - High specificity overrides */
-    .jspreadsheet-isolation-wrapper * {
-      box-sizing: border-box !important;
-    }
-    
-    .jspreadsheet-isolation-wrapper .jexcel,
-    .jspreadsheet-isolation-wrapper .jspreadsheet {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-      font-size: 14px !important;
-      border-collapse: separate !important;
-      border-spacing: 0 !important;
-      background: #fff !important;
-    }
-    
-    /* Table cells */
-    .jspreadsheet-isolation-wrapper .jexcel td,
-    .jspreadsheet-isolation-wrapper .jspreadsheet td {
-      border: 1px solid #e0e0e0 !important;
-      padding: 8px !important;
-      font-size: 14px !important;
-      font-family: inherit !important;
-      background: #fff !important;
-      color: #000 !important;
-    }
-    
-    /* Headers */
-    .jspreadsheet-isolation-wrapper .jexcel th,
-    .jspreadsheet-isolation-wrapper .jspreadsheet th {
-      background: #f5f5f5 !important;
-      border: 1px solid #e0e0e0 !important;
-      padding: 8px !important;
-      font-weight: 500 !important;
-      font-size: 14px !important;
-      color: #333 !important;
-    }
-    
-    /* Input fields in cells */
-    .jspreadsheet-isolation-wrapper .jexcel input,
-    .jspreadsheet-isolation-wrapper .jspreadsheet input {
-      border: none !important;
-      background: transparent !important;
-      font-family: inherit !important;
-      font-size: 14px !important;
-      color: #000 !important;
-      outline: none !important;
-      width: 100% !important;
-      padding: 0 !important;
-      margin: 0 !important;
-    }
-    
-    /* Dropdowns */
-    .jspreadsheet-isolation-wrapper .jdropdown,
-    .jspreadsheet-isolation-wrapper .jsuites-dropdown {
-      font-family: inherit !important;
-      font-size: 14px !important;
-      border: 1px solid #ccc !important;
-      background: #fff !important;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-    }
-    
-    /* Dropdown items */
-    .jspreadsheet-isolation-wrapper .jdropdown-item,
-    .jspreadsheet-isolation-wrapper .jsuites-dropdown-item {
-      padding: 8px 12px !important;
-      font-size: 14px !important;
-      color: #333 !important;
-      background: #fff !important;
-    }
-    
-    .jspreadsheet-isolation-wrapper .jdropdown-item:hover,
-    .jspreadsheet-isolation-wrapper .jsuites-dropdown-item:hover {
-      background: #f0f0f0 !important;
-    }
-    
-    /* Toolbar */
-    .jspreadsheet-isolation-wrapper .jexcel-toolbar,
-    .jspreadsheet-isolation-wrapper .jspreadsheet-toolbar {
-      background: #fafafa !important;
-      border-bottom: 1px solid #e0e0e0 !important;
-      padding: 8px !important;
-    }
-    
-    /* Selection styling */
-    .jspreadsheet-isolation-wrapper .jexcel-selection,
-    .jspreadsheet-isolation-wrapper .jspreadsheet-selection {
-      background: rgba(66, 133, 244, 0.15) !important;
-      border: 2px solid #4285f4 !important;
-    }
-    
-    /* Context menu */
-    .jspreadsheet-isolation-wrapper .jcontextmenu,
-    .jspreadsheet-isolation-wrapper .jsuites-contextmenu {
-      background: #fff !important;
-      border: 1px solid #ccc !important;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
-      font-family: inherit !important;
-    }
-  `;
-  
-  document.head.appendChild(style);
-  console.log('[STYLE DEBUG] ✅ CSS overrides injected successfully. Style element ID:', styleId);
-  
-  // Verify injection
-  setTimeout(() => {
-    const injectedStyle = document.getElementById(styleId);
-    console.log('[STYLE DEBUG] Verification - Style element exists:', !!injectedStyle);
-    if (injectedStyle) {
-      console.log('[STYLE DEBUG] Style content length:', injectedStyle.textContent.length);
-      console.log('[STYLE DEBUG] Style attributes:', {
-        id: injectedStyle.id,
-        dataSource: injectedStyle.getAttribute('data-source')
-      });
-    }
-  }, 100);
-}
-
-// Verify CSS injection and diagnose styling issues
-function verifyCSSInjection() {
-  console.log('[STYLE VERIFY] Starting CSS verification...');
-  
-  // Check if our style element exists
-  const styleElement = document.getElementById('jspreadsheet-style-overrides');
-  console.log('[STYLE VERIFY] Style element found:', !!styleElement);
-  
-  // Check if jspreadsheet CSS is loaded
-  const jspreadsheetStyles = Array.from(document.querySelectorAll('style, link')).filter(el => 
-    el.textContent?.includes('jspreadsheet') || el.href?.includes('jspreadsheet')
-  );
-  console.log('[STYLE VERIFY] Jspreadsheet CSS files found:', jspreadsheetStyles.length);
-  
-  // Check if isolation wrapper exists
-  const isolationWrapper = document.querySelector('.jspreadsheet-isolation-wrapper');
-  console.log('[STYLE VERIFY] Isolation wrapper found:', !!isolationWrapper);
-  
-  // Check computed styles on a test element
-  if (isolationWrapper) {
-    const computedStyle = window.getComputedStyle(isolationWrapper);
-    console.log('[STYLE VERIFY] Isolation wrapper styles:', {
-      fontFamily: computedStyle.fontFamily,
-      fontSize: computedStyle.fontSize,
-      background: computedStyle.background,
-      isolation: computedStyle.isolation
-    });
-    
-    // Check table styles if present
-    const table = isolationWrapper.querySelector('table');
-    if (table) {
-      const tableStyle = window.getComputedStyle(table);
-      console.log('[STYLE VERIFY] Table styles:', {
-        fontFamily: tableStyle.fontFamily,
-        fontSize: tableStyle.fontSize,
-        borderCollapse: tableStyle.borderCollapse
-      });
-    }
-    
-    // Check cell styles
-    const cell = isolationWrapper.querySelector('td');
-    if (cell) {
-      const cellStyle = window.getComputedStyle(cell);
-      console.log('[STYLE VERIFY] Cell styles:', {
-        fontFamily: cellStyle.fontFamily,
-        fontSize: cellStyle.fontSize,
-        border: cellStyle.border,
-        padding: cellStyle.padding
-      });
-    }
-    
-    // Check header styles (first row td elements in jspreadsheet v5)
-    const header = isolationWrapper.querySelector('.jss_worksheet tr:first-child td:nth-child(2)'); // Skip corner cell
-    if (header) {
-      const headerStyle = window.getComputedStyle(header);
-      console.log('[STYLE VERIFY] Header styles:', {
-        fontFamily: headerStyle.fontFamily,
-        fontSize: headerStyle.fontSize,
-        background: headerStyle.background,
-        fontWeight: headerStyle.fontWeight,
-        textContent: header.textContent
-      });
-    }
-    
-    // Check row number column (first td in each data row)
-    const rowNumber = isolationWrapper.querySelector('.jss_worksheet tr:nth-child(2) td:first-child'); // Second row, first cell
-    if (rowNumber) {
-      const rowNumberStyle = window.getComputedStyle(rowNumber);
-      console.log('[STYLE VERIFY] Row number styles:', {
-        fontFamily: rowNumberStyle.fontFamily,
-        fontSize: rowNumberStyle.fontSize,
-        background: rowNumberStyle.background,
-        textAlign: rowNumberStyle.textAlign,
-        textContent: rowNumber.textContent
-      });
-    }
-  }
-  
-  // List all style elements for debugging
-  const allStyles = Array.from(document.querySelectorAll('style')).map(style => ({
-    id: style.id || 'no-id',
-    source: style.getAttribute('data-source') || 'unknown',
-    length: style.textContent.length
-  }));
-  console.log('[STYLE VERIFY] All style elements:', allStyles);
-}
-
-// Setup container for proper scrolling behavior and CSS isolation
-function setupScrollableContainer(container) {
-  // Create CSS isolation wrapper
-  const isolationWrapper = document.createElement('div');
-  isolationWrapper.className = 'jspreadsheet-isolation-wrapper';
-  
-  // Apply isolation and reset styles
-  isolationWrapper.style.cssText = `
-    /* CSS Isolation and Reset */
-    all: initial;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-    font-size: 14px !important;
-    line-height: 1.5 !important;
-    color: #000 !important;
-    background: #fff !important;
-    
-    /* Container sizing */
-    position: relative !important;
-    width: 100% !important;
-    height: calc(100vh - 80px) !important;
-    min-height: 600px !important;
-    overflow: hidden !important;
-    border: 1px solid #dadce0 !important;
-    border-radius: 8px !important;
-    box-sizing: border-box !important;
-    
-    /* Ensure proper stacking */
-    z-index: 1 !important;
-    isolation: isolate !important;
-  `;
-  
-  // Replace container content with our isolation wrapper
-  container.innerHTML = '';
-  container.appendChild(isolationWrapper);
-  
-  // Return the isolated container for jspreadsheet
-  return isolationWrapper;
-}
-
 // Calculate optimal dimensions based on available space
 function calculateOptimalDimensions(container) {
   const containerRect = container.getBoundingClientRect();
@@ -740,326 +509,8 @@ function calculateOptimalDimensions(container) {
   };
 }
 
-// Setup responsive scrolling with resize observers
-function setupResponsiveScrolling(container, spreadsheet) {
-  // Handle window resize
-  const resizeObserver = new ResizeObserver(entries => {
-    for (let entry of entries) {
-      updateScrollingDimensions(container, spreadsheet);
-    }
-  });
-  
-  resizeObserver.observe(container);
-  
-  // Handle orientation change on mobile
-  window.addEventListener('orientationchange', () => {
-    setTimeout(() => {
-      updateScrollingDimensions(container, spreadsheet);
-    }, 100);
-  });
-  
-  // Store observer for cleanup
-  container._resizeObserver = resizeObserver;
-  
-  console.log('Responsive scrolling setup complete');
-}
 
-// Update scrolling dimensions when container resizes
-function updateScrollingDimensions(container, spreadsheet) {
-  if (!spreadsheet.worksheets || !spreadsheet.worksheets[0]) return;
-  
-  try {
-    const newDimensions = calculateOptimalDimensions(container);
-    const worksheet = spreadsheet.worksheets[0];
-    
-    // Update worksheet dimensions
-    if (worksheet.options) {
-      worksheet.options.tableHeight = `${newDimensions.height - 60}px`;
-      worksheet.options.tableWidth = `${newDimensions.width}px`;
-      
-      // Refresh the table layout if refresh method exists
-      if (typeof worksheet.refresh === 'function') {
-        worksheet.refresh();
-      }
-    }
-    
-    console.log('Updated scrolling dimensions:', newDimensions);
-  } catch (error) {
-    console.error('Error updating scrolling dimensions:', error);
-  }
-}
 
-// Create a Gmail-compatible custom toolbar with scroll controls
-function createCustomToolbar(container, spreadsheet) {
-  const toolbar = document.createElement('div');
-  toolbar.style.cssText = `
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    background: #f8f9fa;
-    border-bottom: 1px solid #dadce0;
-    font-family: 'Google Sans', Roboto, Arial, sans-serif;
-    font-size: 14px;
-    flex-wrap: wrap;
-    margin-bottom: 0;
-    min-height: 50px;
-  `;
-
-  // Enhanced toolbar buttons with scroll controls
-  const buttons = [
-    // Data manipulation buttons
-    {
-      label: '➕ Insert Row',
-      action: () => {
-        try {
-          if (spreadsheet.worksheets && spreadsheet.worksheets[0]) {
-            spreadsheet.worksheets[0].insertRow();
-          } else {
-            alert('Spreadsheet not available');
-          }
-        } catch (error) {
-          console.error('Insert Row error:', error);
-          alert('Failed to insert row: ' + error.message);
-        }
-      }
-    },
-    {
-      label: '📋 Insert Column', 
-      action: () => {
-        try {
-          if (spreadsheet.worksheets && spreadsheet.worksheets[0]) {
-            spreadsheet.worksheets[0].insertColumn();
-          } else {
-            alert('Spreadsheet not available');
-          }
-        } catch (error) {
-          console.error('Insert Column error:', error);
-          alert('Failed to insert column: ' + error.message);
-        }
-      }
-    },
-    
-    // Separator
-    { type: 'separator' },
-    
-    // Scroll control buttons
-    {
-      label: '⬅️ Scroll Left',
-      action: () => {
-        scrollSpreadsheet(spreadsheet, 'left');
-      }
-    },
-    {
-      label: '➡️ Scroll Right',
-      action: () => {
-        scrollSpreadsheet(spreadsheet, 'right');
-      }
-    },
-    {
-      label: '🔝 Scroll Top',
-      action: () => {
-        scrollSpreadsheet(spreadsheet, 'top');
-      }
-    },
-    {
-      label: '🔽 Scroll Bottom',
-      action: () => {
-        scrollSpreadsheet(spreadsheet, 'bottom');
-      }
-    },
-    
-    // Separator
-    { type: 'separator' },
-    
-    // Action buttons
-    {
-      label: '✅ Approve Selected',
-      action: () => {
-        alert('Approve selected functionality - to be implemented');
-      }
-    },
-    {
-      label: '💾 Export CSV',
-      action: () => {
-        if (spreadsheet.worksheets && spreadsheet.worksheets[0]) {
-          try {
-            const data = spreadsheet.worksheets[0].getData();
-            if (data && data.length > 0) {
-              const csvData = convertDataToCSV(data);
-              downloadCSV(csvData, 'invoice-tracker.csv');
-            } else {
-              alert('No data to export');
-            }
-          } catch (error) {
-            console.error('Export CSV error:', error);
-            alert('Failed to export CSV: ' + error.message);
-          }
-        } else {
-          alert('Spreadsheet not available for export');
-        }
-      }
-    }
-  ];
-
-  buttons.forEach(btn => {
-    if (btn.type === 'separator') {
-      const separator = document.createElement('div');
-      separator.style.cssText = `
-        width: 1px;
-        height: 24px;
-        background: #dadce0;
-        margin: 0 4px;
-      `;
-      toolbar.appendChild(separator);
-      return;
-    }
-    
-    const button = document.createElement('button');
-    button.textContent = btn.label;
-    button.style.cssText = `
-      padding: 6px 12px;
-      border: 1px solid #dadce0;
-      border-radius: 4px;
-      background: white;
-      cursor: pointer;
-      font-size: 13px;
-      transition: all 0.2s;
-      white-space: nowrap;
-      min-height: 32px;
-    `;
-    
-    button.addEventListener('mouseenter', () => {
-      button.style.backgroundColor = '#f1f3f4';
-      button.style.transform = 'translateY(-1px)';
-    });
-    
-    button.addEventListener('mouseleave', () => {
-      button.style.backgroundColor = 'white';
-      button.style.transform = 'translateY(0)';
-    });
-    
-    button.addEventListener('click', btn.action);
-    toolbar.appendChild(button);
-  });
-
-  // Use a safer approach: move existing content into a wrapper and add toolbar
-  const existingContent = Array.from(container.children);
-  const contentWrapper = document.createElement('div');
-  contentWrapper.style.cssText = `
-    flex: 1;
-    overflow: hidden;
-    position: relative;
-  `;
-  
-  // Move all existing content to the wrapper
-  existingContent.forEach(child => {
-    contentWrapper.appendChild(child);
-  });
-  
-  // Set container as flex to accommodate toolbar and content
-  container.style.display = 'flex';
-  container.style.flexDirection = 'column';
-  
-  // Add toolbar first, then the wrapper with content
-  container.appendChild(toolbar);
-  container.appendChild(contentWrapper);
-}
-
-// Enhanced scroll control function
-function scrollSpreadsheet(spreadsheet, direction) {
-  try {
-    const worksheet = spreadsheet.worksheets[0];
-    if (!worksheet || !worksheet.element) {
-      console.warn('Worksheet element not found for scrolling');
-      return;
-    }
-    
-    // Find the scrollable container
-    const scrollContainer = worksheet.element.querySelector('.jss_content') || 
-                           worksheet.element.querySelector('table')?.parentElement ||
-                           worksheet.element;
-    
-    if (!scrollContainer) {
-      console.warn('Scroll container not found');
-      return;
-    }
-    
-    const scrollStep = 200;
-    
-    switch (direction) {
-      case 'left':
-        scrollContainer.scrollLeft = Math.max(0, scrollContainer.scrollLeft - scrollStep);
-        break;
-      case 'right':
-        scrollContainer.scrollLeft += scrollStep;
-        break;
-      case 'top':
-        scrollContainer.scrollTop = 0;
-        break;
-      case 'bottom':
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-        break;
-    }
-    
-    console.log(`Scrolled ${direction}`);
-  } catch (error) {
-    console.error('Error scrolling spreadsheet:', error);
-  }
-}
-
-// Helper function to download CSV
-function downloadCSV(csvContent, filename) {
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  if (link.download !== undefined) {
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-}
-
-// Helper function to convert spreadsheet data to CSV format
-function convertDataToCSV(data) {
-  if (!data || data.length === 0) {
-    return '';
-  }
-  
-  // Create CSV with headers
-  const headers = ['Invoice #', 'Vendor', 'Amount', 'Due Date', 'Status', 'Assigned To', 'Actions'];
-  const csvRows = [headers];
-  
-  // Add data rows, excluding HTML content in Actions column
-  data.forEach(row => {
-    const csvRow = row.map((cell, index) => {
-      // For the Actions column (index 7), return a simple text instead of HTML
-      if (index === 7) {
-        return 'View Thread';
-      }
-      
-      // Handle values that might contain commas or quotes
-      const cellValue = String(cell || '');
-      if (cellValue.includes(',') || cellValue.includes('"') || cellValue.includes('\n')) {
-        return `"${cellValue.replace(/"/g, '""')}"`;
-      }
-      return cellValue;
-    });
-    csvRows.push(csvRow);
-  });
-  
-  // Convert to CSV string
-  return csvRows.map(row => row.join(',')).join('\n');
-}
-
-// Helper function to extract a unique list of vendors for autocomplete
-function getVendorList(data) {
-  const vendors = data.map(invoice => invoice.vendor);
-  return [...new Set(vendors)]; // Return unique vendors
-}
 
 // Helper function to transform raw invoice data into the format jspreadsheet expects
 function transformDataForSpreadsheet(invoices) {
@@ -1067,20 +518,40 @@ function transformDataForSpreadsheet(invoices) {
         return [];
     }
   return invoices.map(invoice => {
-    // The detailed data is now nested in the 'invoice_details' object
-    const details = invoice.invoice_details || invoice;
-    const threadId = invoice.statusThreadId || invoice.thread_id || '';
-    const messageId = invoice.statusMessageId || invoice.messageId || invoice.message_id || '';
+    // Exact schema: primary fields under document.details; status IDs are distinct
+    const details = invoice.document?.details || {};
 
-    // Create popout icon with click handler
-    const popoutIcon = threadId || messageId ?
+    const statusThreadId = invoice.statusThreadId || '';
+    const statusMessageId = invoice.statusMessageId || '';
+
+    // Document identity (for preview icon)
+    const docThreadId = invoice.document?.thread_id || '';
+    const docName = invoice.document?.document_name || '';
+
+    // Optional document/thumbnail URLs (best-effort)
+    const docUrl = details.documentUrl || details.document_url || invoice.document?.url || '';
+    const thumbUrl = details.thumbnailUrl || details.thumbnail_url || invoice.document?.thumbnailUrl || invoice.document?.thumbnail_url || '';
+
+    // Document icon with click-to-open behavior (always render; disabled if missing identifiers)
+    const hasDoc = !!(docThreadId && docName);
+    const docIcon = `
+      <span class="doc-preview-icon" 
+            data-doc-url="${docUrl}"
+            data-thumb-url="${thumbUrl}"
+            data-has-doc="${hasDoc ? '1' : '0'}"
+            data-thread-id="${docThreadId}"
+            data-doc-name="${docName}"
+            title="${hasDoc ? 'Preview document' : 'No document available'}"
+            style="${hasDoc ? 'cursor: pointer; color: #5f6368;' : 'cursor: not-allowed; color: #c0c0c0;'} font-size: 14px; padding: 2px; margin: 0; line-height: 1; height: 20px; width: 20px; display: flex; align-items: center; justify-content: center; user-select: none;">📄</span>
+    `;
+
+    // Gmail popout icon should use document IDs (thread_id/message_id)
+    const popoutIcon = invoice.document?.thread_id || invoice.document?.message_id ?
       `<span class="gmail-popout-icon" 
-            data-thread-id="${threadId}" 
-            data-message-id="${messageId}"
+            data-thread-id="${invoice.document?.thread_id || ''}" 
+            data-message-id="${invoice.document?.message_id || ''}"
             title="Open in Gmail"
-            style="cursor: pointer; font-size: 14px; color: #1a73e8; padding: 2px; margin: 0; line-height: 1; height: 20px; width: 20px; display: flex; align-items: center; justify-content: center; user-select: none;">
-         📤
-       </span>` :
+            style="cursor: pointer; font-size: 14px; color: #1a73e8; padding: 2px; margin: 0; line-height: 1; height: 20px; width: 20px; display: flex; align-items: center; justify-content: center; user-select: none;">📤</span>` :
       '<span style="color: #ccc; font-size: 12px;">-</span>';
 
     // Process involvementHistory to get the latest action for each person
@@ -1102,21 +573,22 @@ function transformDataForSpreadsheet(invoices) {
       .join('\n');
 
     return [
-      popoutIcon, // New first column with popout icon
-      details.invoiceNumber || invoice.invoice_number || 'N/A',
+      docIcon, // New first column
+      details.invoiceNumber || 'N/A',
       details.entityName || '',
       details.vendor?.name || 'N/A',
-      details.description || invoice.description || '',
-      details.period || invoice.period || '',
-      details.amount || null,
+      details.description || '',
+      details.period || '',
+      details.amount ?? null,
       details.currency || 'USD',
       details.issueDate || '',
       details.dueDate || '',
       details.paymentTerms || '',
-      invoice.status || 'unknown', // Status is at the top-level of the invoice object
+      invoice.status || 'unknown',
+      popoutIcon,
       involvementText || '',
       details.notes || '',
-      threadId ? `<button class="view-thread-btn" data-thread-id="${threadId}">View Thread</button>` : ''
+      statusThreadId ? `<button class="view-thread-btn" data-thread-id="${statusThreadId}">View Thread</button>` : ''
     ];
   });
 }
@@ -1139,44 +611,156 @@ function generateMetaInformation(invoices) {
     // Debug: Show what fields are available in the invoice
     console.log(`[META DEBUG] Invoice ${rowIndex} raw data:`, {
       statusThreadId: invoice.statusThreadId,
-      thread_id: invoice.thread_id, 
       statusMessageId: invoice.statusMessageId,
-      messageId: invoice.messageId,
-      message_id: invoice.message_id,
-      invoiceNumber: invoice.invoice_details?.invoiceNumber || invoice.invoice_number
+      doc_thread_id: invoice.document?.thread_id,
+      doc_message_id: invoice.document?.message_id,
+      invoiceNumber: invoice.document?.details?.invoiceNumber
     });
     
-    // Only create metadata if we have valid threadId or messageId
-    const threadId = invoice.statusThreadId || invoice.thread_id;
-    const messageId = invoice.statusMessageId || invoice.messageId || invoice.message_id;
+    // Only create metadata if we have valid status thread/message IDs
+    const threadId = invoice.statusThreadId;
+    const messageId = invoice.statusMessageId;
 
     if (threadId || messageId) {
       // Meta information for Invoice Number cells (Column B - shifted from A)
       const invoiceCell = `B${row}`;
       metaInfo[invoiceCell] = {
         threadId: threadId,
-        invoiceNumber: invoice.invoiceNumber,
+        invoiceNumber: invoice.document?.details?.invoiceNumber,
         type: 'invoice_identifier'
       };
-      
-      // Meta information for Status cells (Column L - shifted from E) 
-      const statusCell = `L${row}`;
+
+      // Meta information for Status cells (Column L before Gmail icon) remains same
+      const statusCell = `L${row}`; // Column 12 (1-indexed) -> Status
       metaInfo[statusCell] = {
         threadId: threadId,
         messageId: messageId,
-        status: invoice.status,
-        type: 'status_tracker',
-        lastUpdated: new Date().toISOString()
+        type: 'status_cell'
       };
-    } else {
-      console.log(`[META DEBUG] Invoice ${rowIndex} -> Cell A${row} SKIPPED (no threadId/messageId)`);
     }
   });
-  
-  console.log('[META INFO] Generated metadata for', Object.keys(metaInfo).length, 'cells');
-  console.log('[META INFO] Sample meta data:', metaInfo);
-  
+
   return metaInfo;
 }
+
+// === SIMPLIFIED CORRECTIONS BATCHER ===
+class CorrectionsBatcher {
+  constructor(apiClient) {
+    this.apiClient = apiClient;
+    this.pendingCorrections = new Map();
+    this.sent = false; // Prevent duplicate sends
+  }
+
+  addCorrection(messageId, contentHash, fieldName, newValue) {
+    console.log(`[JS004] Queued correction: ${fieldName} = ${newValue}`);
+    
+    if (!this.pendingCorrections.has(messageId)) {
+      this.pendingCorrections.set(messageId, {
+        message_id: messageId,
+        content_hash: contentHash || null,
+        changes: {}
+      });
+    }
+    
+    const correction = this.pendingCorrections.get(messageId);
+    correction.changes[fieldName] = newValue;
+    
+    console.log(`[BATCH] ${this.pendingCorrections.size} corrections queued`);
+  }
+
+  // Send via regular async API call
+  async sendBatch() {
+    if (this.sent || this.pendingCorrections.size === 0) return;
+    this.sent = true;
+    
+    const edits = Array.from(this.pendingCorrections.values());
+    console.log(`[BATCH] Sending ${edits.length} corrections`);
+    
+    try {
+      const response = await this.apiClient.makeAuthenticatedRequest('/api/finops/invoices/corrections', {
+        method: 'POST',
+        body: JSON.stringify({ 
+          edits: edits,
+          propagate: true 
+        })
+      });
+      
+      if (response.ok) {
+        console.log('[BATCH] ✅ Corrections sent successfully');
+        this.pendingCorrections.clear();
+      } else {
+        throw new Error(`API error: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('[BATCH] ❌ Failed to send corrections:', error);
+      this.sent = false; // Allow retry
+    }
+  }
+
+  // Send via sendBeacon for guaranteed delivery during page unload
+  sendBeaconBatch() {
+    if (this.sent || this.pendingCorrections.size === 0) return;
+    this.sent = true;
+
+    const edits = Array.from(this.pendingCorrections.values());
+    const success = navigator.sendBeacon('/api/finops/invoices/corrections', JSON.stringify({ 
+      edits: edits,
+      propagate: true 
+    }));
+
+    if (success) {
+      console.log(`[BATCH] ✅ Sent ${edits.length} corrections via sendBeacon`);
+      this.pendingCorrections.clear();
+    } else {
+      console.error('[BATCH] ❌ sendBeacon failed');
+      this.sent = false;
+    }
+  }
+
+  hasPendingCorrections() {
+    return this.pendingCorrections.size > 0;
+  }
+}
+
+// === FIELD EDITING HELPER FUNCTIONS ===
+
+function handleFieldEdit(invoice, fieldName, newValue, invoiceIndex, batcher) {
+  console.log(`[EDIT] Invoice ${invoiceIndex}: ${fieldName} = ${newValue}`);
+  
+  // Update local data
+  if (fieldName.includes('.')) {
+    const [parent, child] = fieldName.split('.');
+    if (!invoice[parent]) invoice[parent] = {};
+    invoice[parent][child] = newValue;
+  } else {
+    invoice[fieldName] = newValue;
+  }
+  
+  // Queue correction (don't send immediately)
+  const messageId = invoice.document?.message_id;
+  const contentHash = invoice.document?.content_hash;
+  
+  if (messageId && batcher) {
+    batcher.addCorrection(messageId, contentHash, fieldName, newValue);
+  } else if (!messageId) {
+    console.warn(`[EDIT] No message_id for invoice ${invoiceIndex}`);
+  }
+}
+
+/**
+ * Gets the original value for a field from the invoice data
+ * @param {Object} invoice - The invoice object
+ * @param {string} fieldName - The field name to get
+ * @returns {*} The original value
+ */
+function getOriginalValue(invoice, fieldName) {
+  if (fieldName.includes('.')) {
+    const [parent, child] = fieldName.split('.');
+    return invoice[parent] ? invoice[parent][child] : '';
+  } else {
+    return invoice[fieldName] || '';
+  }
+}
+
 
  

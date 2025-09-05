@@ -4,6 +4,12 @@
 // These values are injected by the build script (build.sh) as a global CONFIG object.
 console.log('[Background] Starting in PRODUCTION mode');
 
+// Get AUTH_ENDPOINT from CONFIG (injected by build script)
+const AUTH_ENDPOINT = CONFIG?.AUTH_ENDPOINT || 'https://trystamp.ai/email-poller';
+
+// Map to track Web OAuth flows by tab ID
+const webOAuthFlows = new Map();
+
 // Helper function to get redirect URL that works in both Chrome and Edge
 function getRedirectURL() {
   // For Edge compatibility, use the hardcoded URL if getRedirectURL is not available
@@ -14,6 +20,8 @@ function getRedirectURL() {
   console.log('[Background] Using redirect URI:', redirectUri);
   return redirectUri;
 }
+
+
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('[Background] Received message:', message.type);
@@ -52,7 +60,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${clientId}&` +
         `response_type=code&` +
-        `access_type=offline&` + 
+        `access_type=online&` + // Changed to online for Chrome extension
         `prompt=consent&` +      
         `scope=${encodeURIComponent(scopes)}&` +
         `redirect_uri=${encodeURIComponent(redirectUri)}`;
@@ -86,7 +94,160 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Indicates an async response
   }
 
-  // --- Message Handler 3: Inject Floating Chat Scripts ---
+
+
+  // --- Message Handler 3: Start Web Client OAuth Flow ---
+  if (message.type === 'START_WEB_OAUTH_FLOW') {
+    const promise = new Promise((resolve, reject) => {
+      console.log('[Background] Starting Web OAuth flow');
+
+      // Use the full AUTH_ENDPOINT path since backend endpoints are at /email-poller/auth/...
+      const oauthStartUrl = `${AUTH_ENDPOINT}/auth/google/start`;
+      console.log('[Background] Opening OAuth tab:', oauthStartUrl);
+
+      // Create a new tab for the Web OAuth flow
+      chrome.tabs.create({
+        url: oauthStartUrl,
+        active: true
+      }, (tab) => {
+        if (chrome.runtime.lastError) {
+          console.error('[Background] Error creating OAuth tab:', chrome.runtime.lastError.message);
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+
+        console.log('[Background] OAuth tab created, ID:', tab.id);
+
+        // Set up timeout for OAuth flow
+        const timeout = setTimeout(() => {
+          console.log('[Background] OAuth flow timed out');
+          webOAuthFlows.delete(tab.id);
+          chrome.tabs.remove(tab.id).catch(() => {});
+          reject(new Error('Web OAuth flow timed out'));
+        }, 5 * 60 * 1000); // 5 minute timeout
+
+        // Store the flow state
+        webOAuthFlows.set(tab.id, { resolve, reject, timeout });
+        console.log('[Background] Waiting for OAuth completion...');
+      });
+    });
+
+    promise.then(result => {
+      console.log('[Background] Web OAuth completed successfully');
+      sendResponse(result);
+    }).catch(error => {
+      console.error('[Background] Web OAuth failed:', error.message);
+      sendResponse({ error: error.message });
+    });
+    return true; // Indicates an async response
+  }
+
+  // --- Message Handler 4: OAuth Web Client Complete ---
+  if (message.type === 'OAUTH_WEB_CLIENT_COMPLETE') {
+    console.log('[Background] Received OAuth completion:', message.result.success ? 'SUCCESS' : 'FAILED');
+
+    // Find the tab that sent this message
+    if (sender.tab) {
+      const tabId = sender.tab.id;
+      const flowState = webOAuthFlows.get(tabId);
+
+      if (flowState) {
+        console.log('[Background] Found matching OAuth flow, cleaning up...');
+
+        // Clear the timeout
+        clearTimeout(flowState.timeout);
+        webOAuthFlows.delete(tabId);
+
+        // Close the OAuth tab
+        chrome.tabs.remove(tabId).catch(() => {});
+
+        // Resolve or reject based on the result
+        if (message.result.success) {
+          console.log('[Background] OAuth flow completed successfully');
+          flowState.resolve({
+            success: true,
+            url: message.url,
+            result: message.result
+          });
+        } else {
+          console.error('[Background] OAuth flow failed:', message.result.error);
+          flowState.reject(new Error(message.result.error || 'Web OAuth flow failed'));
+        }
+      } else {
+        console.warn('[Background] No matching OAuth flow found for tab:', tabId);
+      }
+    }
+
+    sendResponse({ received: true });
+    return false;
+  }
+
+  // --- Message Handler 5: Get Chrome Extension Access Token ---
+  if (message.type === 'GET_CHROME_ACCESS_TOKEN') {
+    const promise = new Promise((resolve, reject) => {
+      console.log('[Background] Getting Chrome extension access token for direct API access');
+
+      const manifest = chrome.runtime.getManifest();
+      const scopes = manifest.oauth2.scopes;
+
+      console.log('[Background] Requesting access token with scopes:', scopes);
+
+      try {
+        chrome.identity.getAuthToken({ 
+          interactive: true,
+          scopes: scopes
+        }, (token) => {
+          if (chrome.runtime.lastError) {
+            console.error('[Background] Access token error:', chrome.runtime.lastError.message);
+            reject(new Error(chrome.runtime.lastError.message));
+            return;
+          }
+
+          if (token) {
+            console.log('[Background] Access token obtained, fetching user info...');
+            
+            // Get user email using the access token
+            fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            })
+            .then(response => response.json())
+            .then(userInfo => {
+              console.log('[Background] User info obtained successfully');
+              resolve({ 
+                accessToken: token,
+                userEmail: userInfo.email,
+                userInfo: userInfo
+              });
+            })
+            .catch(error => {
+              console.error('[Background] Error fetching user info:', error);
+              // Still return the token even if user info fails
+              resolve({ 
+                accessToken: token,
+                userEmail: null,
+                error: 'Could not fetch user info: ' + error.message
+              });
+            });
+          } else {
+            console.log('[Background] Access token request cancelled by user.');
+            reject(new Error('Access token request cancelled by user.'));
+          }
+        });
+      } catch (error) {
+        console.error('[Background] Error in getAuthToken:', error);
+        reject(error);
+      }
+    });
+
+    promise.then(sendResponse).catch(error => sendResponse({ error: error.message }));
+    return true; // Indicates an async response
+  }
+
+
+
+  // --- Message Handler 4: Inject Floating Chat Scripts ---
   if (message.type === 'INJECT_FLOATING_CHAT_SCRIPTS') {
     (async () => {
       try {
@@ -113,7 +274,38 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Indicates an async response
   }
 
+  // --- Message Handler 5: Get Installation State ---
+  if (message.type === 'GET_INSTALLATION_STATE') {
+    const promise = new Promise(async (resolve) => {
+      try {
+        const result = await chrome.storage.local.get(['installationId', 'userEmail']);
+        resolve({
+          isInstalled: !!result.installationId,
+          userEmail: result.userEmail || null,
+          installationId: result.installationId || null
+        });
+      } catch (error) {
+        console.error('[Background] Error getting installation state:', error);
+        resolve({ isInstalled: false, error: error.message });
+      }
+    });
+
+    promise.then(sendResponse);
+    return true;
+  }
+
   // Log unhandled message types
   console.warn('[Background] Unhandled message type:', message.type);
   return false;
 }); 
+
+// Clean up OAuth flows when tabs are closed
+chrome.tabs.onRemoved.addListener((tabId) => {
+  const flowState = webOAuthFlows.get(tabId);
+  if (flowState) {
+    console.log('[Background] OAuth tab closed, cleaning up flow:', tabId);
+    clearTimeout(flowState.timeout);
+    webOAuthFlows.delete(tabId);
+    flowState.reject(new Error('OAuth tab was closed'));
+  }
+});

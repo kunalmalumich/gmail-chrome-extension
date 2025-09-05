@@ -89,7 +89,7 @@
     border-right: 1px solid transparent;
     border-bottom: 1px solid transparent;
     background-color: #f3f3f3;
-    padding: 2px;
+    padding: 1px 3px;
     cursor: pointer;
     box-sizing: border-box;
     overflow: hidden;
@@ -97,6 +97,8 @@
     position: sticky;
     top: 0;
     z-index:2;
+    font-size: 11px;
+    line-height: 1.2;
 }
 
 .jss_worksheet > thead > tr > td.dragging
@@ -166,10 +168,12 @@
     border-left:1px solid #ccc;
     border-right:1px solid transparent;
     border-bottom:1px solid transparent;
-    padding:4px;
+    padding:2px 3px;
     white-space: nowrap;
     box-sizing: border-box;
-    line-height:1em;
+    line-height:1.1;
+    font-size: 11px;
+    height: 20px;
 }
 
 .jss_overflow > tbody > tr > td {

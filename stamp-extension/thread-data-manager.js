@@ -80,8 +80,14 @@ export class ThreadDataManager {
         return { ...threadsFromCache, ...newlyFetchedData };
     }
 
+
+
+
+
+
+
     /**
-     * Transforms the new API response format to our expected format.
+     * Transforms the backend API response format to our expected format.
      * @param {object} apiResponse - The raw API response
      * @returns {object} Transformed data in our expected format
      */

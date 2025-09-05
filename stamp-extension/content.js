@@ -142,18 +142,28 @@ setTimeout(() => {
 // --- CONFIGURATION ---
 // These values are injected by the build script (build.sh) as a global CONFIG object.
 const API_ENDPOINT = CONFIG.API_ENDPOINT;
+const AUTH_ENDPOINT = CONFIG.AUTH_ENDPOINT; 
 const OAUTH_CLIENT_ID = CONFIG.OAUTH_CLIENT_ID;
 const GOOGLE_CLIENT_ID = CONFIG.GOOGLE_CLIENT_ID;
+const OAUTH_CHROME_CLIENT_ID = CONFIG.OAUTH_CHROME_CLIENT_ID;
 
-// Prioritize OAUTH_CLIENT_ID over GOOGLE_CLIENT_ID
+// For dual OAuth flow, we use the Chrome extension client ID from manifest.json
+// The OAUTH_CLIENT_ID and GOOGLE_CLIENT_ID are kept for backward compatibility
 const CLIENT_ID = OAUTH_CLIENT_ID || GOOGLE_CLIENT_ID;
 
 if (!API_ENDPOINT) {
   console.error('[CONFIG] API_ENDPOINT is not set');
 }
+if (!AUTH_ENDPOINT) {
+  console.error('[CONFIG] AUTH_ENDPOINT is not set (falling back to API_ENDPOINT)');
+}
+
+if (!OAUTH_CHROME_CLIENT_ID) {
+  console.warn('[CONFIG] OAUTH_CHROME_CLIENT_ID is not set - Chrome extension OAuth may not work');
+}
 
 if (!CLIENT_ID) {
-  console.error('[CONFIG] Neither OAUTH_CLIENT_ID nor GOOGLE_CLIENT_ID is set');
+  console.warn('[CONFIG] Neither OAUTH_CLIENT_ID nor GOOGLE_CLIENT_ID is set - some features may not work');
 }
 
 // --- SERVICES ---
@@ -170,6 +180,7 @@ class ApiClient {
   /**
    * Makes an authenticated request to the backend.
    * The backend will handle token refresh and validation.
+   * Uses installation ID and user email for authentication (no Chrome tokens).
    */
   async makeAuthenticatedRequest(endpoint, options = {}) {
     // Context Guard: If the extension context is invalidated, stop immediately.
@@ -188,18 +199,14 @@ class ApiClient {
     const headers = {
       'Content-Type': 'application/json',
       'X-Installation-ID': installationId,
+      'X-User-Email': userEmail,
       'ngrok-skip-browser-warning': 'true', // Add ngrok header
+      "Origin": "chrome-extension://" + chrome.runtime.id,
+      "User-Agent": "Chrome Extension Stamp v1.0",
       ...options.headers
     };
 
-    if (userEmail) {
-      headers['X-User-Email'] = userEmail;
-    }
-
-    console.log(`[API] Making authenticated request to: ${endpoint}`, {
-      url,
-      headers: { ...headers, Authorization: '[REDACTED]' }
-    });
+    console.log("[API] Request headers:", JSON.stringify(headers, null, 2));
     
     try {
       const response = await fetch(url, {
@@ -238,6 +245,129 @@ class ApiClient {
   }
 
   /**
+   * Checks business rules table for document storage rules.
+   * @returns {Promise<object|null>} The document storage rule if found, null otherwise
+   */
+  async getDocumentStorageRule() {
+    try {
+      console.log('[API] Checking for document storage business rules...');
+      console.log('[API] Calling endpoint: /api/business-rules/rules');
+      console.log('[API] Base URL:', this.baseUrl);
+      
+      const response = await this.makeAuthenticatedRequest("/api/business-rules/rules");
+      
+      const data = await response.json();
+      console.log('[API] Business rules response:', data);
+      
+      if (!data.success || !data.rules || !Array.isArray(data.rules)) {
+        console.log('[API] Invalid business rules response format');
+        return null;
+      }
+      
+      // Find rule with rule_category = 'document_storage'
+      const storageRule = data.rules.find(rule => 
+        rule.rule_category === 'document_storage' && 
+        rule.status === 'active'
+      );
+      
+      if (storageRule) {
+        console.log('[API] Found document storage rule:', storageRule);
+        return storageRule;
+      } else {
+        console.log('[API] No active document storage rule found');
+        return null;
+      }
+    } catch (error) {
+      console.error('[API] Error fetching business rules:', error);
+      console.log('[API] This is expected if the business rules endpoint is not implemented yet');
+      console.log('[API] Cards will display without storage buttons until the endpoint is available');
+      return null;
+    }
+  }
+
+  /**
+   * Executes a business rule using the MCP AI rules endpoint.
+   * @param {object} payload - The payload containing ruleId and cardData (uses cardData.fullDetails as natural_language_input)
+   * @returns {Promise<object>} The execution result
+   */
+  async executeBusinessRule(payload) {
+    try {
+      console.log('[API] Executing business rule:', { 
+        ruleId: payload.ruleId, 
+        cardTitle: payload.cardData.title
+      });
+      
+      // Use fullDetails from cardData with message_id at top level
+      const naturalLanguageInput = {
+        message_id: payload.cardData.messageId,
+        ...payload.cardData.fullDetails
+      };
+      
+      console.log('[API] Natural language input:', {
+        hasFullDetails: !!naturalLanguageInput,
+        messageId: naturalLanguageInput?.message_id,
+        entityType: naturalLanguageInput?.type,
+        entityValue: naturalLanguageInput?.value
+      });
+      
+      const response = await this.makeAuthenticatedRequest('/mcp/ai-rules/tools/execute_rule_with_nl', {
+        method: 'POST',
+        body: JSON.stringify({
+          rule_id: String(payload.ruleId),
+          natural_language_input: naturalLanguageInput
+        })
+      });
+      
+      const result = await response.json();
+      console.log('[API] Business rule execution result:', result);
+      return result;
+    } catch (error) {
+      console.error('[API] Error executing business rule:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Formats card data for rule execution.
+   * @param {object} cardData - The card data object
+   * @returns {object} The card data and details as JSON
+   */
+  _formatCardDataForRule(cardData) {
+    // Return the complete card data and document details as JSON
+    // The MCP AI rules endpoint can process JSON directly
+    return {
+      cardData: {
+        cardType: cardData.cardType,
+        title: cardData.title,
+        icon: cardData.icon,
+        status: cardData.status,
+        vendor: cardData.vendor,
+        amount: cardData.amount,
+        currency: cardData.currency,
+        hasDetails: cardData.hasDetails,
+        messageId: cardData.messageId,
+        docThreadId: cardData.docThreadId,
+        docMessageId: cardData.docMessageId,
+        statusMessageId: cardData.statusMessageId,
+        statusThreadId: cardData.statusThreadId,
+        firstThreadId: cardData.firstThreadId,
+        firstMessageId: cardData.firstMessageId
+      },
+      documentDetails: cardData.fullDetails?.document?.details || {},
+      documentMetadata: {
+        message_id: cardData.fullDetails?.document?.message_id,
+        thread_id: cardData.fullDetails?.document?.thread_id,
+        final_status: cardData.fullDetails?.document?.final_status,
+        status_message_id: cardData.fullDetails?.document?.status_message_id,
+        status_thread_id: cardData.fullDetails?.document?.status_thread_id,
+        first_thread_id: cardData.fullDetails?.document?.first_thread_id,
+        first_message_id: cardData.fullDetails?.document?.first_message_id
+      },
+      fullDetails: cardData.fullDetails
+    };
+  }
+
+  /**
    * Gets email processing status from the backend.
    */
   async getEmailStatus() {
@@ -256,11 +386,193 @@ class ApiClient {
     console.log('[API] 📊 Parsed JSON response. It is an array of length:', jsonData?.length || 0);
     return jsonData;
   }
+
+  /**
+   * Fetches a Gmail attachment PDF directly from Gmail API using Chrome extension token.
+   * This bypasses backend OAuth client mismatch issues.
+   */
+  async fetchGmailAttachmentPdf({ threadId, documentName }) {
+    if (!threadId || !documentName) {
+      throw new Error('[API] fetchGmailAttachmentPdf: missing threadId or documentName');
+    }
+    
+    console.log('[API] 📄 Fetching Gmail attachment PDF directly from Gmail API:', { threadId, documentName });
+    
+    try {
+      // Get Chrome extension access token
+      const tokenResult = await this._getChromeExtensionToken();
+      
+      // Step 1: Get the thread to find messages
+      const threadResponse = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}`, {
+        headers: {
+          'Authorization': `Bearer ${tokenResult.accessToken}`
+        }
+      });
+      
+      if (!threadResponse.ok) {
+        throw new Error(`Failed to get thread: ${threadResponse.status} ${threadResponse.statusText}`);
+      }
+      
+      const thread = await threadResponse.json();
+      console.log('[API] 📧 Thread retrieved, searching for attachment...');
+      
+      // Step 2: Find the message with the attachment
+      let attachmentId = null;
+      let messageId = null;
+      
+      for (const message of thread.messages) {
+        const parts = message.payload.parts || [message.payload];
+        for (const part of parts) {
+          if (part.filename === documentName && part.body && part.body.attachmentId) {
+            attachmentId = part.body.attachmentId;
+            messageId = message.id;
+            console.log('[API] 📎 Found attachment:', { messageId, attachmentId });
+            break;
+          }
+          // Also check nested parts (for multipart messages)
+          if (part.parts) {
+            for (const nestedPart of part.parts) {
+              if (nestedPart.filename === documentName && nestedPart.body && nestedPart.body.attachmentId) {
+                attachmentId = nestedPart.body.attachmentId;
+                messageId = message.id;
+                console.log('[API] 📎 Found nested attachment:', { messageId, attachmentId });
+                break;
+              }
+            }
+          }
+        }
+        if (attachmentId) break;
+      }
+      
+      if (!attachmentId) {
+        throw new Error(`Attachment "${documentName}" not found in thread ${threadId}`);
+      }
+      
+      // Step 3: Get the attachment data
+      const attachmentResponse = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${tokenResult.accessToken}`
+          }
+        }
+      );
+      
+      if (!attachmentResponse.ok) {
+        throw new Error(`Failed to get attachment: ${attachmentResponse.status} ${attachmentResponse.statusText}`);
+      }
+      
+      const attachmentData = await attachmentResponse.json();
+      console.log('[API] 📥 Attachment data retrieved, size:', attachmentData.size);
+      
+      // Step 4: Decode base64 data and create blob
+      const binaryString = atob(attachmentData.data.replace(/-/g, '+').replace(/_/g, '/'));
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      console.log('[API] ✅ Successfully created PDF blob from Gmail API, size:', blob.size);
+      return blob;
+      
+    } catch (error) {
+      console.error('[API] ❌ Failed to fetch PDF via Gmail API:', error);
+      throw new Error(`Failed to fetch PDF: ${error.message}`);
+    }
+  }
+
+  /**
+   * Gets a fresh Chrome extension access token for direct Gmail API access.
+   * This token is used for Gmail API calls, not backend authentication.
+   */
+  async _getChromeExtensionToken() {
+    console.log('[API] Getting fresh Chrome extension token for Gmail API access...');
+    
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ type: 'GET_CHROME_ACCESS_TOKEN' }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('[API] Chrome access token error:', chrome.runtime.lastError.message);
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        
+        if (response.error) {
+          console.error('[API] Chrome access token failed:', response.error);
+          reject(new Error(response.error));
+          return;
+        }
+        
+        console.log('[API] Chrome extension token obtained successfully');
+        resolve(response);
+      });
+    });
+  }
+
+  /**
+   * Validates Chrome extension token with the backend.
+   * This endpoint validates the token and returns user/installation info.
+   */
+  async validateChromeToken() {
+    console.log('[API] Validating Chrome extension token with backend...');
+    
+    try {
+      // Get installation data for headers
+      const { installationId, userEmail } = await chrome.storage.local.get(['installationId', 'userEmail']);
+      
+      if (!installationId) {
+        throw new Error('User not authenticated. Please sign in first.');
+      }
+
+      // Get the Chrome extension access token
+      console.log('[API] Getting Chrome extension access token for validation...');
+      const tokenResult = await this._getChromeExtensionToken();
+      
+      if (!tokenResult.accessToken) {
+        throw new Error('Could not obtain Chrome extension access token for validation');
+      }
+
+      // Use AUTH_ENDPOINT directly since this is an auth endpoint
+      const url = `${AUTH_ENDPOINT}/auth/validate-chrome-token`;
+      console.log('[API] Chrome token validation URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Installation-ID': installationId,
+          'X-User-Email': userEmail,
+          'X-Chrome-Token': tokenResult.accessToken,
+          'ngrok-skip-browser-warning': 'true'
+        },
+        body: JSON.stringify({}) // Empty body as per backend documentation
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[API] Chrome token validation failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(`Chrome token validation failed: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+      
+      const result = await response.json();
+      console.log('[API] Chrome token validation result:', result);
+      return result;
+    } catch (error) {
+      console.error('[API] Chrome token validation failed:', error);
+      throw error;
+    }
+  }
+
+
 }
 
 /**
  * Handles all authentication and installation logic.
- * Implements the production OAuth flow that works with the backend's Gmail add-on implementation.
+ * Implements the dual OAuth flow for Chrome extension with Web client backend integration.
  */
 class AuthService {
   constructor(uiManager) {
@@ -268,56 +580,98 @@ class AuthService {
   }
 
   /**
-   * Implements the production OAuth flow for Chrome extension.
-   * Now simplified to only send the OAuth code to backend.
-   * The backend handles all OAuth processing including token exchange and user email retrieval.
+   * Implements the complete dual OAuth flow for Chrome extension.
+   * Step 1: Initiate Web OAuth flow for backend refresh tokens
+   * Step 2: Wait for Web OAuth completion
+   * Step 3: Get Chrome extension access token and user email
+   * Step 4: Call backend install endpoint with dual_oauth mode
+   * Step 5: Complete installation
    */
   async signInWithGoogle() {
-    console.log('[AUTH] Starting production sign-in with Google...');
+    console.log('[AUTH] Starting dual OAuth sign-in flow');
+    
     try {
-      // Step 1: Get authorization code using launchWebAuthFlow
-      console.log('[AUTH] Step 1: Getting authorization code...');
-      const { code, redirectUri } = await this._getGoogleAuthCode();
+      // Step 1: Initiate Web OAuth flow for backend refresh tokens
+      console.log('[AUTH] Step 1: Starting Web OAuth flow');
       
-      // Step 2: Send auth code to backend for complete processing
-      console.log('[AUTH] Step 2: Sending auth code to backend...');
-        const response = await fetch(`${API_ENDPOINT}/install`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true'
-          },
-          body: JSON.stringify({
-          code: code,
-          redirect_uri: redirectUri
-          })
-        });
+      const webOAuthResult = await this._initiateWebClientOAuth();
+      
+      if (!webOAuthResult.success) {
+        throw new Error(`Web OAuth flow failed: ${webOAuthResult.error}`);
+      }
+      
+      console.log('[AUTH] Web OAuth completed successfully');
+      
+      // Step 2: Get Chrome extension access token and user email
+      console.log('[AUTH] Step 2: Getting Chrome extension access token');
+      
+      const chromeTokenResult = await this._getChromeExtensionAccessToken();
+      const userEmail = chromeTokenResult.userEmail;
+      
+      if (!userEmail) {
+        throw new Error('Could not retrieve user email from Chrome extension OAuth');
+      }
+      
+      console.log('[AUTH] User email obtained:', userEmail);
+      
+      // Step 3: Call backend install endpoint with dual OAuth mode
+      console.log('[AUTH] Step 3: Calling backend install endpoint');
+      
+      const installResponse = await fetch(`${AUTH_ENDPOINT}/install`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          //'ngrok-skip-browser-warning': 'true'
+        },
+        body: JSON.stringify({
+          installation_type: 'dual_oauth',
+          user_email: userEmail
+        })
+      });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-        console.error('[AUTH] Installation failed:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText
-        });
+      if (!installResponse.ok) {
+        const errorText = await installResponse.text();
+        console.error('[AUTH] Installation failed:', installResponse.status, errorText);
         throw new Error(`Backend installation failed: ${errorText}`);
       }
 
-      const { installationId, userEmail } = await response.json();
-      await chrome.storage.local.set({ installationId, userEmail });
-      console.log(`[AUTH] Installation successful for ${userEmail}.`);
-      console.log('[AUTH] Sign-in flow completed successfully.');
-    } catch (error) {
-      console.error('[AUTH] Sign-in flow failed:', error);
+      const installResult = await installResponse.json();
+      const installationId = installResult.installationId;
       
-      // Check if it's a network error (likely ngrok issue)
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        throw new Error('Cannot connect to backend server. Please check your connection.');
+      console.log('[AUTH] Installation successful, ID:', installationId);
+      
+      // Step 4: Store installation success state
+      await chrome.storage.local.set({ 
+        installationId, 
+        userEmail,
+        installationComplete: true,
+        installationDate: new Date().toISOString()
+      });
+      
+      // Step 5: Validate Chrome extension token with backend
+      console.log('[AUTH] Step 5: Validating Chrome token');
+      try {
+        const validationResult = await this.uiManager.apiClient.validateChromeToken();
+        if (!validationResult.success) {
+          throw new Error(`Chrome token validation failed: ${validationResult.error || 'Unknown error'}`);
+        }
+        console.log('[AUTH] Chrome token validation successful');
+      } catch (error) {
+        console.error('[AUTH] Chrome token validation failed:', error.message);
+        console.warn('[AUTH] Installation completed but token validation failed');
       }
       
-      // Check if it's a CORS error
-      if (error instanceof TypeError && error.message.includes('CORS')) {
-        throw new Error('CORS error: Backend server not accessible.');
+      console.log('[AUTH] Dual OAuth installation completed successfully');
+      
+    } catch (error) {
+      console.error('[AUTH] Dual OAuth sign-in flow failed:', error.message);
+      
+      // Clean up partial installation state on failure
+      await this._cleanupPartialInstallation();
+      
+      // Check if it's a network error
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        throw new Error('Cannot connect to backend server. Please check your connection.');
       }
       
       throw error;
@@ -325,29 +679,95 @@ class AuthService {
   }
 
   /**
-   * Gets the authorization code using chrome.identity.launchWebAuthFlow.
-   * This is the correct approach for Chrome extensions with web app OAuth client IDs.
+   * Initiates the Web client OAuth flow for backend refresh token storage.
+   * This opens a new tab to the backend OAuth start endpoint and waits for completion.
    */
-  async _getGoogleAuthCode() {
-    console.log('[AUTH] Requesting auth code from background...');
-    const response = await new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({ type: 'GET_AUTH_CODE' }, (res) => {
-        if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
-        if (res.error) return reject(new Error(res.error));
-        resolve(res);
+  async _initiateWebClientOAuth() {
+    console.log('[AUTH] Initiating Web client OAuth flow...');
+    
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ type: 'START_WEB_OAUTH_FLOW' }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('[AUTH] Web OAuth initiation error:', chrome.runtime.lastError.message);
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        
+        if (response.error) {
+          console.error('[AUTH] Web OAuth initiation failed:', response.error);
+          reject(new Error(response.error));
+          return;
+        }
+        
+        console.log('[AUTH] Web OAuth flow completed successfully');
+        resolve(response);
       });
     });
-    return response;
   }
 
   /**
-   * Checks local storage for an installation ID to determine auth state.
+   * Gets Chrome extension access token and user email using chrome.identity API.
+   * This is used for the extension's own API calls and to get user email if needed.
+   * Does NOT send tokens to backend - they're for extension use only.
+   */
+  async _getChromeExtensionAccessToken() {
+    console.log('[AUTH] Getting Chrome extension access token for direct API access...');
+    
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ type: 'GET_CHROME_ACCESS_TOKEN' }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('[AUTH] Chrome access token error:', chrome.runtime.lastError.message);
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        
+        if (response.error) {
+          console.error('[AUTH] Chrome access token failed:', response.error);
+          reject(new Error(response.error));
+          return;
+        }
+        
+        console.log('[AUTH] Chrome extension access token obtained successfully');
+        resolve(response);
+      });
+    });
+  }
+
+  /**
+   * Cleans up partial installation state on failure.
+   */
+  async _cleanupPartialInstallation() {
+    try {
+      console.log('[AUTH] Cleaning up partial installation state...');
+      await chrome.storage.local.remove([
+        'installationId', 
+        'userEmail', 
+        'installationComplete', 
+        'installationDate'
+      ]);
+      console.log('[AUTH] Partial installation cleanup completed');
+    } catch (error) {
+      console.error('[AUTH] Failed to cleanup partial installation:', error);
+    }
+  }
+
+  /**
+   * Checks local storage for installation state and authentication status.
    */
   async getAuthState() {
-    const { installationId, userEmail } = await chrome.storage.local.get(['installationId', 'userEmail']);
+    const result = await chrome.storage.local.get([
+      'installationId', 
+      'userEmail', 
+      'installationComplete', 
+      'installationDate'
+    ]);
+    
     return {
-      isLoggedIn: !!installationId,
-      userEmail: userEmail || null
+      isLoggedIn: !!result.installationId,
+      isInstalled: !!result.installationComplete,
+      userEmail: result.userEmail || null,
+      installationId: result.installationId || null,
+      installationDate: result.installationDate || null
     };
   }
 
@@ -379,7 +799,7 @@ class AuthService {
       // Notify backend about sign out if we have an installation
       if (installationId) {
         console.log('[AUTH] Notifying backend of sign-out for installation:', installationId);
-        await fetch(`${API_ENDPOINT}/revoke`, {
+        await fetch(`${AUTH_ENDPOINT}/revoke`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -391,7 +811,12 @@ class AuthService {
 
       // Clear local storage
       console.log('[AUTH] Clearing local storage...');
-      await chrome.storage.local.remove(['installationId', 'userEmail']);
+      await chrome.storage.local.remove([
+        'installationId', 
+        'userEmail', 
+        'installationComplete', 
+        'installationDate'
+      ]);
       console.log('[AUTH] Sign-out complete.');
       
     } catch (error) {
@@ -402,55 +827,58 @@ class AuthService {
 
   /**
    * Development tool to completely reset the auth state.
-   * Revokes Google OAuth permissions and clears all local data.
+   * Clears all local data and notifies backend to revoke tokens.
    */
   async hardReset() {
     try {
       console.log('[AUTH] Starting hard reset...');
       
-      // Get current access token for revocation by going through OAuth flow again
-      console.log('[AUTH] Step 1: Getting current access token for revocation...');
-      const { code, redirectUri } = await this._getGoogleAuthCode();
+      // Get current installation ID for backend notification
+      const { installationId } = await chrome.storage.local.get(['installationId']);
       
-      // Exchange code for token just for revocation
-      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          client_id: OAUTH_CLIENT_ID,
-          code: code,
-          grant_type: 'authorization_code',
-          redirect_uri: redirectUri
-        })
-      });
-
-      if (tokenResponse.ok) {
-        const tokenData = await tokenResponse.json();
-        const accessToken = tokenData.access_token;
-
-        if (accessToken) {
-        console.log('[AUTH] Step 2: Revoking Google OAuth token...');
-
-        // Revoke the token with Google
-          console.log('[AUTH] Sending revocation request to Google...');
-          await fetch(`https://oauth2.googleapis.com/revoke?token=${accessToken}`, {
+      // Notify backend to revoke all tokens if we have an installation
+      if (installationId) {
+        console.log('[AUTH] Step 1: Notifying backend to revoke all tokens...');
+        try {
+          await fetch(`${AUTH_ENDPOINT}/hard-reset`, {
             method: 'POST',
             headers: {
-              'Content-type': 'application/x-www-form-urlencoded'
+              'Content-Type': 'application/json',
+              'X-Installation-ID': installationId,
+              'ngrok-skip-browser-warning': 'true'
             }
           });
-          console.log('[AUTH] Google token revocation request sent.');
+          console.log('[AUTH] Backend token revocation requested');
+        } catch (error) {
+          console.warn('[AUTH] Failed to notify backend of hard reset:', error.message);
+          // Continue with local cleanup even if backend call fails
         }
       }
 
-      // Perform normal sign out to clear local storage
-      console.log('[AUTH] Step 3: Performing standard sign-out to complete hard reset...');
-      await this.signOut();
+      // Perform thorough local cleanup
+      console.log('[AUTH] Step 2: Performing thorough local cleanup...');
+      await this._cleanupPartialInstallation();
+      
+      // Also clear any other potential Chrome storage
+      try {
+        await chrome.storage.sync.clear();
+        console.log('[AUTH] Sync storage cleared');
+      } catch (error) {
+        console.warn('[AUTH] Could not clear sync storage:', error.message);
+      }
+      
       console.log('[AUTH] Hard reset completed successfully.');
+      
     } catch (error) {
       console.error('[AUTH] Hard reset failed:', error);
+      
+      // Ensure local cleanup happens even if other steps fail
+      try {
+        await this._cleanupPartialInstallation();
+      } catch (cleanupError) {
+        console.error('[AUTH] Final cleanup also failed:', cleanupError);
+      }
+      
       throw error;
     }
   }
@@ -503,31 +931,21 @@ function getThreadStage(threadId) {
 
 // Define the invoice status colors
 const INVOICE_STATUS_COLORS = {
-  submitted: {
-    backgroundColor: '#90CAF9',
-    textColor: '#000000',
-    description: 'Invoice initially detected'
-  },
-  pending: {
-    backgroundColor: '#FFC107',
-    textColor: '#000000',
-    description: 'Awaiting approval or low confidence'
-  },
-  approved: {
-    backgroundColor: '#4CAF50',
-    textColor: '#FFFFFF',
-    description: 'Explicit or high-confidence approval'
-  },
-  paid: {
-    backgroundColor: '#2196F3',
-    textColor: '#FFFFFF',
-    description: 'Payment confirmed'
-  },
-  rejected: {
-    backgroundColor: '#F44336',
-    textColor: '#FFFFFF',
-    description: 'Explicitly denied'
-  }
+  // Core statuses
+  pending: { backgroundColor: '#FFC107', textColor: '#000000', description: 'Awaiting approval' },
+  approved: { backgroundColor: '#4CAF50', textColor: '#FFFFFF', description: 'Approved' },
+  rejected: { backgroundColor: '#F44336', textColor: '#FFFFFF', description: 'Rejected' },
+  paid: { backgroundColor: '#2196F3', textColor: '#FFFFFF', description: 'Payment confirmed' },
+
+  // Extended statuses
+  on_hold: { backgroundColor: '#9E9E9E', textColor: '#FFFFFF', description: 'On hold' },
+  requires_review: { backgroundColor: '#FF9800', textColor: '#000000', description: 'Requires review' },
+  partially_approved: { backgroundColor: '#81C784', textColor: '#FFFFFF', description: 'Partially approved' },
+  ready_for_payment: { backgroundColor: '#26A69A', textColor: '#FFFFFF', description: 'Ready for payment' },
+  duplicate: { backgroundColor: '#607D8B', textColor: '#FFFFFF', description: 'Duplicate detected' },
+
+  // Legacy/optional
+  submitted: { backgroundColor: '#90CAF9', textColor: '#000000', description: 'Invoice initially detected' }
 };
 
 // Define the primary intent colors
@@ -645,7 +1063,13 @@ function createLabelFromThreadLabel(labelText) {
   const normalizedText = labelText.toLowerCase();
   console.log(`[LABEL_CREATION] Processing label text: "${labelText}"`);
 
-  // Check for invoice status keywords
+  // Hide labels when backend explicitly says nothing definitive
+  if (normalizedText.includes('no definitive label found')) {
+    console.log('[LABEL_CREATION] Skipping label creation for "No definitive label found"');
+    return null;
+  }
+
+  // Check for invoice status keywords (exact match preferred)
   for (const status of Object.keys(INVOICE_STATUS_COLORS)) {
     if (normalizedText.includes(status)) {
       const colorConfig = INVOICE_STATUS_COLORS[status];
@@ -673,14 +1097,9 @@ function createLabelFromThreadLabel(labelText) {
     }
   }
 
-  // If no keywords found, use default styling
-  console.log(`[LABEL_CREATION] No status or intent keywords found in: "${normalizedText}", using default colors`);
-  return {
-    title: labelText,
-    backgroundColor: '#E0E0E0',
-    textColor: '#000000',
-    iconUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
-  };
+  // No mapping => do not render a label
+  console.log(`[LABEL_CREATION] No mapping found for: "${normalizedText}". Skipping label.`);
+  return null;
 }
 
 /**
@@ -736,9 +1155,15 @@ function transformProcessedEntitiesForSidebar(processedEntities) {
       vendor: hasDetails ? (details.vendor?.name || 'Unknown Vendor') : null,
       amount: hasDetails ? (details.amount || 0) : null,
       currency: hasDetails ? (details.currency || 'USD') : null,
+      filename: details.filename || null, // Add filename for attachment matching
       // Add status message information for invoices
       statusMessageId: entity.document?.status_message_id || null,
       statusThreadId: entity.document?.status_thread_id || null,
+      // Add document source information
+      docThreadId: entity.document?.thread_id || null,
+      docMessageId: entity.document?.message_id || null,
+      firstThreadId: entity.document?.first_thread_id || null,
+      firstMessageId: entity.document?.first_message_id || null,
     };
   });
 }
@@ -750,42 +1175,63 @@ function transformProcessedEntitiesForSidebar(processedEntities) {
  * @returns {string} The HTML string for the card.
  */
 function createEntityCard(cardData, threadId) {
-  const statusConfig = cardData.status ? (INVOICE_STATUS_COLORS[cardData.status] || { backgroundColor: '#E0E0E0', textColor: '#000000' }) : null;
-  const amountFormatted = cardData.hasDetails ? new Intl.NumberFormat('en-US', { style: 'currency', currency: cardData.currency }).format(cardData.amount) : null;
-  
+  const statusConfig = cardData.status ? (INVOICE_STATUS_COLORS[cardData.status] || { backgroundColor: '#E0E0E0', textColor: '#000000', description: '' }) : null;
+  const amountFormatted = cardData.hasDetails
+    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: cardData.currency }).format(cardData.amount)
+    : null;
+
   // Card is only clickable if it has details
   const isClickable = cardData.hasDetails;
   const fullDetailsString = isClickable ? JSON.stringify(cardData.fullDetails).replace(/'/g, '&apos;') : '';
   const cursorStyle = isClickable ? 'cursor: pointer;' : 'cursor: default;';
   const cardClass = isClickable ? 'entity-card' : 'entity-card non-clickable';
+  const cardId = `${cardData.cardType}-${cardData.messageId || 'unknown'}`;
 
   // Title can be a link if a messageId is available
   const messageLink = cardData.messageId ? `https://mail.google.com/mail/u/0/#inbox/${threadId}/${cardData.messageId}` : null;
-  const titleHtml = messageLink 
+  const titleHtml = messageLink
     ? `<a href="${messageLink}" target="_blank" style="text-decoration: none; color: #1a73e8;" onclick="event.stopPropagation();">${cardData.title}</a>`
     : cardData.title;
+
+  // Build compact subline
+  const sublineHtml = isClickable && (cardData.vendor || amountFormatted)
+    ? `<div style="margin-top:4px; font-size:12px; color:#64748b; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+         ${cardData.vendor ? `<span style=\"white-space:nowrap;\">${cardData.vendor}</span>` : ''}
+         ${(cardData.vendor && amountFormatted) ? `<span aria-hidden=\"true\" style=\"color:#cbd5e1;\">•</span>` : ''}
+         ${amountFormatted ? `<span style=\"white-space:nowrap;\">${amountFormatted}</span>` : ''}
+       </div>`
+    : '';
 
 
 
   return `
-    <div class="${cardClass}" ${isClickable ? `data-full-details='${fullDetailsString}'` : ''} style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 0; padding: 16px; ${cursorStyle} transition: box-shadow 0.2s;">
-      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h4 style="margin: 0; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 18px;">${cardData.icon}</span>
-          <span>${titleHtml}</span>
-        </h4>
+    <div class="${cardClass}" 
+         data-card-id="${cardId}"
+         ${isClickable ? `data-full-details='${fullDetailsString}'` : ''} 
+         style="
+           background: white; 
+           border: 1px solid #e5e0e0; 
+           border-radius: 12px; 
+           margin-bottom: 12px; 
+           padding: 12px 14px; 
+           ${cursorStyle} 
+           transition: all 0.2s;
+         ">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display:flex; flex-direction:column; min-width:0;">
+          <h4 style="margin: 0; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; color:#1f2937;">
+            <span style="font-size: 18px;">${cardData.icon}</span>
+            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${titleHtml}</span>
+          </h4>
+          ${sublineHtml}
+        </div>
         ${statusConfig ? `
-        <span class="status-tag" style="background-color: ${statusConfig.backgroundColor}; color: ${statusConfig.textColor}; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: capitalize;">
+        <span class="status-tag" title="${statusConfig.description || ''}" style="display:inline-flex; align-items:center; gap:6px; background-color: ${statusConfig.backgroundColor}; color: ${statusConfig.textColor}; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: capitalize; white-space:nowrap;">
+          <span style=\"display:inline-block; width:8px; height:8px; border-radius:50%; background:${statusConfig.textColor === '#000000' ? '#111827' : '#ffffff'}; opacity:0.6;\"></span>
           ${cardData.status.replace(/_/g, ' ')}
         </span>
         ` : ''}
       </div>
-      ${isClickable ? `
-      <div class="card-body" style="font-size: 13px; color: #5f6368;">
-        <p style="margin: 4px 0;"><strong>Vendor:</strong> ${cardData.vendor}</p>
-        <p style="margin: 4px 0;"><strong>Amount:</strong> ${amountFormatted}</p>
-      </div>
-      ` : ''}
     </div>
   `;
 }
@@ -960,6 +1406,277 @@ class UIManager {
     this.sidebarElement = null; // Add this to store the DOM element reference
     this.dataManager = new ThreadDataManager(null); // Initialize dataManager without apiClient initially
     this.floatingChatManager = null; // Add floating chat manager
+    this._messageIndex = new Map(); // Track messageId -> messageView for instant lookup
+    this._documentStorageRule = null; // Cache for business rule
+  }
+
+  // NOTE: Old reactive message indexing removed in favor of proactive indexing in _indexAllThreadMessages()
+  // This ensures we index ALL messages in a thread (including collapsed ones) when the thread opens
+
+  /**
+   * Initializes and caches the document storage business rule.
+   * Called once during UI setup.
+   */
+  async initializeBusinessRules() {
+    if (!this.apiClient) {
+      console.log('[UI] API client not available, skipping business rules initialization');
+      return;
+    }
+    
+    try {
+      console.log('[UI] Initializing business rules...');
+      this._documentStorageRule = await this.apiClient.getDocumentStorageRule();
+      
+      if (this._documentStorageRule) {
+        console.log('[UI] Document storage rule initialized:', this._documentStorageRule);
+      } else {
+        console.log('[UI] No document storage rule found');
+      }
+    } catch (error) {
+      console.error('[UI] Error initializing business rules:', error);
+      this._documentStorageRule = null;
+    }
+  }
+
+  /**
+   * Handles storing a document to Google Drive using business rules.
+   * @param {object} cardData - The card data to store
+   */
+  async handleDocumentStorage(cardData) {
+    if (!this._documentStorageRule) {
+      console.error('[UI] No document storage rule available');
+      return;
+    }
+
+    try {
+      console.log('[UI] Starting document storage for card:', cardData.title);
+      console.log('[UI] Using business rule ID:', this._documentStorageRule.id);
+      
+      // Gather cached data from when sidebar card was created
+      const cachedCardData = this._currentCardData || [];
+      console.log('[UI] Cached card data available:', cachedCardData.length, 'items');
+      console.log('[UI] Looking for document:', {
+        title: cardData.title,
+        messageId: cardData.messageId,
+        docMessageId: cardData.docMessageId
+      });
+      
+      // Find the specific cached data for this document using multiple matching strategies
+      const matchingCachedData = this.findMatchingCachedDocument(cachedCardData, cardData);
+      
+      if (matchingCachedData) {
+        console.log('[UI] ✅ Found matching cached data for:', matchingCachedData.title);
+        console.log('[UI] Cached document details:', {
+          title: matchingCachedData.title,
+          messageId: matchingCachedData.messageId,
+          docMessageId: matchingCachedData.docMessageId,
+          vendor: matchingCachedData.vendor,
+          amount: matchingCachedData.amount
+        });
+      } else {
+        console.log('[UI] ❌ No matching cached data found, using provided cardData');
+        console.log('[UI] Available cached documents:', cachedCardData.map(doc => ({
+          title: doc.title,
+          messageId: doc.messageId,
+          docMessageId: doc.docMessageId
+        })));
+      }
+      
+      // Prepare the payload with rule ID and best available data
+      const payload = {
+        ruleId: this._documentStorageRule.id,
+        cardData: matchingCachedData || cardData,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log('[UI] Sending storage request with payload:', {
+        ruleId: payload.ruleId,
+        cardTitle: payload.cardData.title,
+        hasMatchingData: !!matchingCachedData
+      });
+
+      // Execute the business rule with enhanced payload
+      const result = await this.apiClient.executeBusinessRule(payload);
+
+      console.log('[UI] Document storage result:', result);
+
+      // Show success notification
+      this.showNotification('Document stored successfully in Google Drive!', 'success');
+
+    } catch (error) {
+      console.error('[UI] Error storing document:', error);
+      
+      // Show error notification
+      this.showNotification('Failed to store document. Please try again.', 'error');
+    }
+  }
+
+  /**
+   * Finds the matching cached document data for a specific document being stored.
+   * Uses exact filename matching between cached.filename and targetCardData.title.
+   * @param {Array} cachedCardData - Array of all cached documents from sidebar creation
+   * @param {Object} targetCardData - The specific document we're trying to store
+   * @returns {Object|null} The matching cached document or null if not found
+   */
+    findMatchingCachedDocument(cachedCardData, targetCardData) {
+    if (!cachedCardData || cachedCardData.length === 0) {
+      console.log('[MATCH] No cached data available');
+      return null;
+    }
+
+    console.log('[MATCH] Searching for document match...');
+    console.log('[MATCH] Target data:', {
+      filename: targetCardData.filename,
+      messageId: targetCardData.messageId,
+      title: targetCardData.title
+    });
+
+    // PRIORITY 1: Match by filename + messageId (most reliable for attachments)
+    if (targetCardData.filename && targetCardData.messageId) {
+      const filenameMessageMatch = cachedCardData.find(cached => {
+        return cached.filename === targetCardData.filename && 
+               cached.messageId === targetCardData.messageId;
+      });
+      
+      if (filenameMessageMatch) {
+        console.log('[MATCH] ✅ Found filename + messageId match:', {
+          filename: filenameMessageMatch.filename,
+          messageId: filenameMessageMatch.messageId,
+          title: filenameMessageMatch.title
+        });
+        return filenameMessageMatch;
+      }
+    }
+
+    // PRIORITY 2: Match by messageId only (for sidebar card matching)
+    if (targetCardData.messageId) {
+      const messageIdMatch = cachedCardData.find(cached => {
+        return cached.messageId === targetCardData.messageId;
+      });
+      
+      if (messageIdMatch) {
+        console.log('[MATCH] ✅ Found messageId match:', {
+          messageId: messageIdMatch.messageId,
+          title: messageIdMatch.title,
+          filename: messageIdMatch.filename
+        });
+        return messageIdMatch;
+      }
+    }
+
+    // PRIORITY 3: Match by title (fallback for backward compatibility)
+    if (targetCardData.title) {
+      const titleMatch = cachedCardData.find(cached => {
+        return cached.title === targetCardData.title;
+      });
+      
+      if (titleMatch) {
+        console.log('[MATCH] ✅ Found title match:', {
+          title: titleMatch.title,
+          filename: titleMatch.filename,
+          messageId: titleMatch.messageId
+        });
+        return titleMatch;
+      }
+    }
+
+    console.log('[MATCH] ❌ No match found');
+    console.log('[MATCH] Available cached documents:');
+    cachedCardData.forEach((doc, index) => {
+      console.log(`[MATCH]   ${index + 1}. Title: "${doc.title}", Filename: "${doc.filename || 'N/A'}", MessageId: "${doc.messageId || 'N/A'}"`);  
+    });
+    
+    return null;
+  }
+
+  /**
+   * Shows a notification to the user.
+   * @param {string} message - The notification message
+   * @param {string} type - The notification type ('success', 'error', 'info')
+   */
+  showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10000;
+      padding: 12px 16px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 500;
+      font-size: 14px;
+      max-width: 300px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      animation: slideIn 0.3s ease-out;
+      background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+    `;
+    
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    // Add animation styles if not already present
+    if (!document.getElementById('notification-styles')) {
+      const style = document.createElement('style');
+      style.id = 'notification-styles';
+      style.textContent = `
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(100%); opacity: 0; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      notification.style.animation = 'slideOut 0.3s ease-in';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }, 5000);
+  }
+
+  async _indexAllThreadMessages(threadView) {
+    try {
+      console.log('[THREAD_INDEX] Proactively indexing all messages in thread...');
+      const allMessageViews = threadView.getMessageViewsAll();
+      console.log('[THREAD_INDEX] Found', allMessageViews.length, 'total messages in thread (including collapsed)');
+      
+      for (let i = 0; i < allMessageViews.length; i++) {
+        const messageView = allMessageViews[i];
+        try {
+          const messageId = await messageView.getMessageIDAsync();
+          
+          // Only add if not already indexed
+          if (!this._messageIndex.has(messageId)) {
+            this._messageIndex.set(messageId, messageView);
+            console.log('[THREAD_INDEX] Proactively indexed message:', messageId, 'isLoaded:', messageView.isLoaded ? messageView.isLoaded() : 'unknown');
+            
+            // Set up cleanup when message is destroyed
+            messageView.on('destroy', () => {
+              this._messageIndex.delete(messageId);
+              console.log('[THREAD_INDEX] Removed proactively indexed message:', messageId);
+            });
+          } else {
+            console.log('[THREAD_INDEX] Message already indexed:', messageId);
+          }
+        } catch (e) {
+          console.log('[THREAD_INDEX] Failed to index message', i, ':', e.message);
+        }
+      }
+      
+      console.log('[THREAD_INDEX] Finished indexing. Total messages in index:', this._messageIndex.size);
+      console.log('[THREAD_INDEX] All indexed message IDs:', Array.from(this._messageIndex.keys()));
+    } catch (e) {
+      console.error('[THREAD_INDEX] Failed to proactively index thread messages:', e);
+    }
   }
 
   setAuthService(authService) {
@@ -1059,6 +1776,17 @@ class UIManager {
   async handleThreadView(threadView) {
     const threadId = await threadView.getThreadIDAsync();
     console.log('[UI] Thread view changed:', threadId);
+    // Store current threadView for in-thread actions (scroll/highlight)
+    this._currentThreadView = threadView;
+
+    // Ensure business rules are initialized before processing thread
+    if (!this._documentStorageRule && this.apiClient) {
+      console.log('[UI] Business rules not initialized yet, initializing now...');
+      await this.initializeBusinessRules();
+    }
+
+    // Index ALL messages in this thread proactively (including collapsed ones)
+    await this._indexAllThreadMessages(threadView);
 
     // Use the data manager to get data for this specific thread
     const threadDataMap = await this.dataManager.getThreadData([threadId]);
@@ -1082,6 +1810,8 @@ class UIManager {
     if (this.sidebarElement) {
       this.sidebarElement.innerHTML = this.createSidebarContent(threadId, cardDataArray);
       
+
+      
       // Attach new event listeners for the cards
       this.attachCardClickListeners(this.sidebarElement);
       
@@ -1101,6 +1831,8 @@ class UIManager {
     }
   }
 
+
+
   // Method to restore the original chat interface in the sidebar
   restoreChatInterface() {
       if (this.sidebarElement) {
@@ -1114,6 +1846,309 @@ class UIManager {
     }
   }
 
+  /**
+   * Method to handle individual file attachment cards (for existing attachments).
+   * Uses filename + messageId matching to determine if attachment has been AI-processed.
+   * Only adds "Store in Google Drive" button if matching cached data is found.
+   */
+  handleFileAttachmentCard(attachmentCard) {
+    // Only add button if we have storage rules
+    if (!this._documentStorageRule) {
+      return;
+    }
+
+    try {
+      const attachmentFilename = attachmentCard.getTitle(); // Original filename
+      const messageView = attachmentCard.getMessageView();
+      const attachmentMessageId = messageView.getMessageID();
+      
+      console.log('[ATTACHMENT] Processing existing attachment card:', {
+        filename: attachmentFilename,
+        messageId: attachmentMessageId
+      });
+
+      // Check if this attachment matches any of our tracked documents
+      const cachedCardData = this._currentCardData || [];
+      console.log('[ATTACHMENT] Checking if attachment matches cached documents');
+      console.log('[ATTACHMENT] Available cached documents:', cachedCardData.length);
+      
+      // Find the cached document that matches this attachment by filename AND messageId
+      const matchingCachedData = this.findMatchingCachedDocument(cachedCardData, { 
+        filename: attachmentFilename,
+        messageId: attachmentMessageId 
+      });
+      
+      // Only add button if we have matching cached data with complete information
+      if (matchingCachedData) {
+        console.log('[ATTACHMENT] ✅ Found matching cached data, adding Store in Drive button:', {
+          title: matchingCachedData.title,
+          messageId: matchingCachedData.messageId,
+          filename: matchingCachedData.filename
+        });
+        
+        attachmentCard.addButton({
+          iconUrl: chrome.runtime.getURL('stamp-logo.png'),
+          tooltip: 'Store in Google Drive',
+          onClick: (event) => {
+            console.log('[ATTACHMENT] Store button clicked for existing attachment:', attachmentFilename);
+            console.log('[ATTACHMENT] Using cached data:', {
+              title: matchingCachedData.title,
+              messageId: matchingCachedData.messageId,
+              vendor: matchingCachedData.vendor,
+              amount: matchingCachedData.amount
+            });
+            
+            // Always use the rich cached data which includes messageId and all other fields
+            this.handleDocumentStorageWithConfirmation(matchingCachedData);
+          }
+        });
+      } else {
+        console.log('[ATTACHMENT] ❌ No matching cached data found for attachment:', attachmentFilename);
+        console.log('[ATTACHMENT] Available cached data:', cachedCardData.map(doc => ({ filename: doc.filename || 'N/A', messageId: doc.messageId || 'N/A', title: doc.title })));
+        console.log('[ATTACHMENT] Skipping Store in Drive button for this attachment');
+      }
+
+    } catch (error) {
+      console.error('[ATTACHMENT] Error processing file attachment card:', error);
+    }
+  }
+
+  // Method to handle existing attachment cards in message views
+  async handleExistingAttachmentCards(messageView) {
+    // Ensure business rules are initialized
+    if (!this._documentStorageRule && this.apiClient) {
+      console.log('[ATTACHMENT] Business rules not initialized, initializing now...');
+      await this.initializeBusinessRules();
+    }
+
+    // Only process if we have storage rules
+    if (!this._documentStorageRule) {
+      return;
+    }
+
+    try {
+      const messageId = messageView.getMessageID();
+      console.log('[ATTACHMENT] Processing existing attachments for message:', messageId);
+
+      // Get thread data to check if this message has tracked documents
+      const threadView = messageView.getThreadView();
+      const threadId = await threadView.getThreadIDAsync();
+      const threadDataMap = await this.dataManager.getThreadData([threadId]);
+      const threadInfo = threadDataMap[threadId];
+
+      if (!threadInfo || !threadInfo.processedEntities) {
+        console.log('[ATTACHMENT] No processed entities for thread:', threadId);
+        return;
+      }
+
+      // Transform entities and find ones matching this message
+      const cardDataArray = transformProcessedEntitiesForSidebar(threadInfo.processedEntities);
+      const messageCards = cardDataArray.filter(card => 
+        card.docMessageId === messageId
+      );
+
+      if (messageCards.length === 0) {
+        console.log('[ATTACHMENT] No tracked documents found for message:', messageId);
+        return;
+      }
+
+      // Get existing attachment cards and add enhanced buttons to matching ones
+      const existingAttachments = messageView.getFileAttachmentCardViews();
+      console.log('[ATTACHMENT] Found', existingAttachments.length, 'existing attachment cards');
+      
+      existingAttachments.forEach((attachmentCard, index) => {
+        const attachmentTitle = attachmentCard.getTitle();
+        console.log(`[ATTACHMENT] Existing attachment ${index + 1}:`, attachmentTitle);
+        
+        // Try to match with our tracked documents
+        const matchingCard = messageCards.find(card => 
+          attachmentTitle.includes(card.title) || 
+          card.title.includes(attachmentTitle) ||
+          attachmentTitle.toLowerCase().includes('invoice') ||
+          attachmentTitle.toLowerCase().includes('receipt')
+        );
+        
+        if (matchingCard) {
+          console.log('[ATTACHMENT] Adding enhanced Store button for tracked document:', matchingCard.title);
+          
+          attachmentCard.addButton({
+            iconUrl: chrome.runtime.getURL('stamp-logo.png'),
+            tooltip: `Store ${matchingCard.title} in Google Drive`,
+            onClick: (event) => {
+              console.log('[ATTACHMENT] Enhanced store button clicked for:', matchingCard.title);
+              this.handleDocumentStorageWithConfirmation(matchingCard);
+            }
+          });
+        }
+      });
+
+    } catch (error) {
+      console.error('[ATTACHMENT] Error processing existing attachment cards:', error);
+    }
+  }
+
+  // Method to handle document storage with confirmation modal
+  async handleDocumentStorageWithConfirmation(cardData) {
+    try {
+      // Check if document is already stored (placeholder for now)
+      const isAlreadyStored = false; // TODO: Implement actual check
+      
+      if (isAlreadyStored) {
+        this.showAlreadyStoredModal(cardData);
+        return;
+      }
+
+      // Show confirmation modal
+      const modal = this.sdk.Widgets.showModalView({
+        title: `Store Document in Google Drive`,
+        el: this.createConfirmationModalContent(cardData),
+        buttons: [
+          {
+            text: 'Store in Drive',
+            type: 'PRIMARY_ACTION',
+            onClick: async (event) => {
+              event.modalView.close();
+              await this.handleDocumentStorage(cardData);
+              this.showSuccessModal(cardData);
+            }
+          },
+          {
+            text: 'Cancel',
+            onClick: (event) => {
+              event.modalView.close();
+            }
+          }
+        ]
+      });
+
+    } catch (error) {
+      console.error('[ATTACHMENT] Error in document storage confirmation:', error);
+    }
+  }
+
+  // Create confirmation modal content
+  createConfirmationModalContent(cardData) {
+    const el = document.createElement('div');
+    el.style.padding = '20px';
+    el.style.minWidth = '600px';
+    el.style.maxWidth = '800px';
+    
+    // Get the natural language description from the business rule
+    const naturalLanguageDescription = this._documentStorageRule?.natural_language_description || 'Store this document in Google Drive?';
+    
+    // Prepare the exact same payload that will be sent to the API
+    const cachedCardData = this._currentCardData || [];
+    const matchingCachedData = this.findMatchingCachedDocument(cachedCardData, cardData);
+    
+    const payload = {
+      ruleId: this._documentStorageRule?.id,
+      cardData: matchingCachedData || cardData,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Use fullDetails from cardData with message_id at top level
+    const naturalLanguageInput = {
+      message_id: payload.cardData.messageId,
+      ...payload.cardData.fullDetails
+    };
+    
+    // These are the exact two variables sent to the API endpoint
+    const actualApiPayload = {
+      rule_id: String(payload.ruleId),
+      natural_language_input: JSON.stringify(naturalLanguageInput)
+    };
+        
+    el.innerHTML = `
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 48px; margin-bottom: 16px;">${cardData.icon || '📄'}</div>
+        <div style="color: #1f2937; font-size: 16px; line-height: 1.5; margin-bottom: 20px;">${naturalLanguageDescription}</div>
+      </div>
+      
+    `;
+    
+    return el;
+  }
+
+  // Show success modal after storage
+  showSuccessModal(cardData) {
+    const modal = this.sdk.Widgets.showModalView({
+      title: 'Document Stored Successfully',
+      el: this.createSuccessModalContent(cardData),
+      buttons: [
+        {
+          text: 'Close',
+          type: 'PRIMARY_ACTION',
+          onClick: (event) => {
+            event.modalView.close();
+          }
+        }
+      ]
+    });
+  }
+
+  // Create success modal content
+  createSuccessModalContent(cardData) {
+    const el = document.createElement('div');
+    el.style.padding = '20px';
+    el.style.textAlign = 'center';
+    
+    el.innerHTML = `
+      <div style="color: #10b981; font-size: 48px; margin-bottom: 16px;">✅</div>
+      <h3 style="margin: 0 0 8px 0; color: #1f2937;">Success!</h3>
+      <p style="margin: 0; color: #6b7280;">${cardData.title} has been stored in Google Drive.</p>
+    `;
+    
+    return el;
+  }
+
+  // Show already stored modal
+  showAlreadyStoredModal(cardData) {
+    const modal = this.sdk.Widgets.showModalView({
+      title: 'Document Already Stored',
+      el: this.createAlreadyStoredContent(cardData),
+      buttons: [
+        {
+          text: 'View in Drive',
+          type: 'PRIMARY_ACTION',
+          onClick: (event) => {
+            // TODO: Open actual Drive URL
+            window.open('https://drive.google.com', '_blank');
+            event.modalView.close();
+          }
+        },
+        {
+          text: 'Store Again',
+          onClick: async (event) => {
+            event.modalView.close();
+            await this.handleDocumentStorage(cardData);
+            this.showSuccessModal(cardData);
+          }
+        },
+        {
+          text: 'Close',
+          onClick: (event) => {
+            event.modalView.close();
+          }
+        }
+      ]
+    });
+  }
+
+  // Create already stored modal content
+  createAlreadyStoredContent(cardData) {
+    const el = document.createElement('div');
+    el.style.padding = '20px';
+    el.style.textAlign = 'center';
+    
+    el.innerHTML = `
+      <div style="color: #f59e0b; font-size: 48px; margin-bottom: 16px;">⚠️</div>
+      <h3 style="margin: 0 0 8px 0; color: #1f2937;">Already Stored</h3>
+      <p style="margin: 0; color: #6b7280;">${cardData.title} is already stored in Google Drive.</p>
+    `;
+    
+    return el;
+  }
+
   // Updated method to create sidebar content dynamically
   createSidebarContent(threadId, cardDataArray) {
     // Store the current card data for later use
@@ -1124,49 +2159,103 @@ class UIManager {
         const cardHtml = createEntityCard(cardData, threadId);
         const cardWithThreadId = cardHtml.replace('class="entity-card"', `class="entity-card" data-thread-id="${threadId}"`);
         
-        // Add status message link below the card for invoice entities
-        const statusMessageLink = (cardData.cardType === 'inv' && cardData.statusMessageId && cardData.statusThreadId) 
-          ? `https://mail.google.com/mail/u/0/#inbox/${cardData.statusThreadId}/${cardData.statusMessageId}` 
-          : null;
-        
-        // Debug logging for status message data
+        // Build capsules for invoice entities only
+        let capsulesRow = '';
         if (cardData.cardType === 'inv') {
-          console.log(`[SIDEBAR] Invoice ${cardData.title} status message data:`, {
+          console.log('[SIDEBAR] Building capsules for invoice:', cardData.title);
+          console.log('[SIDEBAR] Card data:', {
             statusMessageId: cardData.statusMessageId,
             statusThreadId: cardData.statusThreadId,
-            statusMessageLink: statusMessageLink
+            docMessageId: cardData.docMessageId,
+            docThreadId: cardData.docThreadId,
+            currentThreadId: threadId
+          });
+          
+          // Status capsule state
+          let statusState = 'missing';
+          let statusLink = null;
+          if (cardData.statusMessageId && cardData.statusThreadId) {
+            if (cardData.statusThreadId === threadId) {
+              statusState = 'same-thread';
+              console.log('[SIDEBAR] Status is in same thread - will show "Show" button');
+            } else { 
+              statusState = 'link'; 
+              statusLink = `https://mail.google.com/mail/u/0/#inbox/${cardData.statusThreadId}/${cardData.statusMessageId}`;
+              console.log('[SIDEBAR] Status is in different thread - will show link:', statusLink);
+            }
+          } else {
+            console.log('[SIDEBAR] No status source data available');
+          }
+          
+          // Document capsule state
+          let docState = 'missing';
+          let docLink = null;
+          if (cardData.docMessageId && cardData.docThreadId) {
+            if (cardData.docThreadId === threadId) {
+              docState = 'same-thread';
+              console.log('[SIDEBAR] Document is in same thread - will show button');
+              console.log('[SIDEBAR] Document messageId for same-thread:', cardData.docMessageId);
+            } else { 
+              docState = 'link'; 
+              docLink = `https://mail.google.com/mail/u/0/#inbox/${cardData.docThreadId}/${cardData.docMessageId}`;
+              console.log('[SIDEBAR] Document is in different thread - will show link:', docLink);
+            }
+          } else {
+            console.log('[SIDEBAR] No document source data available - docMessageId:', cardData.docMessageId, 'docThreadId:', cardData.docThreadId);
+          }
+
+          const statusCapsule = this._renderSourceCapsule({ kind: 'status', state: statusState, link: statusLink });
+          const docCapsule = this._renderSourceCapsule({ kind: 'document', state: docState, link: docLink });
+
+          // Wrap in a row; embed message ids for same-thread actions
+          const statusDataAttr = statusState==='same-thread' ? `data-status-mid="${cardData.statusMessageId}"` : '';
+          const docDataAttr = docState==='same-thread' ? `data-doc-mid="${cardData.docMessageId}"` : '';
+          
+          console.log('[SIDEBAR] Building data attributes:', {
+            statusDataAttr,
+            docDataAttr,
+            statusState,
+            docState,
+            statusMessageId: cardData.statusMessageId,
+            docMessageId: cardData.docMessageId
+          });
+          
+          capsulesRow = `
+            <div class="stamp-sources" style="margin-top: 10px; display:flex; gap:8px; flex-wrap:wrap;" ${statusDataAttr} ${docDataAttr}>
+              ${statusCapsule}
+              ${docCapsule}
+            </div>`;
+          
+          console.log('[SIDEBAR] Capsules row built with data attributes:', {
+            statusMid: statusState==='same-thread' ? cardData.statusMessageId : null,
+            docMid: docState==='same-thread' ? cardData.docMessageId : null,
+            statusState,
+            docState
+          });
+          console.log('[SIDEBAR] HTML data attributes will be:', {
+            'data-status-mid': statusState==='same-thread' ? cardData.statusMessageId : 'not-set',
+            'data-doc-mid': docState==='same-thread' ? cardData.docMessageId : 'not-set'
           });
         }
-        
-        if (statusMessageLink) {
-          return `
-            <div class="card-container" style="margin-bottom: 16px;">
-              ${cardWithThreadId}
-              <div style="margin-top: 8px; padding: 8px 12px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #1a73e8;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="font-size: 14px;">📧</span>
-                  <div>
-                    <div style="font-size: 12px; font-weight: 600; color: #5f6368; margin-bottom: 2px;">Status Update Message</div>
-                    <a href="${statusMessageLink}" target="_blank" style="color: #1a73e8; text-decoration: none; font-size: 13px; font-weight: 500;" onclick="event.stopPropagation();">
-                      View in Gmail →
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>`;
-        } else {
-          return `<div class="card-container" style="margin-bottom: 16px;">${cardWithThreadId}</div>`;
-        }
+
+        return `
+          <div class="card-container" style="margin-bottom: 16px;">
+            ${cardWithThreadId}
+            ${capsulesRow}
+          </div>`
       }).join('');
       
-      return `
+      const containerHtml = `
         <div style="padding: 12px; border-bottom: 1px solid #e0e0e0; background: #fafafa;">
           <h3 style="margin: 0; font-size: 16px;">Documents in this thread</h3>
         </div>
-        <div style="padding: 16px;">
+        <div id="stamp-cards-container" style="padding: 16px;">
           ${cardsHtml}
         </div>
       `;
+
+      // Return and also attach delegated click after mount
+      return containerHtml;
     } else {
       return `
         <div style="padding: 16px;">
@@ -1190,6 +2279,7 @@ class UIManager {
     // Create a bound version of the click handler
     this._cardClickHandler = (event) => {
         console.log('[CARD_CLICKS] Click event detected on:', event.target);
+        
         
         const card = event.target.closest('.entity-card');
         if (card && card.dataset.fullDetails) {
@@ -2033,6 +3123,10 @@ class UIManager {
     const self = this; // Capture the correct 'this' context
 
     const el = this.createAndMount(this.createMainAppContent(), async (el) => {
+        // Initialize business rules first
+        console.log('[UI DEBUG] Initializing business rules...');
+        await this.initializeBusinessRules();
+        
         // Create the sidebar panel first
         console.log('[UI DEBUG] Creating sidebar panel...');
         this.sidebarPanel = await this.sdk.Global.addSidebarContentPanel({
@@ -2050,6 +3144,50 @@ class UIManager {
         // Now set up event listeners
         this.attachChatEventListeners(el); // Call the new method here
         console.log('[UI DEBUG] Chat event listeners attached');
+
+        // Delegated click for in-thread capsules
+        el.addEventListener('click', (evt) => {
+          console.log('[CLICK] Click detected on sidebar element');
+          const row = evt.target && evt.target.closest && evt.target.closest('.stamp-sources');
+          if (!row) {
+            console.log('[CLICK] Click not on a stamp-sources row, ignoring');
+            return;
+          }
+          console.log('[CLICK] Click is on a stamp-sources row');
+          
+          const target = evt.target;
+          const capsule = target.closest('.stamp-capsule');
+          const isButton = capsule && capsule.tagName.toLowerCase() === 'button';
+          if (!isButton) {
+            console.log('[CLICK] Click not on a button capsule, ignoring');
+            return;
+          }
+          console.log('[CLICK] Click is on a button capsule');
+          
+          evt.preventDefault();
+          evt.stopPropagation();
+          
+          const statusMid = row.getAttribute('data-status-mid');
+          const docMid = row.getAttribute('data-doc-mid');
+          console.log('[CLICK] Row data attributes:', { statusMid, docMid });
+          
+          // Determine which button was clicked by icon within
+          const capsuleText = capsule ? capsule.textContent : '';
+          const isStatus = capsuleText.includes('Status');
+          const isDocument = capsuleText.includes('Document');
+          const mid = isStatus ? statusMid : docMid;
+          console.log('[CLICK] Capsule text:', capsuleText);
+          console.log('[CLICK] isStatus:', isStatus, 'isDocument:', isDocument);
+          console.log('[CLICK] Determined click type:', isStatus ? 'status' : 'document', 'messageId:', mid);
+          console.log('[CLICK] Available messageIds - statusMid:', statusMid, 'docMid:', docMid);
+          
+          if (mid) {
+            console.log('[CLICK] Calling _showMessageInThisThread with messageId:', mid);
+            this._showMessageInThisThread(mid);
+          } else {
+            console.warn('[CLICK] No messageId found for clicked capsule');
+          }
+        });
     });
   }
 
@@ -2239,6 +3377,88 @@ class UIManager {
       console.warn('[ThreadViewLabels] Failed to apply labels to thread view:', error);
     }
   }
+
+  // Scroll to a message in the current thread and highlight briefly
+  async _showMessageInThisThread(messageId) {
+    console.log('[INTHREAD] Attempting to show message in current thread:', messageId);
+    console.log('[INTHREAD] Current message index size:', this._messageIndex.size);
+    console.log('[INTHREAD] Available message IDs in index:', Array.from(this._messageIndex.keys()));
+    
+    // First try immediate lookup
+    let messageView = this._messageIndex.get(messageId);
+    if (messageView && messageView.getElement) {
+      const el = messageView.getElement();
+      if (el) {
+        console.log('[INTHREAD] Found message via index, scrolling into view');
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.style.transition = 'background-color 0.6s ease';
+        const prev = el.style.backgroundColor;
+        el.style.backgroundColor = 'rgba(255, 235, 59, 0.35)';
+        console.log('[INTHREAD] Applied highlight, will remove in 1200ms');
+        setTimeout(() => { 
+          el.style.backgroundColor = prev || ''; 
+          console.log('[INTHREAD] Highlight removed');
+        }, 1200);
+        return;
+      }
+    }
+    
+    // If not found, wait a bit for messages to load and try again
+    console.log('[INTHREAD] Message not found immediately, waiting for messages to load...');
+    const delays = [200, 500, 1000];
+    for (const delay of delays) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+      console.log('[INTHREAD] Retrying after', delay, 'ms. Index size:', this._messageIndex.size);
+      console.log('[INTHREAD] Available IDs:', Array.from(this._messageIndex.keys()));
+      
+      messageView = this._messageIndex.get(messageId);
+      if (messageView && messageView.getElement) {
+        const el = messageView.getElement();
+        if (el) {
+          console.log('[INTHREAD] Found message after retry, scrolling into view');
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.style.transition = 'background-color 0.6s ease';
+          const prev = el.style.backgroundColor;
+          el.style.backgroundColor = 'rgba(255, 235, 59, 0.35)';
+          setTimeout(() => { el.style.backgroundColor = prev || ''; }, 1200);
+          return;
+        }
+      }
+    }
+    
+    console.warn('[INTHREAD] Message still not found after retries:', messageId);
+    console.log('[INTHREAD] Final index state - size:', this._messageIndex.size, 'IDs:', Array.from(this._messageIndex.keys()));
+  }
+
+    _renderSourceCapsule({ kind, state, link, onClickTitle }) {
+    // kind: 'status' | 'document'
+    // state: 'same-thread' | 'link' | 'missing'
+    const icon = kind === 'status' ? '📧' : '📎';
+    const label = kind === 'status' ? 'Status' : 'Document';
+    
+    console.log('[CAPSULE] Rendering', kind, 'capsule with state:', state, 'link:', link);
+    
+    if (state === 'same-thread') {
+      return `
+      <button class="stamp-capsule" title="Show in this thread" style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid #e6e7ea;border-radius:999px;background:#fff;color:#334155;cursor:pointer;">
+        <span>${icon}</span>
+        <span style="font-size:12px;font-weight:600;">${label}</span>
+      </button>`;
+    } else if (state === 'link') {
+      return `
+      <a class="stamp-capsule" href="${link}" target="_blank" onclick="event.stopPropagation();" title="Open in Gmail" style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid #e6e7ea;border-radius:999px;background:#fff;color:#1a73e8;text-decoration:none;">
+        <span>${icon}</span>
+        <span style="font-size:12px;font-weight:600;">${label}</span>
+        <span style="margin-left:6px;font-size:12px;">→</span>
+      </a>`;
+    } else {
+      return `
+      <div class="stamp-capsule" title="Not found" style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px dashed #e6e7ea;border-radius:999px;background:#fafafa;color:#9aa0a6;cursor:not-allowed;">
+        <span>${icon}</span>
+        <span style="font-size:12px;font-weight:600;">${label}</span>
+      </div>`;
+    }
+  }
 }
 
 
@@ -2350,6 +3570,10 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
     // Initialize AI-style loading controller
     const loadingController = createLoadingController(container);
     
+    // Hoist for cleanup handlers
+    let spreadsheetResult = null;
+    let handleCleanup = () => {};
+
     try {
       // Step 1: Start fetching invoices
       loadingController.startFetching();
@@ -2371,8 +3595,22 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
       console.log('[AI LOADING] ✅ Invoice status processed');
       
       // Build spreadsheet immediately with the live data
-      await buildSpreadsheet(container, allInvoices);
+      spreadsheetResult = await buildSpreadsheet(container, allInvoices, {
+        fetchPdf: ({ threadId, documentName }) => apiClient.fetchGmailAttachmentPdf({ threadId, documentName }),
+        apiClient: apiClient // Pass API client for corrections batching
+      });
       console.log('[AI LOADING] 🎯 Spreadsheet built successfully');
+      
+      // Single cleanup handler using sendBeacon
+      handleCleanup = () => {
+        if (spreadsheetResult?.correctionsBatcher?.hasPendingCorrections()) {
+          console.log('[CLEANUP] Sending pending corrections via sendBeacon');
+          spreadsheetResult.correctionsBatcher.sendBeaconBatch();
+        }
+      };
+
+      // Single event listener for page unload
+      window.addEventListener('pagehide', handleCleanup);
       
     } catch (error) {
       console.error('[AI LOADING] ❌ Error during invoice loading:', error);
@@ -2382,6 +3620,16 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
     // Handle route cleanup
     customRouteView.on('destroy', () => {
       console.log('[UI DEBUG] Cleaning up invoice tracker view');
+
+      // Send any remaining corrections on route destroy
+      if (spreadsheetResult?.correctionsBatcher?.hasPendingCorrections()) {
+        console.log('[CLEANUP] Sending final corrections on route destroy');
+        spreadsheetResult.correctionsBatcher.sendBatch(); // Use async send here since route destroy allows it
+      }
+
+      // Remove event listener
+      window.removeEventListener('pagehide', handleCleanup);
+
       if (container._resizeObserver) {
         container._resizeObserver.disconnect();
         console.log('[UI DEBUG] Resize observer disconnected');
@@ -2531,6 +3779,18 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
     await uiManager.handleThreadView(threadView);
   });
 
+  // Add Store in Drive buttons to existing attachment cards
+  sdk.Conversations.registerFileAttachmentCardViewHandler((attachmentCard) => {
+    uiManager.handleFileAttachmentCard(attachmentCard);
+  });
+
+  // Also handle message views to add buttons to existing attachment cards
+  sdk.Conversations.registerMessageViewHandler(async (messageView) => {
+    await uiManager.handleExistingAttachmentCards(messageView);
+  });
+
+
+
   // Register a handler for ALL route views to inject our UI when our route is active
   sdk.Router.handleAllRoutes(routeView => {
     // Only log route changes for debugging, don't try to modify non-custom routes
@@ -2539,4 +3799,87 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
 
 }).catch((error) => {
   console.error("Stamp Extension: Failed to load InboxSDK.", error);
+});
+
+// --- MESSAGE HANDLERS FOR POPUP COMMUNICATION ---
+
+// Listen for messages from the popup
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('[Content] Received message from popup:', message.type);
+
+  // Handle installation request from popup
+  if (message.type === 'START_INSTALLATION') {
+    (async () => {
+      try {
+        console.log('[Content] Starting installation from popup request');
+        
+        if (!window.uiManager || !window.uiManager.authService) {
+          throw new Error('Authentication service not available. Please refresh Gmail and try again.');
+        }
+
+        // Start the dual OAuth installation flow
+        await window.uiManager.authService.signInWithGoogle();
+        
+        console.log('[Content] Installation completed successfully');
+        sendResponse({ success: true });
+        
+      } catch (error) {
+        console.error('[Content] Installation failed:', error);
+        sendResponse({ error: error.message });
+      }
+    })();
+    return true; // Will respond asynchronously
+  }
+
+  // Handle sign out request from popup
+  if (message.type === 'SIGN_OUT') {
+    (async () => {
+      try {
+        console.log('[Content] Starting sign out from popup request');
+        
+        if (!window.uiManager || !window.uiManager.authService) {
+          throw new Error('Authentication service not available. Please refresh Gmail and try again.');
+        }
+
+        // Sign out using the auth service
+        await window.uiManager.authService.signOut();
+        
+        // Refresh the UI to logged out state
+        if (window.uiManager.sidebarPanel) {
+          window.uiManager.sidebarPanel.remove();
+        }
+        window.uiManager.renderLoginView();
+        
+        console.log('[Content] Sign out completed successfully');
+        sendResponse({ success: true });
+        
+      } catch (error) {
+        console.error('[Content] Sign out failed:', error);
+        sendResponse({ error: error.message });
+      }
+    })();
+    return true; // Will respond asynchronously
+  }
+
+  // Handle cleanup installation request
+  if (message.type === 'CLEANUP_INSTALLATION') {
+    (async () => {
+      try {
+        console.log('[Content] Cleaning up installation state');
+        
+        if (window.uiManager && window.uiManager.authService) {
+          await window.uiManager.authService._cleanupPartialInstallation();
+        }
+        
+        sendResponse({ success: true });
+        
+      } catch (error) {
+        console.error('[Content] Cleanup failed:', error);
+        sendResponse({ error: error.message });
+      }
+    })();
+    return true; // Will respond asynchronously
+  }
+
+  return false; // Not handled
 }); 
