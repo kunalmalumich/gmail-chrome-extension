@@ -193,12 +193,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.log('[Background] Requesting access token with scopes:', scopes);
 
       try {
-        chrome.identity.getAuthToken({ 
+        console.log('[Background] Requesting Chrome identity token with scopes:', scopes);
+        chrome.identity.getAuthToken({
           interactive: true,
           scopes: scopes
         }, (token) => {
+          console.log('[Background] Chrome identity callback received');
+          console.log('[Background] Token received:', token ? 'YES (' + token.length + ' chars)' : 'NO');
+
           if (chrome.runtime.lastError) {
             console.error('[Background] Access token error:', chrome.runtime.lastError.message);
+            console.error('[Background] Full runtime error:', chrome.runtime.lastError);
             reject(new Error(chrome.runtime.lastError.message));
             return;
           }
@@ -207,27 +212,54 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             console.log('[Background] Access token obtained, fetching user info...');
             
             // Get user email using the access token
+            console.log('[Background] Fetching user info from Google API...');
             fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
               headers: {
                 'Authorization': `Bearer ${token}`
               }
             })
-            .then(response => response.json())
+            .then(response => {
+              console.log('[Background] Userinfo API response status:', response.status);
+              console.log('[Background] Userinfo API response ok:', response.ok);
+
+              if (!response.ok) {
+                console.error('[Background] Userinfo API error response:', response.status, response.statusText);
+                return response.text().then(text => {
+                  console.error('[Background] Userinfo API error body:', text);
+                  throw new Error(`HTTP ${response.status}: ${text}`);
+                });
+              }
+
+              return response.json();
+            })
             .then(userInfo => {
-              console.log('[Background] User info obtained successfully');
-              resolve({ 
+              console.log('[Background] User info obtained successfully:', userInfo);
+              console.log('[Background] User email:', userInfo.email);
+              resolve({
                 accessToken: token,
                 userEmail: userInfo.email,
                 userInfo: userInfo
               });
             })
             .catch(error => {
-              console.error('[Background] Error fetching user info:', error);
-              // Still return the token even if user info fails
-              resolve({ 
+              console.error('[Background] Detailed error fetching user info:', {
+                message: error.message,
+                stack: error.stack,
+                tokenLength: token ? token.length : 0,
+                tokenPrefix: token ? token.substring(0, 10) + '...' : 'null'
+              });
+
+              resolve({
                 accessToken: token,
                 userEmail: null,
-                error: 'Could not fetch user info: ' + error.message
+                error: 'Could not fetch user info: ' + error.message,
+                debug: {
+                  tokenLength: token ? token.length : 0,
+                  tokenPrefix: token ? token.substring(0, 10) : null,
+                  scopes: scopes,
+                  errorType: error.name,
+                  errorMessage: error.message
+                }
               });
             });
           } else {

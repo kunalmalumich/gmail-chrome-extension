@@ -143,13 +143,9 @@ setTimeout(() => {
 // These values are injected by the build script (build.sh) as a global CONFIG object.
 const API_ENDPOINT = CONFIG.API_ENDPOINT;
 const AUTH_ENDPOINT = CONFIG.AUTH_ENDPOINT; 
-const OAUTH_CLIENT_ID = CONFIG.OAUTH_CLIENT_ID;
-const GOOGLE_CLIENT_ID = CONFIG.GOOGLE_CLIENT_ID;
-const OAUTH_CHROME_CLIENT_ID = CONFIG.OAUTH_CHROME_CLIENT_ID;
-
-// For dual OAuth flow, we use the Chrome extension client ID from manifest.json
-// The OAUTH_CLIENT_ID and GOOGLE_CLIENT_ID are kept for backward compatibility
-const CLIENT_ID = OAUTH_CLIENT_ID || GOOGLE_CLIENT_ID;
+const CLIENT_ID = CONFIG.CLIENT_ID;
+const CLIENT_SECRET = CONFIG.CLIENT_SECRET;
+const CHROME_CLIENT_ID = CONFIG.CHROME_CLIENT_ID;
 
 if (!API_ENDPOINT) {
   console.error('[CONFIG] API_ENDPOINT is not set');
@@ -158,12 +154,12 @@ if (!AUTH_ENDPOINT) {
   console.error('[CONFIG] AUTH_ENDPOINT is not set (falling back to API_ENDPOINT)');
 }
 
-if (!OAUTH_CHROME_CLIENT_ID) {
-  console.warn('[CONFIG] OAUTH_CHROME_CLIENT_ID is not set - Chrome extension OAuth may not work');
+if (!CHROME_CLIENT_ID) {
+  console.warn('[CONFIG] CHROME_CLIENT_ID is not set - Chrome extension OAuth may not work');
 }
 
 if (!CLIENT_ID) {
-  console.warn('[CONFIG] Neither OAUTH_CLIENT_ID nor GOOGLE_CLIENT_ID is set - some features may not work');
+  console.warn('[CONFIG] CLIENT_ID is not set - some features may not work');
 }
 
 // --- SERVICES ---
@@ -191,8 +187,14 @@ class ApiClient {
 
     const { installationId, userEmail } = await chrome.storage.local.get(['installationId', 'userEmail']);
     
+    console.log('[DEBUG] Chrome storage values:', { installationId, userEmail });
+    
     if (!installationId) {
       throw new Error('User not authenticated. Please sign in first.');
+    }
+    
+    if (!userEmail) {
+      console.warn('[DEBUG] userEmail is missing from Chrome storage');
     }
 
     const url = `${this.baseUrl}${endpoint}`;
@@ -609,7 +611,13 @@ class AuthService {
       const userEmail = chromeTokenResult.userEmail;
       
       if (!userEmail) {
-        throw new Error('Could not retrieve user email from Chrome extension OAuth');
+        const errorMsg = chromeTokenResult.error || 'Unknown error';
+        console.error('[AUTH] Chrome extension OAuth failed:', {
+          error: errorMsg,
+          debug: chromeTokenResult.debug
+        });
+        console.error('[AUTH] Full chromeTokenResult:', chromeTokenResult);
+        throw new Error(`Could not retrieve user email from Chrome extension OAuth: ${errorMsg}`);
       }
       
       console.log('[AUTH] User email obtained:', userEmail);

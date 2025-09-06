@@ -12,13 +12,31 @@ else
   echo "   .env file not found. Using default values."
   export API_ENDPOINT="http://localhost:8000"
   export AUTH_ENDPOINT="http://localhost:3000/email-poller" 
-  # OAUTH_CLIENT_ID or GOOGLE_CLIENT_ID must be provided
+fi
+
+# Handle client preference logic
+if [ "${PREFER_GOOGLE_CLIENT}" = "true" ]; then
+  echo "=> Using Google client credentials"
+  FINAL_CLIENT_ID="${GOOGLE_CLIENT_ID}"
+  FINAL_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET}"
+  FINAL_CHROME_CLIENT_ID="${GOOGLE_CHROME_CLIENT_ID}"
+  echo "   Selected CLIENT_ID: ${FINAL_CLIENT_ID}"
+  echo "   Selected CLIENT_SECRET: ${FINAL_CLIENT_SECRET:0:10}..." # Show first 10 chars only
+  echo "   Selected CHROME_CLIENT_ID: ${FINAL_CHROME_CLIENT_ID}"
+else
+  echo "=> Using OAuth client credentials"
+  FINAL_CLIENT_ID="${OAUTH_CLIENT_ID}"
+  FINAL_CLIENT_SECRET="${OAUTH_CLIENT_SECRET}"
+  FINAL_CHROME_CLIENT_ID="${OAUTH_CHROME_CLIENT_ID}"
+  echo "   Selected CLIENT_ID: ${FINAL_CLIENT_ID}"
+  echo "   Selected CLIENT_SECRET: ${FINAL_CLIENT_SECRET:0:10}..." # Show first 10 chars only
+  echo "   Selected CHROME_CLIENT_ID: ${FINAL_CHROME_CLIENT_ID}"
 fi
 
 echo "Starting extension build..."
 echo "   Value of API_ENDPOINT is: '${API_ENDPOINT}'"
 echo "   Value of AUTH_ENDPOINT is: '${AUTH_ENDPOINT}'"
-echo "   Value of OAUTH_CHROME_CLIENT_ID is: '${OAUTH_CHROME_CLIENT_ID}'"
+echo "   Value of FINAL_CHROME_CLIENT_ID is: '${FINAL_CHROME_CLIENT_ID}'"
 
 # The 'dist' directory will contain the ready-to-load extension.
 # Recreating it ensures a clean build from scratch.
@@ -26,9 +44,10 @@ echo "=> Cleaning up old build..."
 rm -rf dist
 mkdir -p dist
 
-# Note: For dual OAuth flow, we only need OAUTH_CHROME_CLIENT_ID for the manifest
-# The OAUTH_CLIENT_ID and GOOGLE_CLIENT_ID are used by the content script for other purposes
-echo "   Chrome OAuth client ID: '${OAUTH_CHROME_CLIENT_ID:-NOT_SET}'"
+# Note: For dual OAuth flow, we use separate client IDs for Chrome extension and web OAuth
+# The FINAL_CLIENT_ID and FINAL_CLIENT_SECRET are used by the content script for web OAuth
+# The Chrome extension OAuth client ID is manually set in manifest.json
+echo "   Chrome OAuth client ID: '${FINAL_CHROME_CLIENT_ID:-NOT_SET}'"
 
 echo "=> Installing dependencies..."
 npm install
@@ -39,9 +58,9 @@ npx esbuild content.js --bundle --outfile=dist/content.js --platform=browser --s
   --minify=false \
   --define:"CONFIG.API_ENDPOINT='${API_ENDPOINT}'" \
   --define:"CONFIG.AUTH_ENDPOINT='${AUTH_ENDPOINT}'" \
-  --define:"CONFIG.OAUTH_CLIENT_ID='${OAUTH_CLIENT_ID:-}'" \
-  --define:"CONFIG.GOOGLE_CLIENT_ID='${GOOGLE_CLIENT_ID:-}'" \
-  --define:"CONFIG.OAUTH_CHROME_CLIENT_ID='${OAUTH_CHROME_CLIENT_ID:-}'"
+  --define:"CONFIG.CLIENT_ID='${FINAL_CLIENT_ID:-}'" \
+  --define:"CONFIG.CLIENT_SECRET='${FINAL_CLIENT_SECRET:-}'" \
+  --define:"CONFIG.CHROME_CLIENT_ID='${FINAL_CHROME_CLIENT_ID:-}'"
 
 # Build background.js
 echo "=> Building background.js..."
@@ -54,25 +73,10 @@ echo "=> Building oauth-callback-detector.js..."
 npx esbuild oauth-callback-detector.js --bundle --outfile=dist/oauth-callback-detector.js --platform=browser --sourcemap \
   --minify=false
 
-echo "=> Copying and processing manifest.json..."
-# Copy manifest.json to dist directory
+echo "=> Copying manifest.json..."
+# Copy manifest.json to dist directory (no client_id replacement)
 cp manifest.json dist/
-
-# Replace Chrome OAuth client ID in the copied manifest.json
-if [ -n "${OAUTH_CHROME_CLIENT_ID}" ]; then
-  echo "   Replacing Chrome OAuth client ID in manifest.json..."
-  # Use different sed syntax for macOS compatibility
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    # macOS
-    sed -i '' "s|1092910314489-oufjb6noqvia815318h8d40ontatbb08.apps.googleusercontent.com|${OAUTH_CHROME_CLIENT_ID}|g" dist/manifest.json
-  else
-    # Linux
-    sed -i "s|1092910314489-oufjb6noqvia815318h8d40ontatbb08.apps.googleusercontent.com|${OAUTH_CHROME_CLIENT_ID}|g" dist/manifest.json
-  fi
-  echo "   Chrome OAuth client ID updated successfully"
-else
-  echo "   Warning: OAUTH_CHROME_CLIENT_ID not set, using existing client ID in manifest.json"
-fi
+echo "   manifest.json copied successfully (client_id left as-is)"
 
 echo "=> Copying extension assets..."
 # Copy the InboxSDK page world script
@@ -119,4 +123,5 @@ fi
 echo
 echo "Build complete! 🎉"
 echo "The complete extension has been built into the 'dist' directory."
-echo "You can now load the 'dist' directory as an unpacked extension in your browser." 
+echo "You can now load the 'dist' directory as an unpacked extension in your browser."
+echo "Note: Make sure to manually set the correct client_id in dist/manifest.json if needed."
