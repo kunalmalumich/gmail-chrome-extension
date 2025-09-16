@@ -25,6 +25,7 @@ function getRedirectURL() {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('[Background] Received message:', message.type);
+  console.log('[Background] Message details:', { type: message.type, sender: sender.tab?.url || 'no-tab' });
 
   // --- Message Handler 1: InboxSDK Page World Injection ---
   if (message.type === 'inboxsdk__injectPageWorld' && sender.tab) {
@@ -55,7 +56,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const scopes = manifest.oauth2.scopes.join(' ');
       const redirectUri = getRedirectURL();
 
-      console.log('[Background] Auth flow parameters:', { clientId, redirectUri });
+      console.log('[Background] Chrome Extension OAuth flow parameters:', { 
+        clientId, 
+        redirectUri, 
+        scopes: manifest.oauth2.scopes 
+      });
+      console.log('[Background] 🔍 CHROME EXTENSION CLIENT ID:', clientId);
 
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${clientId}&` +
@@ -65,12 +71,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         `scope=${encodeURIComponent(scopes)}&` +
         `redirect_uri=${encodeURIComponent(redirectUri)}`;
 
-      console.log('[Background] Generated auth URL:', authUrl);
+      console.log('[Background] Generated Chrome Extension auth URL:', authUrl);
 
       try {
+        console.log('[Background] 🚀 Launching Chrome Extension OAuth flow...');
+        console.log('[Background] 🔍 OAuth will prompt user to sign in with their Google account');
         chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, (responseUrl) => {
           if (chrome.runtime.lastError) {
-            console.error('[Background] Auth flow error:', chrome.runtime.lastError.message);
+            console.error('[Background] ❌ Chrome Extension OAuth flow error:', chrome.runtime.lastError.message);
+            console.error('[Background] 🔍 Error details:', {
+              error: chrome.runtime.lastError.message,
+              clientId: clientId,
+              redirectUri: redirectUri,
+              authUrl: authUrl
+            });
             reject(new Error(chrome.runtime.lastError.message));
             return;
           }
@@ -100,18 +114,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'START_WEB_OAUTH_FLOW') {
     const promise = new Promise((resolve, reject) => {
       console.log('[Background] Starting Web OAuth flow');
+      console.log('[Background] 🌐 WEB OAUTH ENDPOINT:', AUTH_ENDPOINT);
+      console.log('[Background] 📝 Note: Web OAuth client ID will be determined by backend server');
 
       // Use the full AUTH_ENDPOINT path since backend endpoints are at /email-poller/auth/...
       const oauthStartUrl = `${AUTH_ENDPOINT}/auth/google/start`;
-      console.log('[Background] Opening OAuth tab:', oauthStartUrl);
+      console.log('[Background] Opening Web OAuth tab:', oauthStartUrl);
+      console.log('[Background] 🔍 Expected OAuth flow:');
+      console.log('[Background]   1. Backend OAuth start → Google OAuth → Backend callback');
+      console.log('[Background]   2. Backend should show success page with user email');
+      console.log('[Background]   3. OAuth callback detector should detect success on backend page');
 
       // Create a new tab for the Web OAuth flow
+      console.log('[Background] 🚀 Creating Web OAuth tab...');
+      console.log('[Background] 📋 OAuth tab will open:', oauthStartUrl);
       chrome.tabs.create({
         url: oauthStartUrl,
         active: true
       }, (tab) => {
         if (chrome.runtime.lastError) {
-          console.error('[Background] Error creating OAuth tab:', chrome.runtime.lastError.message);
+          console.error('[Background] ❌ Error creating Web OAuth tab:', chrome.runtime.lastError.message);
+          console.error('[Background] 🔍 Web OAuth error details:', {
+            error: chrome.runtime.lastError.message,
+            oauthStartUrl: oauthStartUrl,
+            authEndpoint: AUTH_ENDPOINT
+          });
           reject(new Error(chrome.runtime.lastError.message));
           return;
         }
@@ -128,6 +155,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         // Store the flow state
         webOAuthFlows.set(tab.id, { resolve, reject, timeout });
+        
+        // Listen for tab updates to see where the OAuth flow goes
+        const tabUpdateListener = (tabId, changeInfo, updatedTab) => {
+          if (tabId === tab.id && changeInfo.url) {
+            console.log('[Background] OAuth tab navigated to:', changeInfo.url);
+            if (changeInfo.url.includes('trystamp.ai/oauth2-callback')) {
+              console.log('[Background] 🎯 OAuth callback page detected!');
+            }
+            if (changeInfo.url.includes('70h4jbuv95.execute-api.us-east-2.amazonaws.com')) {
+              console.log('[Background] 🎯 Backend OAuth page detected!');
+            }
+            if (changeInfo.url.includes('accounts.google.com')) {
+              console.log('[Background] 🎯 Google OAuth page detected!');
+            }
+          }
+        };
+        
+        chrome.tabs.onUpdated.addListener(tabUpdateListener);
+        
+        // Store the listener so we can remove it later
+        webOAuthFlows.get(tab.id).tabUpdateListener = tabUpdateListener;
+        
         console.log('[Background] Waiting for OAuth completion...');
       });
     });
@@ -145,6 +194,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // --- Message Handler 4: OAuth Web Client Complete ---
   if (message.type === 'OAUTH_WEB_CLIENT_COMPLETE') {
     console.log('[Background] Received OAuth completion:', message.result.success ? 'SUCCESS' : 'FAILED');
+    console.log('[Background] OAuth result details:', {
+      success: message.result.success,
+      userEmail: message.result.userEmail,
+      method: message.result.method,
+      error: message.result.error,
+      url: message.url
+    });
 
     // Find the tab that sent this message
     if (sender.tab) {
@@ -156,6 +212,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         // Clear the timeout
         clearTimeout(flowState.timeout);
+        
+        // Remove tab update listener
+        if (flowState.tabUpdateListener) {
+          chrome.tabs.onUpdated.removeListener(flowState.tabUpdateListener);
+        }
+        
         webOAuthFlows.delete(tabId);
 
         // Close the OAuth tab
@@ -164,6 +226,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // Resolve or reject based on the result
         if (message.result.success) {
           console.log('[Background] OAuth flow completed successfully');
+          
+          // Store user email if available
+          if (message.result.userEmail) {
+            console.log('[Background] Storing user email:', message.result.userEmail);
+            chrome.storage.local.set({ userEmail: message.result.userEmail });
+          } else {
+            console.warn('[Background] No user email found in OAuth result');
+          }
+          
           flowState.resolve({
             success: true,
             url: message.url,
@@ -277,7 +348,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Indicates an async response
   }
 
+  // --- Message Handler 6: Clear Chrome Identity Cache (for sign-up only) ---
+  if (message.type === 'CLEAR_CHROME_IDENTITY_CACHE') {
+    const promise = new Promise((resolve, reject) => {
+      console.log('[Background] Clearing Chrome identity cache for fresh sign-up...');
+      
+      chrome.identity.clearAllCachedAuthTokens(() => {
+        if (chrome.runtime.lastError) {
+          console.log('[Background] Could not clear cached tokens (non-critical):', chrome.runtime.lastError.message);
+          resolve({ success: false, error: chrome.runtime.lastError.message });
+        } else {
+          console.log('[Background] Cached auth tokens cleared successfully');
+          resolve({ success: true });
+        }
+      });
+    });
 
+    promise.then(sendResponse).catch(error => sendResponse({ error: error.message }));
+    return true; // Indicates an async response
+  }
 
   // --- Message Handler 4: Inject Floating Chat Scripts ---
   if (message.type === 'INJECT_FLOATING_CHAT_SCRIPTS') {

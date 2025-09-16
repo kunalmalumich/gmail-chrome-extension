@@ -11,6 +11,7 @@
   }
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("[Background] Received message:", message.type);
+    console.log("[Background] Message details:", { type: message.type, sender: sender.tab?.url || "no-tab" });
     if (message.type === "inboxsdk__injectPageWorld" && sender.tab) {
       const promise = new Promise((resolve) => {
         console.log("[Background] Handling InboxSDK page world injection");
@@ -35,13 +36,26 @@
         const clientId = manifest.oauth2.client_id;
         const scopes = manifest.oauth2.scopes.join(" ");
         const redirectUri = getRedirectURL();
-        console.log("[Background] Auth flow parameters:", { clientId, redirectUri });
+        console.log("[Background] Chrome Extension OAuth flow parameters:", {
+          clientId,
+          redirectUri,
+          scopes: manifest.oauth2.scopes
+        });
+        console.log("[Background] \u{1F50D} CHROME EXTENSION CLIENT ID:", clientId);
         const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=code&access_type=online&prompt=consent&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-        console.log("[Background] Generated auth URL:", authUrl);
+        console.log("[Background] Generated Chrome Extension auth URL:", authUrl);
         try {
+          console.log("[Background] \u{1F680} Launching Chrome Extension OAuth flow...");
+          console.log("[Background] \u{1F50D} OAuth will prompt user to sign in with their Google account");
           chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, (responseUrl) => {
             if (chrome.runtime.lastError) {
-              console.error("[Background] Auth flow error:", chrome.runtime.lastError.message);
+              console.error("[Background] \u274C Chrome Extension OAuth flow error:", chrome.runtime.lastError.message);
+              console.error("[Background] \u{1F50D} Error details:", {
+                error: chrome.runtime.lastError.message,
+                clientId,
+                redirectUri,
+                authUrl
+              });
               reject(new Error(chrome.runtime.lastError.message));
               return;
             }
@@ -65,14 +79,27 @@
     if (message.type === "START_WEB_OAUTH_FLOW") {
       const promise = new Promise((resolve, reject) => {
         console.log("[Background] Starting Web OAuth flow");
+        console.log("[Background] \u{1F310} WEB OAUTH ENDPOINT:", AUTH_ENDPOINT);
+        console.log("[Background] \u{1F4DD} Note: Web OAuth client ID will be determined by backend server");
         const oauthStartUrl = `${AUTH_ENDPOINT}/auth/google/start`;
-        console.log("[Background] Opening OAuth tab:", oauthStartUrl);
+        console.log("[Background] Opening Web OAuth tab:", oauthStartUrl);
+        console.log("[Background] \u{1F50D} Expected OAuth flow:");
+        console.log("[Background]   1. Backend OAuth start \u2192 Google OAuth \u2192 Backend callback");
+        console.log("[Background]   2. Backend should show success page with user email");
+        console.log("[Background]   3. OAuth callback detector should detect success on backend page");
+        console.log("[Background] \u{1F680} Creating Web OAuth tab...");
+        console.log("[Background] \u{1F4CB} OAuth tab will open:", oauthStartUrl);
         chrome.tabs.create({
           url: oauthStartUrl,
           active: true
         }, (tab) => {
           if (chrome.runtime.lastError) {
-            console.error("[Background] Error creating OAuth tab:", chrome.runtime.lastError.message);
+            console.error("[Background] \u274C Error creating Web OAuth tab:", chrome.runtime.lastError.message);
+            console.error("[Background] \u{1F50D} Web OAuth error details:", {
+              error: chrome.runtime.lastError.message,
+              oauthStartUrl,
+              authEndpoint: AUTH_ENDPOINT
+            });
             reject(new Error(chrome.runtime.lastError.message));
             return;
           }
@@ -85,6 +112,22 @@
             reject(new Error("Web OAuth flow timed out"));
           }, 5 * 60 * 1e3);
           webOAuthFlows.set(tab.id, { resolve, reject, timeout });
+          const tabUpdateListener = (tabId, changeInfo, updatedTab) => {
+            if (tabId === tab.id && changeInfo.url) {
+              console.log("[Background] OAuth tab navigated to:", changeInfo.url);
+              if (changeInfo.url.includes("trystamp.ai/oauth2-callback")) {
+                console.log("[Background] \u{1F3AF} OAuth callback page detected!");
+              }
+              if (changeInfo.url.includes("70h4jbuv95.execute-api.us-east-2.amazonaws.com")) {
+                console.log("[Background] \u{1F3AF} Backend OAuth page detected!");
+              }
+              if (changeInfo.url.includes("accounts.google.com")) {
+                console.log("[Background] \u{1F3AF} Google OAuth page detected!");
+              }
+            }
+          };
+          chrome.tabs.onUpdated.addListener(tabUpdateListener);
+          webOAuthFlows.get(tab.id).tabUpdateListener = tabUpdateListener;
           console.log("[Background] Waiting for OAuth completion...");
         });
       });
@@ -99,17 +142,33 @@
     }
     if (message.type === "OAUTH_WEB_CLIENT_COMPLETE") {
       console.log("[Background] Received OAuth completion:", message.result.success ? "SUCCESS" : "FAILED");
+      console.log("[Background] OAuth result details:", {
+        success: message.result.success,
+        userEmail: message.result.userEmail,
+        method: message.result.method,
+        error: message.result.error,
+        url: message.url
+      });
       if (sender.tab) {
         const tabId = sender.tab.id;
         const flowState = webOAuthFlows.get(tabId);
         if (flowState) {
           console.log("[Background] Found matching OAuth flow, cleaning up...");
           clearTimeout(flowState.timeout);
+          if (flowState.tabUpdateListener) {
+            chrome.tabs.onUpdated.removeListener(flowState.tabUpdateListener);
+          }
           webOAuthFlows.delete(tabId);
           chrome.tabs.remove(tabId).catch(() => {
           });
           if (message.result.success) {
             console.log("[Background] OAuth flow completed successfully");
+            if (message.result.userEmail) {
+              console.log("[Background] Storing user email:", message.result.userEmail);
+              chrome.storage.local.set({ userEmail: message.result.userEmail });
+            } else {
+              console.warn("[Background] No user email found in OAuth result");
+            }
             flowState.resolve({
               success: true,
               url: message.url,
@@ -201,6 +260,22 @@
           console.error("[Background] Error in getAuthToken:", error);
           reject(error);
         }
+      });
+      promise.then(sendResponse).catch((error) => sendResponse({ error: error.message }));
+      return true;
+    }
+    if (message.type === "CLEAR_CHROME_IDENTITY_CACHE") {
+      const promise = new Promise((resolve, reject) => {
+        console.log("[Background] Clearing Chrome identity cache for fresh sign-up...");
+        chrome.identity.clearAllCachedAuthTokens(() => {
+          if (chrome.runtime.lastError) {
+            console.log("[Background] Could not clear cached tokens (non-critical):", chrome.runtime.lastError.message);
+            resolve({ success: false, error: chrome.runtime.lastError.message });
+          } else {
+            console.log("[Background] Cached auth tokens cleared successfully");
+            resolve({ success: true });
+          }
+        });
       });
       promise.then(sendResponse).catch((error) => sendResponse({ error: error.message }));
       return true;

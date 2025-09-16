@@ -221,6 +221,8 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   // Add delegated handlers for Gmail icon, document preview, and inline PDF overlay
   console.log('[POPOUT] Setting up click event delegation on spreadsheet container');
 
+  // Use the global getCurrentGmailAccount function from content.js
+
   // Wait a bit for jspreadsheet to fully render
   setTimeout(() => {
     // Gmail popout click
@@ -234,12 +236,16 @@ export async function buildSpreadsheet(container, data, opts = {}) {
 
         console.log('[POPOUT] Retrieved data from icon:', { threadId, messageId });
 
+        // Get current Gmail account to ensure we open in the correct account
+        const accountPath = window.getCurrentGmailAccount ? window.getCurrentGmailAccount() : '/u/0';
+        console.log('[POPOUT] Current Gmail account detected:', accountPath);
+
         if (messageId && messageId !== 'undefined') {
-          const gmailMessageUrl = `https://mail.google.com/mail/u/0/#inbox/${messageId}`;
+          const gmailMessageUrl = `https://mail.google.com/mail${accountPath}/#inbox/${messageId}`;
           console.log('[POPOUT] Opening Gmail message with sidebar action:', gmailMessageUrl);
           window.location.href = `${gmailMessageUrl}?stamp_action=open_sidebar`;
         } else if (threadId && threadId !== 'undefined') {
-          const gmailThreadUrl = `https://mail.google.com/mail/u/0/#inbox/${threadId}`;
+          const gmailThreadUrl = `https://mail.google.com/mail${accountPath}/#inbox/${threadId}`;
           console.log('[POPOUT] Opening Gmail thread with sidebar action:', gmailThreadUrl);
           window.location.href = `${gmailThreadUrl}?stamp_action=open_sidebar`;
         } else {
@@ -281,14 +287,85 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           <div style="width:80vw; height:80vh; background:#fff; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.35); display:flex; flex-direction:column; overflow:hidden;">
             <div style="padding:10px; border-bottom:1px solid #e0e0e0; display:flex; align-items:center; justify-content:space-between;">
               <div style="font-weight:600; color:#202124;">Document Preview</div>
-              <button id="stamp-doc-close" style="border:none; background:#eef2f7; color:#1f2937; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600;">Close</button>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <button id="stamp-doc-zoom-out" style="border:none; background:#f3f4f6; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:14px;">−</button>
+                <span id="stamp-doc-zoom-level" style="font-size:14px; color:#374151; min-width:50px; text-align:center;">100%</span>
+                <button id="stamp-doc-zoom-in" style="border:none; background:#f3f4f6; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:14px;">+</button>
+                <button id="stamp-doc-fit-width" style="border:none; background:#e5e7eb; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:12px;">Fit Width</button>
+                <button id="stamp-doc-close" style="border:none; background:#eef2f7; color:#1f2937; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600;">Close</button>
+              </div>
             </div>
-            <iframe id="stamp-doc-frame" src="" style="flex:1; width:100%; border:0;" loading="eager"></iframe>
+            <div id="stamp-doc-container" style="flex:1; overflow:auto; position:relative;">
+              <iframe id="stamp-doc-frame" src="" style="width:100%; height:100%; border:0; transform-origin:top left;" loading="eager"></iframe>
+            </div>
           </div>`;
         document.body.appendChild(overlayEl);
+        
+        // Add zoom functionality
+        let currentZoom = 1;
+        const zoomLevel = overlayEl.querySelector('#stamp-doc-zoom-level');
+        const iframe = overlayEl.querySelector('#stamp-doc-frame');
+        const container = overlayEl.querySelector('#stamp-doc-container');
+        
+        const updateZoom = (newZoom) => {
+          currentZoom = Math.max(0.25, Math.min(3, newZoom)); // Limit zoom between 25% and 300%
+          iframe.style.transform = `scale(${currentZoom})`;
+          iframe.style.width = `${100 / currentZoom}%`;
+          iframe.style.height = `${100 / currentZoom}%`;
+          zoomLevel.textContent = `${Math.round(currentZoom * 100)}%`;
+        };
+        
+        const fitToWidth = () => {
+          // Reset zoom and let the PDF fit naturally
+          currentZoom = 1;
+          iframe.style.transform = 'scale(1)';
+          iframe.style.width = '100%';
+          iframe.style.height = '100%';
+          zoomLevel.textContent = '100%';
+        };
+        
+        // Add event listeners for zoom controls
+        overlayEl.querySelector('#stamp-doc-zoom-out').addEventListener('click', (e) => {
+          e.stopPropagation();
+          updateZoom(currentZoom - 0.25);
+        });
+        
+        overlayEl.querySelector('#stamp-doc-zoom-in').addEventListener('click', (e) => {
+          e.stopPropagation();
+          updateZoom(currentZoom + 0.25);
+        });
+        
+        overlayEl.querySelector('#stamp-doc-fit-width').addEventListener('click', (e) => {
+          e.stopPropagation();
+          fitToWidth();
+        });
+        
+        // Add keyboard shortcuts
+        const handleKeydown = (e) => {
+          if (e.key === 'Escape') {
+            overlayEl.style.display = 'none';
+          } else if (e.key === '+' || e.key === '=') {
+            e.preventDefault();
+            updateZoom(currentZoom + 0.25);
+          } else if (e.key === '-') {
+            e.preventDefault();
+            updateZoom(currentZoom - 0.25);
+          } else if (e.key === '0') {
+            e.preventDefault();
+            fitToWidth();
+          }
+        };
+        
+        overlayEl.addEventListener('keydown', handleKeydown);
+        
+        // Make the overlay focusable for keyboard events
+        overlayEl.setAttribute('tabindex', '0');
+        overlayEl.focus();
+        
         overlayEl.addEventListener('click', (evt) => {
           if (evt.target && (evt.target.id === 'stamp-doc-close' || evt.target === overlayEl)) {
             overlayEl.style.display = 'none';
+            document.removeEventListener('keydown', handleKeydown);
           }
         });
       }
@@ -518,8 +595,10 @@ function transformDataForSpreadsheet(invoices) {
         return [];
     }
   return invoices.map(invoice => {
-    // Exact schema: primary fields under document.details; status IDs are distinct
+    // Handle new document structure with different document types
     const details = invoice.document?.details || {};
+    const documentType = invoice.documentType;
+    const isReceipt = documentType === 'receipt';
 
     const statusThreadId = invoice.statusThreadId || '';
     const statusMessageId = invoice.statusMessageId || '';
@@ -572,22 +651,61 @@ function transformDataForSpreadsheet(invoices) {
       .map(([person, action]) => `${person} | ${action}`)
       .join('\n');
 
+    // Document type-specific field mappings
+    // (a) Invoice/Receipt Number
+    const invoiceNumber = isReceipt ? 
+      (invoice.receiptNumber || 'N/A') : 
+      (details.invoiceNumber || 'N/A');
+
+    // (b) Entity Name for receipts: combine units + property addresses
+    let entityName = '';
+    if (isReceipt) {
+      const units = details.units || [];
+      const propertyAddresses = details.property_addresses || [];
+      const unitsText = units.length > 0 ? units.join(', ') : '';
+      const addressText = propertyAddresses.length > 0 ? propertyAddresses.map(addr => {
+        // Handle both string and object cases
+        if (typeof addr === 'string') {
+          return addr;
+        } else if (typeof addr === 'object' && addr !== null) {
+          return addr.name || addr.address || JSON.stringify(addr);
+        }
+        return '';
+      }).filter(Boolean).join(', ') : '';
+      entityName = [unitsText, addressText].filter(Boolean).join(' + ') || '';
+    } else {
+      entityName = details.entityName || '';
+    }
+
+    // (c) Description
+    const description = isReceipt ? 
+      (invoice.notes || '') : 
+      (details.description || '');
+
+    // (d) Issue Date
+    const issueDate = isReceipt ? 
+      (details.date || '') : 
+      (details.issueDate || '');
+
+    // (e) Status - always "paid" for receipts
+    const status = isReceipt ? 'paid' : (invoice.status || 'unknown');
+
     return [
       docIcon, // New first column
-      details.invoiceNumber || 'N/A',
-      details.entityName || '',
-      details.vendor?.name || 'N/A',
-      details.description || '',
+      invoiceNumber,        // Updated for receipts
+      entityName,           // Updated for receipts
+      details.vendor?.name || invoice.vendor?.name || 'N/A',
+      description,          // Updated for receipts
       details.period || '',
-      details.amount ?? null,
-      details.currency || 'USD',
-      details.issueDate || '',
+      details.amount || invoice.amount || null,
+      details.currency || invoice.currency || 'USD',
+      issueDate,           // Updated for receipts
       details.dueDate || '',
       details.paymentTerms || '',
-      invoice.status || 'unknown',
+      status,              // Updated for receipts
       popoutIcon,
       involvementText || '',
-      details.notes || '',
+      details.notes || invoice.notes || '',
       statusThreadId ? `<button class="view-thread-btn" data-thread-id="${statusThreadId}">View Thread</button>` : ''
     ];
   });

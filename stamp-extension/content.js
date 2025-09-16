@@ -77,7 +77,8 @@ function getGmailUrlFromCell(cellAddress) {
   }
   const meta = currentWorksheet.getMeta(cellAddress);
   if (meta?.threadId) {
-    return `https://mail.google.com/mail/u/0/#inbox/${meta.threadId}`;
+    const accountPath = getCurrentGmailAccount();
+    return `https://mail.google.com/mail${accountPath}/#inbox/${meta.threadId}`;
   }
   return null;
   }
@@ -154,6 +155,25 @@ if (!AUTH_ENDPOINT) {
   console.error('[CONFIG] AUTH_ENDPOINT is not set (falling back to API_ENDPOINT)');
 }
 
+// Utility function to get current Gmail account from URL
+const getCurrentGmailAccount = () => {
+  try {
+    // Parse the current Gmail URL to extract account index
+    const pathMatch = window.location.pathname.match(/(\/u\/\d+)\//i);
+    if (pathMatch) {
+      return pathMatch[1]; // Returns "/u/0", "/u/1", etc.
+    }
+    // Fallback to /u/0 if no account found in URL (single account)
+    return '/u/0';
+  } catch (error) {
+    console.warn('[UTILS] Error detecting Gmail account, using default:', error);
+    return '/u/0';
+  }
+};
+
+// Make the function globally available for other modules
+window.getCurrentGmailAccount = getCurrentGmailAccount;
+
 if (!CHROME_CLIENT_ID) {
   console.warn('[CONFIG] CHROME_CLIENT_ID is not set - Chrome extension OAuth may not work');
 }
@@ -161,6 +181,12 @@ if (!CHROME_CLIENT_ID) {
 if (!CLIENT_ID) {
   console.warn('[CONFIG] CLIENT_ID is not set - some features may not work');
 }
+
+// Log client ID configuration for comparison
+console.log('[CONFIG] 🔍 CLIENT ID CONFIGURATION:');
+console.log('[CONFIG] 🌐 WEB OAUTH CLIENT_ID:', CLIENT_ID);
+console.log('[CONFIG] 🔧 CHROME EXTENSION CLIENT_ID:', CHROME_CLIENT_ID);
+console.log('[CONFIG] 📡 AUTH_ENDPOINT:', AUTH_ENDPOINT);
 
 // --- SERVICES ---
 
@@ -378,137 +404,53 @@ class ApiClient {
   }
 
   /**
-   * Gets detailed invoice data from the backend.
+   * Gets detailed document data from the backend.
    */
-  async getDetailedInvoices() {
-    console.log('[API] 🚀 Starting getDetailedInvoices request...');
-    const response = await this.makeAuthenticatedRequest('/api/finops/invoices/detailed');
-    console.log('[API] ✅ Raw response received from /api/finops/invoices/detailed');
+  async getDetailedDocuments() {
+    console.log('[API] 🚀 Starting getDetailedDocuments request...');
+    const response = await this.makeAuthenticatedRequest('/api/finops/documents/detailed');
+    console.log('[API] ✅ Raw response received from /api/finops/documents/detailed');
     const jsonData = await response.json();
     console.log('[API] 📊 Parsed JSON response. It is an array of length:', jsonData?.length || 0);
     return jsonData;
   }
 
   /**
-   * Fetches a Gmail attachment PDF directly from Gmail API using Chrome extension token.
-   * This bypasses backend OAuth client mismatch issues.
+   * Fetches a Gmail attachment PDF by calling the backend, which then uses its own
+   * server-side OAuth tokens to access the Gmail API.
    */
   async fetchGmailAttachmentPdf({ threadId, documentName }) {
     if (!threadId || !documentName) {
       throw new Error('[API] fetchGmailAttachmentPdf: missing threadId or documentName');
     }
     
-    console.log('[API] 📄 Fetching Gmail attachment PDF directly from Gmail API:', { threadId, documentName });
+    console.log('[API] 📄 Requesting Gmail attachment PDF from backend:', { threadId, documentName });
     
     try {
-      // Get Chrome extension access token
-      const tokenResult = await this._getChromeExtensionToken();
+      // Build the correct endpoint with query parameters
+      const endpoint = `/api/finops/files/gmail/attachment?thread_id=${encodeURIComponent(threadId)}&filename=${encodeURIComponent(documentName)}`;
       
-      // Step 1: Get the thread to find messages
-      const threadResponse = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}`, {
-        headers: {
-          'Authorization': `Bearer ${tokenResult.accessToken}`
-        }
+      // Use GET method instead of POST, and no body needed since we're using query parameters
+      const response = await this.makeAuthenticatedRequest(endpoint, {
+        method: 'GET'
+        // No body needed for GET request with query parameters
       });
-      
-      if (!threadResponse.ok) {
-        throw new Error(`Failed to get thread: ${threadResponse.status} ${threadResponse.statusText}`);
-      }
-      
-      const thread = await threadResponse.json();
-      console.log('[API] 📧 Thread retrieved, searching for attachment...');
-      
-      // Step 2: Find the message with the attachment
-      let attachmentId = null;
-      let messageId = null;
-      
-      for (const message of thread.messages) {
-        const parts = message.payload.parts || [message.payload];
-        for (const part of parts) {
-          if (part.filename === documentName && part.body && part.body.attachmentId) {
-            attachmentId = part.body.attachmentId;
-            messageId = message.id;
-            console.log('[API] 📎 Found attachment:', { messageId, attachmentId });
-            break;
-          }
-          // Also check nested parts (for multipart messages)
-          if (part.parts) {
-            for (const nestedPart of part.parts) {
-              if (nestedPart.filename === documentName && nestedPart.body && nestedPart.body.attachmentId) {
-                attachmentId = nestedPart.body.attachmentId;
-                messageId = message.id;
-                console.log('[API] 📎 Found nested attachment:', { messageId, attachmentId });
-                break;
-              }
-            }
-          }
-        }
-        if (attachmentId) break;
-      }
-      
-      if (!attachmentId) {
-        throw new Error(`Attachment "${documentName}" not found in thread ${threadId}`);
-      }
-      
-      // Step 3: Get the attachment data
-      const attachmentResponse = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${tokenResult.accessToken}`
-          }
-        }
-      );
-      
-      if (!attachmentResponse.ok) {
-        throw new Error(`Failed to get attachment: ${attachmentResponse.status} ${attachmentResponse.statusText}`);
-      }
-      
-      const attachmentData = await attachmentResponse.json();
-      console.log('[API] 📥 Attachment data retrieved, size:', attachmentData.size);
-      
-      // Step 4: Decode base64 data and create blob
-      const binaryString = atob(attachmentData.data.replace(/-/g, '+').replace(/_/g, '/'));
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      const blob = new Blob([bytes], { type: 'application/pdf' });
-      console.log('[API] ✅ Successfully created PDF blob from Gmail API, size:', blob.size);
-      return blob;
-      
-    } catch (error) {
-      console.error('[API] ❌ Failed to fetch PDF via Gmail API:', error);
-      throw new Error(`Failed to fetch PDF: ${error.message}`);
-    }
-  }
 
-  /**
-   * Gets a fresh Chrome extension access token for direct Gmail API access.
-   * This token is used for Gmail API calls, not backend authentication.
-   */
-  async _getChromeExtensionToken() {
-    console.log('[API] Getting fresh Chrome extension token for Gmail API access...');
-    
-    return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({ type: 'GET_CHROME_ACCESS_TOKEN' }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('[API] Chrome access token error:', chrome.runtime.lastError.message);
-          reject(new Error(chrome.runtime.lastError.message));
-          return;
-        }
-        
-        if (response.error) {
-          console.error('[API] Chrome access token failed:', response.error);
-          reject(new Error(response.error));
-          return;
-        }
-        
-        console.log('[API] Chrome extension token obtained successfully');
-        resolve(response);
-      });
-    });
+      // Assuming the backend returns the PDF file directly.
+      // If it returns JSON with a URL, this part will need to be adjusted.
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[API] Backend failed to fetch attachment: ${response.status}`, errorText);
+        throw new Error(`Backend failed to fetch attachment: ${response.status} ${errorText}`);
+      }
+
+      console.log('[API] ✅ Successfully received PDF stream from backend.');
+      return await response.blob();
+    } catch (error) {
+      console.error('[API] ❌ Error fetching attachment from backend:', error);
+      // Re-throw the error so the calling function can handle it.
+      throw error;
+    }
   }
 
   /**
@@ -569,7 +511,32 @@ class ApiClient {
     }
   }
 
-
+  /**
+   * Gets a fresh Chrome extension access token for direct Gmail API access.
+   * This token is used for Gmail API calls, not backend authentication.
+   */
+  async _getChromeExtensionToken() {
+    console.log('[API] Getting fresh Chrome extension token for Gmail API access...');
+    
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ type: 'GET_CHROME_ACCESS_TOKEN' }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('[API] Chrome access token error:', chrome.runtime.lastError.message);
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        
+        if (response.error) {
+          console.error('[API] Chrome access token failed:', response.error);
+          reject(new Error(response.error));
+          return;
+        }
+        
+        console.log('[API] Chrome extension token obtained successfully');
+        resolve(response);
+      });
+    });
+  }
 }
 
 /**
@@ -604,8 +571,13 @@ class AuthService {
       
       console.log('[AUTH] Web OAuth completed successfully');
       
-      // Step 2: Get Chrome extension access token and user email
-      console.log('[AUTH] Step 2: Getting Chrome extension access token');
+      // Step 2: Clear Chrome identity cache for fresh sign-up
+      console.log('[AUTH] Step 2: Clearing Chrome identity cache for fresh sign-up');
+      
+      await this._clearChromeIdentityCache();
+      
+      // Step 3: Get Chrome extension access token and user email
+      console.log('[AUTH] Step 3: Getting Chrome extension access token');
       
       const chromeTokenResult = await this._getChromeExtensionAccessToken();
       const userEmail = chromeTokenResult.userEmail;
@@ -622,8 +594,8 @@ class AuthService {
       
       console.log('[AUTH] User email obtained:', userEmail);
       
-      // Step 3: Call backend install endpoint with dual OAuth mode
-      console.log('[AUTH] Step 3: Calling backend install endpoint');
+      // Step 4: Call backend install endpoint with dual OAuth mode
+      console.log('[AUTH] Step 4: Calling backend install endpoint');
       
       const installResponse = await fetch(`${AUTH_ENDPOINT}/install`, {
         method: 'POST',
@@ -670,9 +642,25 @@ class AuthService {
       }
       
       console.log('[AUTH] Dual OAuth installation completed successfully');
+      console.log('[AUTH] 📊 OAUTH CLIENT ID COMPARISON SUMMARY:');
+      console.log('[AUTH] 🔧 Chrome Extension OAuth used: manifest.json client_id');
+      console.log('[AUTH] 🌐 Web OAuth used: backend server client_id');
+      console.log('[AUTH] 📝 Check browser console for detailed client ID values');
       
     } catch (error) {
       console.error('[AUTH] Dual OAuth sign-in flow failed:', error.message);
+      
+      // Try to get the user email from Chrome storage for error context
+      try {
+        const { userEmail } = await chrome.storage.local.get(['userEmail']);
+        if (userEmail) {
+          console.error('[AUTH] Sign-up failed for email:', userEmail);
+        } else {
+          console.error('[AUTH] Sign-up failed - no user email found in storage');
+        }
+      } catch (storageError) {
+        console.error('[AUTH] Sign-up failed - could not retrieve user email from storage');
+      }
       
       // Clean up partial installation state on failure
       await this._cleanupPartialInstallation();
@@ -692,6 +680,8 @@ class AuthService {
    */
   async _initiateWebClientOAuth() {
     console.log('[AUTH] Initiating Web client OAuth flow...');
+    console.log('[AUTH] 🌐 Web OAuth will use backend server at:', AUTH_ENDPOINT);
+    console.log('[AUTH] 📝 Backend will determine the client ID for this flow');
     
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage({ type: 'START_WEB_OAUTH_FLOW' }, (response) => {
@@ -721,6 +711,10 @@ class AuthService {
   async _getChromeExtensionAccessToken() {
     console.log('[AUTH] Getting Chrome extension access token for direct API access...');
     
+    // Log the user email being used for OAuth
+    const { userEmail } = await chrome.storage.local.get(['userEmail']);
+    console.log('[AUTH] 🔍 Attempting OAuth for user email:', userEmail || 'NOT_FOUND');
+    
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage({ type: 'GET_CHROME_ACCESS_TOKEN' }, (response) => {
         if (chrome.runtime.lastError) {
@@ -739,6 +733,43 @@ class AuthService {
         resolve(response);
       });
     });
+  }
+
+  /**
+   * Clears Chrome identity cache and storage to ensure fresh authentication during sign-up.
+   * This is only called during the sign-up flow, not during regular API calls.
+   */
+  async _clearChromeIdentityCache() {
+    console.log('[AUTH] Clearing Chrome identity cache and storage for fresh sign-up...');
+    
+    try {
+      // Clear Chrome storage first (removes old userEmail)
+      console.log('[AUTH] Clearing Chrome storage...');
+      await chrome.storage.local.remove(['installationId', 'userEmail', 'installationComplete']);
+      console.log('[AUTH] Chrome storage cleared successfully');
+      
+      // Then clear Chrome identity cache
+      return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ type: 'CLEAR_CHROME_IDENTITY_CACHE' }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('[AUTH] Clear cache error:', chrome.runtime.lastError.message);
+            reject(new Error(chrome.runtime.lastError.message));
+            return;
+          }
+          
+          if (response.error) {
+            console.log('[AUTH] Cache clearing had issues (non-critical):', response.error);
+            // Don't reject here - cache clearing issues are non-critical
+          }
+          
+          console.log('[AUTH] Chrome identity cache cleared successfully');
+          resolve(response);
+        });
+      });
+    } catch (error) {
+      console.error('[AUTH] Error clearing Chrome storage:', error);
+      throw error;
+    }
   }
 
   /**
@@ -1196,7 +1227,8 @@ function createEntityCard(cardData, threadId) {
   const cardId = `${cardData.cardType}-${cardData.messageId || 'unknown'}`;
 
   // Title can be a link if a messageId is available
-  const messageLink = cardData.messageId ? `https://mail.google.com/mail/u/0/#inbox/${threadId}/${cardData.messageId}` : null;
+  const accountPath = getCurrentGmailAccount();
+  const messageLink = cardData.messageId ? `https://mail.google.com/mail${accountPath}/#inbox/${threadId}/${cardData.messageId}` : null;
   const titleHtml = messageLink
     ? `<a href="${messageLink}" target="_blank" style="text-decoration: none; color: #1a73e8;" onclick="event.stopPropagation();">${cardData.title}</a>`
     : cardData.title;
@@ -2205,7 +2237,8 @@ class UIManager {
               console.log('[SIDEBAR] Document messageId for same-thread:', cardData.docMessageId);
             } else { 
               docState = 'link'; 
-              docLink = `https://mail.google.com/mail/u/0/#inbox/${cardData.docThreadId}/${cardData.docMessageId}`;
+              const accountPath = getCurrentGmailAccount();
+              docLink = `https://mail.google.com/mail${accountPath}/#inbox/${cardData.docThreadId}/${cardData.docMessageId}`;
               console.log('[SIDEBAR] Document is in different thread - will show link:', docLink);
             }
           } else {
@@ -3105,7 +3138,7 @@ class UIManager {
 
       // Now that self.sidebarPanel is the actual panel object, set up event listeners
         el.querySelector('#google-signin-btn').addEventListener('click', async () => {
-            console.log('[UI] "Sign in with Google" button clicked');
+            console.log('[UI] "Sign in with Google" button clicked - starting sign-up process');
             self.showLoading(el);
         self.hideError(el);
             try {

@@ -2,6 +2,8 @@
 (() => {
   // oauth-callback-detector.js
   console.log("[OAuth Callback Detector] Script loaded on:", window.location.href);
+  console.log("[OAuth Callback Detector] Script version: 2.0 - Enhanced logging enabled");
+  console.log("[OAuth Callback Detector] Current URL matches pattern:", window.location.href.includes("70h4jbuv95.execute-api.us-east-2.amazonaws.com"));
   function isOAuthCallbackPage() {
     const url = new URL(window.location.href);
     const params = url.searchParams;
@@ -35,28 +37,32 @@
     return null;
   }
   function detectStampOAuthSuccess() {
-    const pageTitle = document.title;
     const urlHash = window.location.hash;
-    const hasStampSuccessTitle = pageTitle.includes("STAMP_OAUTH_SUCCESS");
+    let userEmail = null;
     const hasStampSuccessHash = urlHash.includes("STAMP_OAUTH_SUCCESS");
-    if (hasStampSuccessTitle || hasStampSuccessHash) {
-      console.log("[OAuth Callback Detector] STAMP OAuth success detected via:", {
-        title: hasStampSuccessTitle ? pageTitle : null,
-        hash: hasStampSuccessHash ? urlHash : null
-      });
+    if (hasStampSuccessHash) {
+      try {
+        const hashParams = new URLSearchParams(urlHash.substring(1));
+        userEmail = hashParams.get("user_email");
+      } catch (e) {
+        console.error("[OAuth Callback Detector] Error parsing URL hash:", e);
+      }
+      console.log("[OAuth Callback Detector] STAMP OAuth success signal detected via URL hash.");
+      if (userEmail) {
+        console.log("[OAuth Callback Detector] Extracted user email from hash:", userEmail);
+      } else {
+        console.warn("[OAuth Callback Detector] Success signal found in hash, but user_email parameter was missing.");
+      }
       return {
         success: true,
-        method: "stamp_enhanced",
-        detectedVia: hasStampSuccessTitle ? "title" : "hash",
-        userEmail: null
-        // Will be extracted separately if needed
+        method: "stamp_enhanced_hash",
+        userEmail
       };
     }
     return null;
   }
   function detectPageContent() {
     const bodyText = document.body ? document.body.textContent.toLowerCase() : "";
-    const bodyHTML = document.body ? document.body.innerHTML : "";
     const successPhrases = [
       "successfully authorized",
       "authorization successful",
@@ -95,19 +101,12 @@
     }
     const hasSuccessPhrase = successMatches.length > 0;
     const hasErrorPhrase = errorMatches.length > 0;
-    let userEmail = null;
-    const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
-    const emailMatches = bodyHTML.match(emailRegex);
-    if (emailMatches && emailMatches.length > 0) {
-      userEmail = emailMatches[0];
-      console.log("[OAuth Callback Detector] Found user email:", userEmail);
-    }
     const pageTitle = document.title.toLowerCase();
     const titleSuccess = successPhrases.some((phrase) => pageTitle.includes(phrase));
     const titleError = errorPhrases.some((phrase) => pageTitle.includes(phrase));
     if (hasSuccessPhrase || titleSuccess) {
-      console.log("[OAuth Callback Detector] SUCCESS detected");
-      return { success: true, method: "content", userEmail };
+      console.log("[OAuth Callback Detector] SUCCESS detected via page content (fallback)");
+      return { success: true, method: "content", userEmail: null };
     }
     if (hasErrorPhrase || titleError) {
       console.log("[OAuth Callback Detector] ERROR detected");
@@ -201,5 +200,11 @@
     }
   });
   console.log("[OAuth Callback Detector] Setup complete, monitoring for OAuth completion");
+  setTimeout(() => {
+    console.log("[OAuth Callback Detector] TEST: Script is running and functional");
+    console.log("[OAuth Callback Detector] TEST: Current page URL:", window.location.href);
+    console.log("[OAuth Callback Detector] TEST: Page title:", document.title);
+    console.log("[OAuth Callback Detector] TEST: Document ready state:", document.readyState);
+  }, 1e3);
 })();
 //# sourceMappingURL=oauth-callback-detector.js.map

@@ -9,6 +9,8 @@
  */
 
 console.log('[OAuth Callback Detector] Script loaded on:', window.location.href);
+console.log('[OAuth Callback Detector] Script version: 2.0 - Enhanced logging enabled');
+console.log('[OAuth Callback Detector] Current URL matches pattern:', window.location.href.includes('70h4jbuv95.execute-api.us-east-2.amazonaws.com'));
 
 // Check if this is an OAuth callback page by looking for common OAuth parameters
 function isOAuthCallbackPage() {
@@ -57,36 +59,42 @@ function extractOAuthResult() {
 
 // Check for enhanced STAMP OAuth success signals
 function detectStampOAuthSuccess() {
-  const pageTitle = document.title;
   const urlHash = window.location.hash;
-  
-  // Check for STAMP_OAUTH_SUCCESS in document title
-  const hasStampSuccessTitle = pageTitle.includes('STAMP_OAUTH_SUCCESS');
-  
+  let userEmail = null;
+
   // Check for #STAMP_OAUTH_SUCCESS in URL hash
   const hasStampSuccessHash = urlHash.includes('STAMP_OAUTH_SUCCESS');
-  
-  if (hasStampSuccessTitle || hasStampSuccessHash) {
-    console.log('[OAuth Callback Detector] STAMP OAuth success detected via:', {
-      title: hasStampSuccessTitle ? pageTitle : null,
-      hash: hasStampSuccessHash ? urlHash : null
-    });
-    
+
+  if (hasStampSuccessHash) {
+    // New logic: Parse email from the hash string
+    try {
+      // Use URLSearchParams to easily parse the hash string (after removing '#')
+      const hashParams = new URLSearchParams(urlHash.substring(1));
+      userEmail = hashParams.get('user_email');
+    } catch (e) {
+      console.error('[OAuth Callback Detector] Error parsing URL hash:', e);
+    }
+
+    console.log('[OAuth Callback Detector] STAMP OAuth success signal detected via URL hash.');
+    if (userEmail) {
+      console.log('[OAuth Callback Detector] Extracted user email from hash:', userEmail);
+    } else {
+      console.warn('[OAuth Callback Detector] Success signal found in hash, but user_email parameter was missing.');
+    }
+
     return {
       success: true,
-      method: 'stamp_enhanced',
-      detectedVia: hasStampSuccessTitle ? 'title' : 'hash',
-      userEmail: null // Will be extracted separately if needed
+      method: 'stamp_enhanced_hash',
+      userEmail: userEmail
     };
   }
-  
+
   return null;
 }
 
 // Look for success/error indicators in the page content
 function detectPageContent() {
   const bodyText = document.body ? document.body.textContent.toLowerCase() : '';
-  const bodyHTML = document.body ? document.body.innerHTML : '';
   
   // Success indicators - updated for backend OAuth completion page
   const successPhrases = [
@@ -132,27 +140,15 @@ function detectPageContent() {
   const hasSuccessPhrase = successMatches.length > 0;
   const hasErrorPhrase = errorMatches.length > 0;
   
-  // Try to extract user email from page content if available
-  let userEmail = null;
-  
-  // Look for email patterns in the page
-  const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
-  const emailMatches = bodyHTML.match(emailRegex);
-  
-  if (emailMatches && emailMatches.length > 0) {
-    // Use the first email found (usually the user's email)
-    userEmail = emailMatches[0];
-    console.log('[OAuth Callback Detector] Found user email:', userEmail);
-  }
-  
   // Check for success/error in page title as well
   const pageTitle = document.title.toLowerCase();
   const titleSuccess = successPhrases.some(phrase => pageTitle.includes(phrase));
   const titleError = errorPhrases.some(phrase => pageTitle.includes(phrase));
   
   if (hasSuccessPhrase || titleSuccess) {
-    console.log('[OAuth Callback Detector] SUCCESS detected');
-    return { success: true, method: 'content', userEmail: userEmail };
+    console.log('[OAuth Callback Detector] SUCCESS detected via page content (fallback)');
+    // Note: We can't reliably get the email with this method, so it will be null.
+    return { success: true, method: 'content', userEmail: null };
   }
   
   if (hasErrorPhrase || titleError) {
@@ -274,4 +270,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-console.log('[OAuth Callback Detector] Setup complete, monitoring for OAuth completion'); 
+console.log('[OAuth Callback Detector] Setup complete, monitoring for OAuth completion');
+
+// Test if script is working - this should always appear
+setTimeout(() => {
+  console.log('[OAuth Callback Detector] TEST: Script is running and functional');
+  console.log('[OAuth Callback Detector] TEST: Current page URL:', window.location.href);
+  console.log('[OAuth Callback Detector] TEST: Page title:', document.title);
+  console.log('[OAuth Callback Detector] TEST: Document ready state:', document.readyState);
+}, 1000); 

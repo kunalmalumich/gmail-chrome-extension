@@ -131,9 +131,9 @@ export class ThreadDataManager {
         }
         
         try {
-          console.log('[ThreadDataManager] 📡 Fetching detailed invoices from the backend...');
-          const invoices = await this.apiClient.getDetailedInvoices();
-          console.log('[ThreadDataManager] ✅ Received detailed invoices response:', invoices);
+          console.log('[ThreadDataManager] 📡 Fetching detailed documents from the backend...');
+          const invoices = await this.apiClient.getDetailedDocuments();
+          console.log('[ThreadDataManager] ✅ Received detailed documents response:', invoices);
           console.log('[ThreadDataManager] 📊 Response type:', typeof invoices);
           console.log('[ThreadDataManager] 📋 Invoices array length:', invoices?.length || 0);
           
@@ -146,7 +146,7 @@ export class ThreadDataManager {
           
           return invoices || [];
         } catch (error) {
-          console.error('[ThreadDataManager] ❌ Failed to fetch detailed invoices:', error);
+          console.error('[ThreadDataManager] ❌ Failed to fetch detailed documents:', error);
           console.error('[ThreadDataManager] ❌ Error details:', {
             message: error.message,
             stack: error.stack
