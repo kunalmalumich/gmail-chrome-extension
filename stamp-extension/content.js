@@ -3505,7 +3505,7 @@ class UIManager {
 
 // --- MAIN EXECUTION ---
 
-InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
+InboxSDK.load(2, 'sdk_stamp-extension_0b8df882e1').then((sdk) => {
   console.log("Stamp Extension: InboxSDK loaded successfully.");
   
   // Initialize your core extension components

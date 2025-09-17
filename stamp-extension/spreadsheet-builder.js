@@ -160,6 +160,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   console.log('[JS001] Creating jspreadsheet, data rows:', spreadsheetData.length);
   const spreadsheet = jspreadsheet(cleanContainer, {
     root: shadowRoot,  // Critical parameter for Shadow DOM event handling
+    toolbar: true,     // Enable the toolbar with tools
     worksheets: [{
       data: spreadsheetData,
       columns: columns,
