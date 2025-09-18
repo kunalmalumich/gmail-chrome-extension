@@ -35,3 +35,32 @@ yarn-error.log
 
 # jspreadsheet-docs (cloned for reference only)
 jspreadsheet-docs/
+
+# Stamp extension specific exclusions
+stamp-extension/node_modules/
+stamp-extension/dist/
+stamp-extension/dist2/
+stamp-extension/.env
+stamp-extension/*.log
+stamp-extension/temp_*
+stamp-extension/*.pem
+stamp-extension/google-logo.png
+
+# Build artifacts
+*.js.map
+*.css.map
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
