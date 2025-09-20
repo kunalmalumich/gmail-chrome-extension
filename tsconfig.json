@@ -7,9 +7,10 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "target": "ES2022",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "isolatedModules": true,
-    "moduleDetection": "force"
+    "moduleDetection": "force",
+    "ignoreDeprecations": "6.0"
   },
   "exclude": ["packages/core"]
 }

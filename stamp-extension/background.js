@@ -374,7 +374,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         console.log('[Background] Handling INJECT_FLOATING_CHAT_SCRIPTS');
         const [tab] = await chrome.tabs.query({active: true, lastFocusedWindow: true});
-        if (tab) {
+        if (tab && tab.url && tab.url.includes('mail.google.com')) {
           await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             files: [
@@ -385,7 +385,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           console.log('[Background] Successfully injected floating chat scripts.');
           sendResponse({ success: true });
         } else {
-          throw new Error('No active tab found to inject scripts into.');
+          console.log('[Background] No Gmail tab found or tab not accessible');
+          sendResponse({ success: false, error: 'No Gmail tab found or tab not accessible' });
+          return;
         }
       } catch (error) {
         console.error('[Background] Failed to inject floating chat scripts:', error);

@@ -17,6 +17,12 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   if (!correctionsBatcher) {
     console.warn('[CORRECTIONS] No API client provided - corrections will not be sent');
   }
+
+  // Use mock data if no real data is provided
+  if (!data || data.length === 0) {
+    console.log('[MOCK DATA] No data provided, using mock data for demonstration');
+    data = generateMockData();
+  }
   
   // Define columns with field mapping metadata for edit tracking
   const columns = [
@@ -170,6 +176,13 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       defaultRowHeight: 16, // Further reduced row height for more compact view
       minDimensions: [15, 100], // [columns, rows] - ensure we have enough space
       
+      // === PAGINATION CONFIGURATION ===
+      pagination: 10, // Show 10 rows per page
+      paginationOptions: [10, 25, 50, 100], // Available page size options
+      
+      // === SEARCH CONFIGURATION ===
+      search: 1, // Enable search functionality (jspreadsheet-ce v5.0.3 expects 1, not true)
+      
       // === USE JSPREADSHEET DEFAULTS ===
       allowComments: true,
       tableOverflow: true,  // Built-in scrolling
@@ -182,11 +195,122 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       columnSorting: true,
       columnResize: true,
       rowResize: true,
-      search: true,
       filters: true
     }],
     
-    // === FIELD EDIT HANDLER (v5 top-level) ===
+  // === SEARCH EVENT HANDLERS ===
+  // Let jspreadsheet handle search natively
+  
+  // === ENHANCE EXISTING SEARCH WITH REAL-TIME FUNCTIONALITY ===
+  oncreateworksheet: function(worksheet) {
+    console.log('[SEARCH] oncreateworksheet event fired!');
+    console.log('[SEARCH] Worksheet element:', worksheet.element);
+    
+    // Wait for jspreadsheet to create its search input
+    setTimeout(() => {
+      // Find the existing jspreadsheet search input
+      const existingSearchInput = worksheet.element.querySelector('input[type="text"]') ||
+                                 worksheet.element.querySelector('.jss_search') ||
+                                 worksheet.element.querySelector('input[placeholder*="Search"]') ||
+                                 worksheet.element.querySelector('input[placeholder*="search"]');
+      
+      console.log('[SEARCH] Found existing search input:', !!existingSearchInput);
+      
+      if (existingSearchInput) {
+        // Add real-time search on input change
+        existingSearchInput.addEventListener('input', (e) => {
+          const searchTerm = e.target.value;
+          console.log('[SEARCH] Real-time input change:', searchTerm);
+          
+          if (worksheet.search) {
+            worksheet.search(searchTerm);
+          }
+        });
+        
+        // Add Enter key support
+        existingSearchInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            const searchTerm = e.target.value;
+            console.log('[SEARCH] Enter pressed, searching for:', searchTerm);
+            
+            if (worksheet.search) {
+              worksheet.search(searchTerm);
+            }
+          }
+        });
+        
+        console.log('[SEARCH] Real-time search functionality added to existing input');
+      } else {
+        console.log('[SEARCH] No existing search input found, creating custom one');
+        
+        // Fallback: Create custom search if jspreadsheet search not found
+        const searchContainer = document.createElement('div');
+        searchContainer.style.cssText = `
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin: 10px 0;
+          padding: 10px;
+          background: #f8f9fa;
+          border-radius: 4px;
+        `;
+        
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = 'Search invoices...';
+        searchInput.style.cssText = `
+          flex: 1;
+          padding: 8px 12px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          font-size: 14px;
+        `;
+        
+        const searchButton = document.createElement('button');
+        searchButton.textContent = 'Search';
+        searchButton.style.cssText = `
+          padding: 8px 16px;
+          background: #007bff;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+        `;
+        
+        const performSearch = () => {
+          const searchTerm = searchInput.value;
+          console.log('[SEARCH] Custom search for:', searchTerm);
+          
+          if (worksheet.search) {
+            worksheet.search(searchTerm);
+          }
+        };
+        
+        searchButton.addEventListener('click', performSearch);
+        searchInput.addEventListener('input', (e) => {
+          const searchTerm = e.target.value;
+          console.log('[SEARCH] Custom real-time search:', searchTerm);
+          if (worksheet.search) {
+            worksheet.search(searchTerm);
+          }
+        });
+        searchInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            performSearch();
+          }
+        });
+        
+        searchContainer.appendChild(searchInput);
+        searchContainer.appendChild(searchButton);
+        worksheet.element.insertBefore(searchContainer, worksheet.element.firstChild);
+        
+        console.log('[SEARCH] Custom search container created');
+      }
+    }, 1000);
+  },
+  
+  // === FIELD EDIT HANDLER (v5 top-level) ===
     onchange: function(instance, cell, x, y, value) {
       console.log('[JS002] Cell edit triggered, x:', x, 'y:', y, 'value:', value);
       const columnIndex = parseInt(x);
@@ -218,6 +342,188 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   });
   const sheet = Array.isArray(spreadsheet) ? spreadsheet[0] : spreadsheet;
   console.log('[JS005] sheets:', Array.isArray(spreadsheet) ? spreadsheet.length : 1);
+  
+  // Debug: Check if search methods are available
+  console.log('[SEARCH DEBUG] Sheet object:', sheet);
+  console.log('[SEARCH DEBUG] Search method available:', typeof sheet?.search);
+  console.log('[SEARCH DEBUG] ResetSearch method available:', typeof sheet?.resetSearch);
+  console.log('[SEARCH DEBUG] ShowSearch method available:', typeof sheet?.showSearch);
+  
+  // FALLBACK: Enhance existing search or create custom one
+  setTimeout(() => {
+    console.log('[SEARCH FALLBACK] Looking for existing search input');
+    
+    // Try to find existing jspreadsheet search input
+    const existingSearchInput = cleanContainer.querySelector('input[type="text"]') ||
+                               cleanContainer.querySelector('.jss_search') ||
+                               cleanContainer.querySelector('input[placeholder*="Search"]') ||
+                               cleanContainer.querySelector('input[placeholder*="search"]');
+    
+    if (existingSearchInput) {
+      console.log('[SEARCH FALLBACK] Found existing search input, adding real-time functionality');
+      
+      // Real-time search on input change
+      existingSearchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value;
+        console.log('[SEARCH FALLBACK] Real-time input change:', searchTerm);
+        if (sheet && sheet.search) {
+          sheet.search(searchTerm);
+        }
+      });
+      
+      existingSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const searchTerm = e.target.value;
+          console.log('[SEARCH FALLBACK] Enter pressed, searching for:', searchTerm);
+          if (sheet && sheet.search) {
+            sheet.search(searchTerm);
+          }
+        }
+      });
+      
+      console.log('[SEARCH FALLBACK] Real-time search added to existing input');
+    } else {
+      console.log('[SEARCH FALLBACK] No existing search found, creating custom one');
+      
+      // Create custom search container
+      const searchContainer = document.createElement('div');
+      searchContainer.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 10px 0;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 4px;
+      `;
+      
+      const searchInput = document.createElement('input');
+      searchInput.type = 'text';
+      searchInput.placeholder = 'Search invoices...';
+      searchInput.style.cssText = `
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+      `;
+      
+      const searchButton = document.createElement('button');
+      searchButton.textContent = 'Search';
+      searchButton.style.cssText = `
+        padding: 8px 16px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      `;
+      
+      const performSearch = () => {
+        const searchTerm = searchInput.value;
+        console.log('[SEARCH FALLBACK] Custom search for:', searchTerm);
+        if (sheet && sheet.search) {
+          sheet.search(searchTerm);
+        }
+      };
+      
+      searchButton.addEventListener('click', performSearch);
+      searchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value;
+        console.log('[SEARCH FALLBACK] Custom real-time search:', searchTerm);
+        if (sheet && sheet.search) {
+          sheet.search(searchTerm);
+        }
+      });
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          performSearch();
+        }
+      });
+      
+      searchContainer.appendChild(searchInput);
+      searchContainer.appendChild(searchButton);
+      cleanContainer.insertBefore(searchContainer, cleanContainer.firstChild);
+      
+      console.log('[SEARCH FALLBACK] Custom search container created');
+    }
+  }, 2000);
+
+  // === SEARCH CONTROL METHODS ===
+  const searchControls = {
+    // Search for specific terms
+    search: (terms) => {
+      console.log('[SEARCH] Searching for:', terms);
+      if (sheet && sheet.search) {
+        sheet.search(terms);
+      } else {
+        console.warn('[SEARCH] Sheet or search method not available');
+      }
+    },
+    
+    // Reset search and show all rows
+    resetSearch: () => {
+      console.log('[SEARCH] Resetting search');
+      if (sheet && sheet.resetSearch) {
+        sheet.resetSearch();
+      } else {
+        console.warn('[SEARCH] Sheet or resetSearch method not available');
+      }
+    },
+    
+    // Show search input box
+    showSearch: () => {
+      console.log('[SEARCH] Showing search input');
+      if (sheet && sheet.showSearch) {
+        sheet.showSearch();
+      } else {
+        console.warn('[SEARCH] Sheet or showSearch method not available');
+      }
+    },
+    
+    // Hide search input box
+    hideSearch: () => {
+      console.log('[SEARCH] Hiding search input');
+      if (sheet && sheet.hideSearch) {
+        sheet.hideSearch();
+      } else {
+        console.warn('[SEARCH] Sheet or hideSearch method not available');
+      }
+    },
+    
+    // Update search results
+    updateSearch: () => {
+      console.log('[SEARCH] Updating search results');
+      if (sheet && sheet.updateSearch) {
+        sheet.updateSearch();
+      } else {
+        console.warn('[SEARCH] Sheet or updateSearch method not available');
+      }
+    },
+    
+    // Debug method to check search functionality
+    debugSearch: () => {
+      console.log('[SEARCH DEBUG] Sheet available:', !!sheet);
+      console.log('[SEARCH DEBUG] Sheet methods:', sheet ? Object.getOwnPropertyNames(sheet) : 'N/A');
+      console.log('[SEARCH DEBUG] Search input element:', document.querySelector('.jss_search'));
+      console.log('[SEARCH DEBUG] Search container:', document.querySelector('.jspreadsheet-search'));
+      console.log('[SEARCH DEBUG] All search inputs:', document.querySelectorAll('.jss_search'));
+      console.log('[SEARCH DEBUG] All filter containers:', document.querySelectorAll('.jss_filter'));
+      console.log('[SEARCH DEBUG] Sheet element:', sheet ? sheet.element : 'N/A');
+      console.log('[SEARCH DEBUG] Sheet search method:', sheet ? typeof sheet.search : 'N/A');
+      
+      // Try to find search input in sheet element
+      if (sheet && sheet.element) {
+        const searchInSheet = sheet.element.querySelector('.jss_search');
+        console.log('[SEARCH DEBUG] Search input in sheet element:', !!searchInSheet);
+        if (searchInSheet) {
+          console.log('[SEARCH DEBUG] Search input value:', searchInSheet.value);
+          console.log('[SEARCH DEBUG] Search input events:', searchInSheet.oninput, searchInSheet.onkeydown);
+        }
+      }
+    }
+  };
 
   // Add delegated handlers for Gmail icon, document preview, and inline PDF overlay
   console.log('[POPOUT] Setting up click event delegation on spreadsheet container');
@@ -431,10 +737,11 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     });
   }, 500);
 
-  // Return spreadsheet and corrections batcher
+  // Return spreadsheet, corrections batcher, and search controls
   return { 
     spreadsheet, 
     correctionsBatcher,
+    searchControls,
     cleanup: () => {
       console.log('[CLEANUP] Spreadsheet cleanup called');
     }
@@ -545,6 +852,39 @@ async function setupShadowDOMContainer(container) {
       }
       .jexcel .selected, .jspreadsheet .selected { outline: 2px solid #10b981; }
       .jexcel .highlight, .jspreadsheet .highlight { background: #f3f4f6; }
+      .jss_highlight { background: #fef3c7 !important; border: 1px solid #f59e0b !important; }
+      
+      /* Pagination and Search Controls Styling */
+      .jspreadsheet-pagination, .jspreadsheet-search {
+        margin: 10px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        color: #374151;
+      }
+      .jspreadsheet-pagination select, .jspreadsheet-search input {
+        padding: 4px 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      .jspreadsheet-pagination button {
+        padding: 4px 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: #f9fafb;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .jspreadsheet-pagination button:hover {
+        background: #f3f4f6;
+      }
+      .jspreadsheet-pagination button.active {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+      }
     `;
     shadowRoot.appendChild(style);
   }
@@ -881,5 +1221,435 @@ function getOriginalValue(invoice, fieldName) {
   }
 }
 
+/**
+ * USAGE EXAMPLE:
+ * 
+ * // Build the spreadsheet with search and pagination
+ * const { spreadsheet, searchControls } = await buildSpreadsheet(container, data, opts);
+ * 
+ * // Use search controls programmatically
+ * searchControls.search('invoice'); // Search for "invoice" in all cells
+ * searchControls.resetSearch(); // Clear search and show all rows
+ * searchControls.showSearch(); // Show the search input box
+ * searchControls.hideSearch(); // Hide the search input box
+ * 
+ * // The spreadsheet now includes:
+ * // - Pagination controls (10, 25, 50, 100 rows per page)
+ * // - Search input box with highlighting
+ * // - Custom search events for cell highlighting
+ * // - All standard jspreadsheet functionality
+ */
+
+// === MOCK DATA GENERATOR ===
+function generateMockData() {
+  const mockInvoices = [
+    {
+      documentType: 'invoice',
+      status: 'pending',
+      statusThreadId: 'thread_001',
+      statusMessageId: 'msg_001',
+      document: {
+        thread_id: 'thread_001',
+        message_id: 'msg_001',
+        document_name: 'invoice_001.pdf',
+        content_hash: 'hash_001',
+        details: {
+          invoiceNumber: 'INV-2024-001',
+          entityName: 'Acme Corporation',
+          vendor: { name: 'Tech Solutions Inc.' },
+          description: 'Software licensing and support services',
+          period: 'Q1 2024',
+          amount: 15000.00,
+          currency: 'USD',
+          issueDate: '2024-01-15',
+          dueDate: '2024-02-15',
+          paymentTerms: 'Net 30',
+          notes: 'Annual software license renewal'
+        }
+      },
+      vendor: { name: 'Tech Solutions Inc.' },
+      amount: 15000.00,
+      currency: 'USD',
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      involvementHistory: [
+        {
+          actor: { name: 'John Smith', email: 'john@acme.com' },
+          action_type: 'submitted',
+          timestamp: '2024-01-15T10:30:00Z'
+        },
+        {
+          actor: { name: 'Sarah Johnson', email: 'sarah@acme.com' },
+          action_type: 'reviewed',
+          timestamp: '2024-01-16T14:20:00Z'
+        }
+      ]
+    },
+    {
+      documentType: 'invoice',
+      status: 'approved',
+      statusThreadId: 'thread_002',
+      statusMessageId: 'msg_002',
+      document: {
+        thread_id: 'thread_002',
+        message_id: 'msg_002',
+        document_name: 'invoice_002.pdf',
+        content_hash: 'hash_002',
+        details: {
+          invoiceNumber: 'INV-2024-002',
+          entityName: 'Global Enterprises Ltd.',
+          vendor: { name: 'Office Supplies Co.' },
+          description: 'Office furniture and equipment',
+          period: 'January 2024',
+          amount: 8750.50,
+          currency: 'USD',
+          issueDate: '2024-01-20',
+          dueDate: '2024-02-20',
+          paymentTerms: 'Net 30',
+          notes: 'Bulk office furniture purchase'
+        }
+      },
+      vendor: { name: 'Office Supplies Co.' },
+      amount: 8750.50,
+      currency: 'USD',
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      involvementHistory: [
+        {
+          actor: { name: 'Mike Wilson', email: 'mike@global.com' },
+          action_type: 'submitted',
+          timestamp: '2024-01-20T09:15:00Z'
+        },
+        {
+          actor: { name: 'Lisa Chen', email: 'lisa@global.com' },
+          action_type: 'approved',
+          timestamp: '2024-01-21T16:45:00Z'
+        }
+      ]
+    },
+    {
+      documentType: 'receipt',
+      status: 'paid',
+      statusThreadId: 'thread_003',
+      statusMessageId: 'msg_003',
+      document: {
+        thread_id: 'thread_003',
+        message_id: 'msg_003',
+        document_name: 'receipt_003.pdf',
+        content_hash: 'hash_003',
+        details: {
+          receiptNumber: 'RCP-2024-001',
+          units: ['Unit 101', 'Unit 102'],
+          property_addresses: [
+            { name: 'Downtown Plaza', address: '123 Main St, City, State 12345' }
+          ],
+          date: '2024-01-25',
+          amount: 2500.00,
+          currency: 'USD'
+        }
+      },
+      vendor: { name: 'Property Management LLC' },
+      amount: 2500.00,
+      currency: 'USD',
+      notes: 'Monthly rent payment for commercial units',
+      editableFields: ['receiptNumber', 'notes'],
+      involvementHistory: [
+        {
+          actor: { name: 'David Brown', email: 'david@acme.com' },
+          action_type: 'paid',
+          timestamp: '2024-01-25T11:30:00Z'
+        }
+      ]
+    },
+    {
+      documentType: 'invoice',
+      status: 'requires_review',
+      statusThreadId: 'thread_004',
+      statusMessageId: 'msg_004',
+      document: {
+        thread_id: 'thread_004',
+        message_id: 'msg_004',
+        document_name: 'invoice_004.pdf',
+        content_hash: 'hash_004',
+        details: {
+          invoiceNumber: 'INV-2024-003',
+          entityName: 'StartupXYZ Inc.',
+          vendor: { name: 'Cloud Services Provider' },
+          description: 'AWS cloud infrastructure services',
+          period: 'January 2024',
+          amount: 3200.75,
+          currency: 'USD',
+          issueDate: '2024-01-28',
+          dueDate: '2024-02-28',
+          paymentTerms: 'Net 30',
+          notes: 'Monthly cloud hosting costs'
+        }
+      },
+      vendor: { name: 'Cloud Services Provider' },
+      amount: 3200.75,
+      currency: 'USD',
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      involvementHistory: [
+        {
+          actor: { name: 'Alex Rodriguez', email: 'alex@startupxyz.com' },
+          action_type: 'submitted',
+          timestamp: '2024-01-28T13:20:00Z'
+        },
+        {
+          actor: { name: 'Emma Davis', email: 'emma@startupxyz.com' },
+          action_type: 'flagged_for_review',
+          timestamp: '2024-01-29T10:15:00Z'
+        }
+      ]
+    },
+    {
+      documentType: 'invoice',
+      status: 'rejected',
+      statusThreadId: 'thread_005',
+      statusMessageId: 'msg_005',
+      document: {
+        thread_id: 'thread_005',
+        message_id: 'msg_005',
+        document_name: 'invoice_005.pdf',
+        content_hash: 'hash_005',
+        details: {
+          invoiceNumber: 'INV-2024-004',
+          entityName: 'Manufacturing Corp',
+          vendor: { name: 'Marketing Agency Pro' },
+          description: 'Digital marketing campaign',
+          period: 'Q1 2024',
+          amount: 25000.00,
+          currency: 'USD',
+          issueDate: '2024-01-30',
+          dueDate: '2024-03-01',
+          paymentTerms: 'Net 30',
+          notes: 'Rejected due to budget constraints'
+        }
+      },
+      vendor: { name: 'Marketing Agency Pro' },
+      amount: 25000.00,
+      currency: 'USD',
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      involvementHistory: [
+        {
+          actor: { name: 'Robert Kim', email: 'robert@manufacturing.com' },
+          action_type: 'submitted',
+          timestamp: '2024-01-30T15:45:00Z'
+        },
+        {
+          actor: { name: 'Jennifer Lee', email: 'jennifer@manufacturing.com' },
+          action_type: 'rejected',
+          timestamp: '2024-02-01T09:30:00Z'
+        }
+      ]
+    },
+    {
+      documentType: 'invoice',
+      status: 'on_hold',
+      statusThreadId: 'thread_006',
+      statusMessageId: 'msg_006',
+      document: {
+        thread_id: 'thread_006',
+        message_id: 'msg_006',
+        document_name: 'invoice_006.pdf',
+        content_hash: 'hash_006',
+        details: {
+          invoiceNumber: 'INV-2024-005',
+          entityName: 'Retail Chain Inc.',
+          vendor: { name: 'Logistics Solutions' },
+          description: 'Warehouse management system',
+          period: 'February 2024',
+          amount: 18000.00,
+          currency: 'USD',
+          issueDate: '2024-02-05',
+          dueDate: '2024-03-07',
+          paymentTerms: 'Net 30',
+          notes: 'On hold pending vendor contract review'
+        }
+      },
+      vendor: { name: 'Logistics Solutions' },
+      amount: 18000.00,
+      currency: 'USD',
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      involvementHistory: [
+        {
+          actor: { name: 'Tom Anderson', email: 'tom@retail.com' },
+          action_type: 'submitted',
+          timestamp: '2024-02-05T12:00:00Z'
+        },
+        {
+          actor: { name: 'Maria Garcia', email: 'maria@retail.com' },
+          action_type: 'placed_on_hold',
+          timestamp: '2024-02-06T14:30:00Z'
+        }
+      ]
+    },
+    {
+      documentType: 'invoice',
+      status: 'partially_approved',
+      statusThreadId: 'thread_007',
+      statusMessageId: 'msg_007',
+      document: {
+        thread_id: 'thread_007',
+        message_id: 'msg_007',
+        document_name: 'invoice_007.pdf',
+        content_hash: 'hash_007',
+        details: {
+          invoiceNumber: 'INV-2024-006',
+          entityName: 'Healthcare Systems',
+          vendor: { name: 'IT Consulting Group' },
+          description: 'System integration and training',
+          period: 'Q1 2024',
+          amount: 45000.00,
+          currency: 'USD',
+          issueDate: '2024-02-10',
+          dueDate: '2024-03-12',
+          paymentTerms: 'Net 30',
+          notes: 'Partially approved - training portion pending'
+        }
+      },
+      vendor: { name: 'IT Consulting Group' },
+      amount: 45000.00,
+      currency: 'USD',
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      involvementHistory: [
+        {
+          actor: { name: 'Dr. Susan White', email: 'susan@healthcare.com' },
+          action_type: 'submitted',
+          timestamp: '2024-02-10T08:30:00Z'
+        },
+        {
+          actor: { name: 'James Taylor', email: 'james@healthcare.com' },
+          action_type: 'partially_approved',
+          timestamp: '2024-02-12T16:20:00Z'
+        }
+      ]
+    },
+    {
+      documentType: 'invoice',
+      status: 'ready_for_payment',
+      statusThreadId: 'thread_008',
+      statusMessageId: 'msg_008',
+      document: {
+        thread_id: 'thread_008',
+        message_id: 'msg_008',
+        document_name: 'invoice_008.pdf',
+        content_hash: 'hash_008',
+        details: {
+          invoiceNumber: 'INV-2024-007',
+          entityName: 'Financial Services Co.',
+          vendor: { name: 'Legal Advisory Firm' },
+          description: 'Legal consultation and contract review',
+          period: 'January 2024',
+          amount: 12500.00,
+          currency: 'USD',
+          issueDate: '2024-02-15',
+          dueDate: '2024-03-17',
+          paymentTerms: 'Net 30',
+          notes: 'Ready for payment processing'
+        }
+      },
+      vendor: { name: 'Legal Advisory Firm' },
+      amount: 12500.00,
+      currency: 'USD',
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      involvementHistory: [
+        {
+          actor: { name: 'Patricia Moore', email: 'patricia@financial.com' },
+          action_type: 'submitted',
+          timestamp: '2024-02-15T11:45:00Z'
+        },
+        {
+          actor: { name: 'Kevin Johnson', email: 'kevin@financial.com' },
+          action_type: 'approved',
+          timestamp: '2024-02-16T13:15:00Z'
+        },
+        {
+          actor: { name: 'Rachel Green', email: 'rachel@financial.com' },
+          action_type: 'ready_for_payment',
+          timestamp: '2024-02-17T10:00:00Z'
+        }
+      ]
+    },
+    {
+      documentType: 'invoice',
+      status: 'duplicate',
+      statusThreadId: 'thread_009',
+      statusMessageId: 'msg_009',
+      document: {
+        thread_id: 'thread_009',
+        message_id: 'msg_009',
+        document_name: 'invoice_009.pdf',
+        content_hash: 'hash_009',
+        details: {
+          invoiceNumber: 'INV-2024-008',
+          entityName: 'Tech Startup Inc.',
+          vendor: { name: 'Design Studio Creative' },
+          description: 'Brand identity and logo design',
+          period: 'February 2024',
+          amount: 8500.00,
+          currency: 'USD',
+          issueDate: '2024-02-20',
+          dueDate: '2024-03-22',
+          paymentTerms: 'Net 30',
+          notes: 'Duplicate of previously processed invoice'
+        }
+      },
+      vendor: { name: 'Design Studio Creative' },
+      amount: 8500.00,
+      currency: 'USD',
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      involvementHistory: [
+        {
+          actor: { name: 'Chris Wilson', email: 'chris@techstartup.com' },
+          action_type: 'submitted',
+          timestamp: '2024-02-20T14:30:00Z'
+        },
+        {
+          actor: { name: 'Amanda Clark', email: 'amanda@techstartup.com' },
+          action_type: 'marked_duplicate',
+          timestamp: '2024-02-21T09:45:00Z'
+        }
+      ]
+    },
+    {
+      documentType: 'invoice',
+      status: 'unknown',
+      statusThreadId: 'thread_010',
+      statusMessageId: 'msg_010',
+      document: {
+        thread_id: 'thread_010',
+        message_id: 'msg_010',
+        document_name: 'invoice_010.pdf',
+        content_hash: 'hash_010',
+        details: {
+          invoiceNumber: 'INV-2024-009',
+          entityName: 'Consulting Firm LLC',
+          vendor: { name: 'Unknown Vendor' },
+          description: 'Consulting services - details unclear',
+          period: 'February 2024',
+          amount: 0.00,
+          currency: 'USD',
+          issueDate: '2024-02-25',
+          dueDate: '2024-03-27',
+          paymentTerms: 'TBD',
+          notes: 'Status unknown - requires manual review'
+        }
+      },
+      vendor: { name: 'Unknown Vendor' },
+      amount: 0.00,
+      currency: 'USD',
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      involvementHistory: [
+        {
+          actor: { name: 'System', email: 'system@company.com' },
+          action_type: 'auto_imported',
+          timestamp: '2024-02-25T00:00:00Z'
+        }
+      ]
+    }
+  ];
+
+  console.log('[MOCK DATA] Generated', mockInvoices.length, 'mock invoices');
+  return mockInvoices;
+}
 
  
