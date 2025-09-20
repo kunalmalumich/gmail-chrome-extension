@@ -777,10 +777,12 @@ async function setupShadowDOMContainer(container) {
       // Get CSS file URLs
       const jspreadsheetUrl = chrome.runtime.getURL('jspreadsheet.css');
       const jsuitesUrl = chrome.runtime.getURL('jsuites.css');
+      const stampThemeUrl = chrome.runtime.getURL('stamp-spreadsheet-theme.css');
       
       console.log('[SHADOW DOM] CSS URLs:', {
         jspreadsheet: jspreadsheetUrl,
-        jsuites: jsuitesUrl
+        jsuites: jsuitesUrl,
+        stampTheme: stampThemeUrl
       });
       
       // Read jspreadsheet CSS content with better error handling
@@ -799,6 +801,15 @@ async function setupShadowDOMContainer(container) {
       const jsuitesCss = await jsuitesResponse.text();
       console.log('[SHADOW DOM] ✅ jsuites.css loaded, size:', jsuitesCss.length);
       
+      // Read stamp theme CSS content with better error handling
+      const stampThemeResponse = await fetch(stampThemeUrl);
+      if (!stampThemeResponse.ok) {
+        throw new Error(`Failed to fetch stamp-spreadsheet-theme.css: ${stampThemeResponse.status} ${stampThemeResponse.statusText}`);
+      }
+      const stampThemeCss = await stampThemeResponse.text();
+      console.log('[SHADOW DOM] ✅ stamp-spreadsheet-theme.css loaded, size:', stampThemeCss.length);
+      console.log('[SHADOW DOM] Theme CSS preview:', stampThemeCss.substring(0, 200) + '...');
+      
       // Create style element with combined CSS content
       const styleElement = document.createElement('style');
       styleElement.textContent = `
@@ -810,7 +821,11 @@ async function setupShadowDOMContainer(container) {
         
         /* jsuites.css */
         ${jsuitesCss}
+        
+        /* stamp-spreadsheet-theme.css - Custom green theme (loaded last for override) */
+        ${stampThemeCss}
       `;
+      styleElement.setAttribute('data-theme', 'stamp-green');
       shadowRoot.appendChild(styleElement);
       
       console.log('[SHADOW DOM] ✅ Local CSS files loaded successfully');
@@ -847,8 +862,11 @@ async function setupShadowDOMContainer(container) {
       }
       .jexcel tr, .jspreadsheet tr { height: 16px; }
       .jexcel thead th, .jspreadsheet thead th {
-        background: #f9fafb;
-        font-weight: 600;
+        background: linear-gradient(135deg, #10b981 0%, #059669 50%, #065f46 100%);
+        color: white;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
       .jexcel .selected, .jspreadsheet .selected { outline: 2px solid #10b981; }
       .jexcel .highlight, .jspreadsheet .highlight { background: #f3f4f6; }

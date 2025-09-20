@@ -54,6 +54,7 @@
         "google-logo.png",
         "jspreadsheet.css",
         "jsuites.css",
+        "stamp-spreadsheet-theme.css",
         "floating-chat/*",
         "*.map"
       ]

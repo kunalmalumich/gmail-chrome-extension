@@ -1,0 +1,666 @@
+/* Stamp Extension Green Theme - Enhanced Dynamic UI */
+
+/* CSS Variables for Stamp Extension Green Color Palette */
+:root {
+  /* Primary Green Colors */
+  --stamp-primary: #10b981;
+  --stamp-primary-dark: #059669;
+  --stamp-primary-light: #34d399;
+  --stamp-primary-lighter: #6ee7b7;
+  
+  /* Secondary Green Colors */
+  --stamp-secondary: #065f46;
+  --stamp-secondary-light: #047857;
+  
+  /* Accent Colors */
+  --stamp-accent: #6ee7b7;
+  --stamp-accent-dark: #10b981;
+  
+  /* Status Colors */
+  --stamp-success: #10b981;
+  --stamp-success-light: #34d399;
+  --stamp-warning: #f59e0b;
+  --stamp-warning-light: #fbbf24;
+  --stamp-error: #ef4444;
+  --stamp-error-light: #f87171;
+  --stamp-info: #3b82f6;
+  --stamp-info-light: #60a5fa;
+  
+  /* Neutral Colors */
+  --stamp-gray-50: #f9fafb;
+  --stamp-gray-100: #f3f4f6;
+  --stamp-gray-200: #e5e7eb;
+  --stamp-gray-300: #d1d5db;
+  --stamp-gray-400: #9ca3af;
+  --stamp-gray-500: #6b7280;
+  --stamp-gray-600: #4b5563;
+  --stamp-gray-700: #374151;
+  --stamp-gray-800: #1f2937;
+  --stamp-gray-900: #111827;
+  
+  /* Background Colors */
+  --stamp-bg-primary: #ffffff;
+  --stamp-bg-secondary: #f8fafc;
+  --stamp-bg-tertiary: #f1f5f9;
+  
+  /* Text Colors */
+  --stamp-text-primary: #1f2937;
+  --stamp-text-secondary: #6b7280;
+  --stamp-text-muted: #9ca3af;
+  
+  /* Border Colors */
+  --stamp-border-light: #e5e7eb;
+  --stamp-border-medium: #d1d5db;
+  --stamp-border-dark: #9ca3af;
+  
+  /* Shadow Colors */
+  --stamp-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --stamp-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --stamp-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --stamp-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  /* Animation Variables */
+  --stamp-transition-fast: 0.15s ease-in-out;
+  --stamp-transition-normal: 0.3s ease-in-out;
+  --stamp-transition-slow: 0.5s ease-in-out;
+  
+  /* Border Radius */
+  --stamp-radius-sm: 0.25rem;
+  --stamp-radius-md: 0.375rem;
+  --stamp-radius-lg: 0.5rem;
+  --stamp-radius-xl: 0.75rem;
+}
+
+/* Global Styles for Stamp Extension */
+.jspreadsheet-clean-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--stamp-bg-primary);
+  border-radius: var(--stamp-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--stamp-shadow-xl);
+  position: relative;
+  max-height: 500px !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+}
+
+/* Container Styling */
+.jss_container {
+  background: linear-gradient(135deg, var(--stamp-bg-primary) 0%, var(--stamp-bg-secondary) 100%);
+  border: 2px solid var(--stamp-primary-light);
+  border-radius: var(--stamp-radius-lg);
+  box-shadow: var(--stamp-shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all var(--stamp-transition-normal);
+  position: relative;
+  overflow: hidden;
+  max-height: 500px !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+}
+
+.jss_container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.05), transparent);
+  transition: left 2s ease;
+  z-index: 1;
+}
+
+.jss_container:hover::before {
+  left: 100%;
+}
+
+/* Content Area */
+.jss_content {
+  background: var(--stamp-bg-primary);
+  border-radius: var(--stamp-radius-md);
+  position: relative;
+  z-index: 2;
+}
+
+/* Custom Scrollbar */
+.jss_content::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.jss_content::-webkit-scrollbar-track {
+  background: var(--stamp-gray-100);
+  border-radius: var(--stamp-radius-sm);
+}
+
+.jss_content::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--stamp-primary) 0%, var(--stamp-primary-dark) 100%);
+  border-radius: var(--stamp-radius-sm);
+  border: 2px solid var(--stamp-gray-100);
+}
+
+.jss_content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--stamp-primary-dark) 0%, var(--stamp-secondary) 100%);
+}
+
+/* Worksheet Styling */
+.jss_worksheet {
+  background: var(--stamp-bg-primary);
+  border-radius: var(--stamp-radius-md);
+  overflow: hidden;
+  box-shadow: var(--stamp-shadow-md);
+  max-height: 400px !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+/* Header Row - Green but clean and compact */
+.jss_worksheet > thead > tr > td {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  padding: 4px 6px !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  text-shadow: none !important;
+  border: 1px solid #059669 !important;
+  border-right: 1px solid #059669 !important;
+  border-bottom: 1px solid #059669 !important;
+  transition: none !important;
+  position: relative !important;
+  overflow: visible !important;
+  box-shadow: none !important;
+  text-align: center !important;
+  height: 24px !important;
+  line-height: 16px !important;
+}
+
+/* Remove header shiny effects */
+.jss_worksheet > thead > tr > td::before {
+  display: none !important;
+}
+
+.jss_worksheet > thead > tr > td:hover {
+  background: #059669 !important;
+  color: #ffffff !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Additional selectors for header cells - Green style and compact */
+.jss_worksheet thead td,
+.jss_worksheet th,
+.jexcel thead td,
+.jexcel th {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  text-shadow: none !important;
+  border: 1px solid #059669 !important;
+  border-right: 1px solid #059669 !important;
+  border-bottom: 1px solid #059669 !important;
+  box-shadow: none !important;
+  text-align: center !important;
+  padding: 4px 6px !important;
+  height: 24px !important;
+  line-height: 16px !important;
+  min-width: 80px !important;
+  white-space: nowrap !important;
+}
+
+/* Additional selectors for data cells - Ultra Compact MS Excel style */
+.jss_worksheet tbody td,
+.jexcel tbody td,
+.jss_worksheet tbody tr td,
+.jexcel tbody tr td {
+  padding: 1px 4px !important;
+  font-size: 11px !important;
+  line-height: 14px !important;
+  height: 18px !important;
+  vertical-align: middle !important;
+  min-width: 80px !important;
+  white-space: nowrap !important;
+}
+
+/* Row height controls - Ultra Compact */
+.jss_worksheet tbody tr,
+.jexcel tbody tr {
+  height: 18px !important;
+}
+
+.jss_worksheet tbody tr:nth-child(even),
+.jexcel tbody tr:nth-child(even) {
+  height: 18px !important;
+}
+
+/* Data Rows - Ultra Compact MS Excel style */
+.jss_worksheet > tbody > tr {
+  background: #ffffff !important;
+  transition: none !important;
+  border-left: 1px solid transparent !important;
+  height: 18px !important;
+}
+
+/* Table body scroll - Fixed layout */
+.jss_worksheet > tbody {
+  max-height: 350px !important;
+  overflow-y: auto !important;
+}
+
+.jss_worksheet > thead > tr,
+.jss_worksheet > tbody > tr {
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.jss_worksheet > tbody > tr:nth-child(even) {
+  background: #f8fafc !important;
+  height: 18px !important;
+}
+
+.jss_worksheet > tbody > tr:nth-child(even) > td {
+  background: #f8fafc !important;
+}
+
+.jss_worksheet > tbody > tr:hover {
+  background: rgba(16, 185, 129, 0.05) !important;
+  border-left-color: #10b981 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.jss_worksheet > tbody > tr:hover > td {
+  background: rgba(16, 185, 129, 0.05) !important;
+}
+
+/* Data Cells - Ultra Compact */
+.jss_worksheet > tbody > tr > td {
+  padding: 1px 4px !important;
+  border: 1px solid #e5e7eb !important;
+  border-right: 1px solid #d1d5db !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  transition: none !important;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  font-size: 11px !important;
+  line-height: 14px !important;
+  height: 18px !important;
+  vertical-align: middle !important;
+  min-width: 80px !important;
+  white-space: nowrap !important;
+}
+
+.jss_worksheet > tbody > tr > td:hover {
+  background: rgba(16, 185, 129, 0.05) !important;
+  border-color: #34d399 !important;
+}
+
+/* Selected and Highlighted Cells */
+.jss_worksheet > tbody > tr > td.selected,
+.jss_worksheet > tbody > tr > td.jss_highlight {
+  background: linear-gradient(135deg, var(--stamp-accent) 0%, var(--stamp-primary-light) 100%);
+  border: 2px solid var(--stamp-primary);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  transform: scale(1.02);
+}
+
+/* Status-specific row styling */
+.jss_worksheet > tbody > tr[data-status="pending"] {
+  border-left-color: var(--stamp-warning);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.1) 100%);
+}
+
+.jss_worksheet > tbody > tr[data-status="approved"] {
+  border-left-color: var(--stamp-success);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.1) 100%);
+}
+
+.jss_worksheet > tbody > tr[data-status="rejected"] {
+  border-left-color: var(--stamp-error);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.1) 100%);
+}
+
+.jss_worksheet > tbody > tr[data-status="paid"] {
+  border-left-color: var(--stamp-info);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.1) 100%);
+}
+
+/* Interactive Icons */
+.doc-preview-icon,
+.gmail-popout-icon {
+  color: var(--stamp-primary);
+  transition: all var(--stamp-transition-normal);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--stamp-radius-sm);
+}
+
+.doc-preview-icon:hover,
+.gmail-popout-icon:hover {
+  color: var(--stamp-primary-dark);
+  background: rgba(16, 185, 129, 0.1);
+  transform: scale(1.2);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+/* Search and Pagination Controls - Enhanced with dynamic effects */
+.jspreadsheet-search, .jspreadsheet-pagination {
+  background: linear-gradient(135deg, var(--stamp-bg-secondary) 0%, rgba(16, 185, 129, 0.05) 100%);
+  border-radius: var(--stamp-radius-lg);
+  padding: 20px;
+  margin: 20px 0;
+  box-shadow: var(--stamp-shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--stamp-primary-light);
+  position: relative;
+  overflow: hidden;
+}
+
+.jspreadsheet-search::before, .jspreadsheet-pagination::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.1), transparent);
+  transition: left 0.8s ease;
+}
+
+.jspreadsheet-search:hover::before, .jspreadsheet-pagination:hover::before {
+  left: 100%;
+}
+
+.jspreadsheet-search input {
+  background: linear-gradient(135deg, var(--stamp-bg-primary) 0%, rgba(16, 185, 129, 0.02) 100%);
+  border: 2px solid var(--stamp-primary-light);
+  border-radius: var(--stamp-radius-lg);
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all var(--stamp-transition-normal);
+  box-shadow: var(--stamp-shadow-md), inset 0 1px 3px rgba(16, 185, 129, 0.1);
+  color: var(--stamp-text-primary);
+  position: relative;
+}
+
+.jspreadsheet-search input::placeholder {
+  color: var(--stamp-text-muted);
+  font-style: italic;
+}
+
+.jspreadsheet-search input:focus {
+  outline: none;
+  border-color: var(--stamp-primary);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15), var(--stamp-shadow-lg);
+  transform: translateY(-2px) scale(1.02);
+  background: linear-gradient(135deg, var(--stamp-bg-primary) 0%, rgba(16, 185, 129, 0.05) 100%);
+}
+
+.jspreadsheet-search button, .jspreadsheet-pagination button {
+  background: linear-gradient(135deg, var(--stamp-primary) 0%, var(--stamp-primary-dark) 50%, var(--stamp-secondary) 100%);
+  color: white;
+  border: none;
+  border-radius: var(--stamp-radius-lg);
+  padding: 14px 24px;
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all var(--stamp-transition-normal);
+  box-shadow: var(--stamp-shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.jspreadsheet-search button::before, .jspreadsheet-pagination button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.jspreadsheet-search button:hover::before, .jspreadsheet-pagination button:hover::before {
+  left: 100%;
+}
+
+.jspreadsheet-search button:hover, .jspreadsheet-pagination button:hover {
+  background: linear-gradient(135deg, var(--stamp-primary-dark) 0%, var(--stamp-secondary) 100%);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: var(--stamp-shadow-xl), 0 0 20px rgba(16, 185, 129, 0.4);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.jspreadsheet-search button:active, .jspreadsheet-pagination button:active {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: var(--stamp-shadow-md);
+}
+
+.jspreadsheet-pagination button.active {
+  background: linear-gradient(135deg, var(--stamp-secondary) 0%, var(--stamp-gray-800) 100%);
+  transform: scale(1.05);
+}
+
+/* Toolbar - Green but clean */
+.jss_toolbar {
+  background: #10b981 !important;
+  border: 1px solid #059669 !important;
+  border-radius: 0 !important;
+  padding: 8px 12px !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  position: relative !important;
+  overflow: visible !important;
+}
+
+/* Remove shiny effects */
+.jss_toolbar::before {
+  display: none !important;
+}
+
+.jss_toolbar button {
+  background: #ffffff !important;
+  border: 1px solid #34d399 !important;
+  border-radius: 2px !important;
+  padding: 6px 8px !important;
+  margin: 0 2px !important;
+  font-weight: normal !important;
+  font-size: 12px !important;
+  color: #333333 !important;
+  cursor: pointer !important;
+  transition: none !important;
+  box-shadow: none !important;
+  position: relative !important;
+  overflow: visible !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  min-width: 24px !important;
+  height: 24px !important;
+}
+
+/* Remove button shiny effects */
+.jss_toolbar button::before {
+  display: none !important;
+}
+
+.jss_toolbar button:hover {
+  background: #d1fae5 !important;
+  color: #065f46 !important;
+  border-color: #059669 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.jss_toolbar button:active {
+  background: #a7f3d0 !important;
+  transform: none !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Additional toolbar selectors - Green style */
+.jtoolbar,
+.jtoolbar-container {
+  background: #10b981 !important;
+  border: 1px solid #059669 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Dropdown styles - Make them visible */
+.jss_toolbar select,
+.jss_toolbar .jdropdown,
+.jss_toolbar .jdropdown-content,
+.jtoolbar select,
+.jtoolbar .jdropdown,
+.jtoolbar .jdropdown-content {
+  background: #ffffff !important;
+  border: 1px solid #d0d0d0 !important;
+  border-radius: 2px !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  color: #333333 !important;
+  box-shadow: none !important;
+  z-index: 1000 !important;
+  position: relative !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+
+.jss_toolbar select:hover,
+.jss_toolbar .jdropdown:hover,
+.jtoolbar select:hover,
+.jtoolbar .jdropdown:hover {
+  background: #d1fae5 !important;
+  border-color: #059669 !important;
+}
+
+/* Dropdown content visibility */
+.jss_toolbar .jdropdown-content,
+.jtoolbar .jdropdown-content {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  background: #ffffff !important;
+  border: 1px solid #d0d0d0 !important;
+  border-radius: 2px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  z-index: 1001 !important;
+  min-width: 120px !important;
+  max-height: 200px !important;
+  overflow-y: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+
+.jtoolbar .jtoolbar-item {
+  background: #ffffff !important;
+  border: 1px solid #34d399 !important;
+  border-radius: 2px !important;
+  margin: 0 2px !important;
+  transition: none !important;
+}
+
+.jtoolbar .jtoolbar-item:hover {
+  background: #d1fae5 !important;
+  color: #065f46 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .jss_toolbar {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+  
+  .jss_toolbar button {
+    padding: 8px 12px;
+    font-size: 12px;
+    margin: 2px;
+  }
+  
+  .jss_worksheet > thead > tr > td {
+    padding: 12px 8px;
+    font-size: 12px;
+  }
+  
+  .jss_worksheet > tbody > tr > td {
+    padding: 10px 8px;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --stamp-bg-primary: #1f2937;
+    --stamp-bg-secondary: #111827;
+    --stamp-bg-tertiary: #0f172a;
+    --stamp-text-primary: #f9fafb;
+    --stamp-text-secondary: #d1d5db;
+    --stamp-text-muted: #9ca3af;
+    --stamp-border-light: #374151;
+    --stamp-border-medium: #4b5563;
+    --stamp-border-dark: #6b7280;
+  }
+}
+
+/* Animation Classes */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes bounceIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes successFlash {
+  0%, 100% { background-color: var(--stamp-success); }
+  50% { background-color: var(--stamp-success-light); }
+}
+
+@keyframes errorFlash {
+  0%, 100% { background-color: var(--stamp-error); }
+  50% { background-color: var(--stamp-error-light); }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.slide-in {
+  animation: slideIn 0.6s ease-out;
+}
+
+.bounce-in {
+  animation: bounceIn 0.7s ease-out;
+}
+
+.success-flash {
+  animation: successFlash 0.6s ease-in-out;
+}
+
+.error-flash {
+  animation: errorFlash 0.6s ease-in-out;
+}

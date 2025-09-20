@@ -146,6 +146,13 @@ if (Test-Path "jsuites.css") {
     Write-Host "   Warning: jsuites.css not found" -ForegroundColor Yellow
 }
 
+if (Test-Path "stamp-spreadsheet-theme.css") {
+    Copy-Item "stamp-spreadsheet-theme.css" "dist/"
+    Write-Host "   stamp-spreadsheet-theme.css copied successfully" -ForegroundColor Yellow
+} else {
+    Write-Host "   Warning: stamp-spreadsheet-theme.css not found" -ForegroundColor Yellow
+}
+
 # Copy floating chat files
 Write-Host "   Copying floating chat files..." -ForegroundColor Yellow
 if (Test-Path "floating-chat") {

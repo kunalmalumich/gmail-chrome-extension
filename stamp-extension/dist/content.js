@@ -73157,9 +73157,11 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         console.log("[SHADOW DOM] Loading local CSS files...");
         const jspreadsheetUrl = chrome.runtime.getURL("jspreadsheet.css");
         const jsuitesUrl = chrome.runtime.getURL("jsuites.css");
+        const stampThemeUrl = chrome.runtime.getURL("stamp-spreadsheet-theme.css");
         console.log("[SHADOW DOM] CSS URLs:", {
           jspreadsheet: jspreadsheetUrl,
-          jsuites: jsuitesUrl
+          jsuites: jsuitesUrl,
+          stampTheme: stampThemeUrl
         });
         const jspreadsheetResponse = await fetch(jspreadsheetUrl);
         if (!jspreadsheetResponse.ok) {
@@ -73173,6 +73175,13 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         }
         const jsuitesCss = await jsuitesResponse.text();
         console.log("[SHADOW DOM] \u2705 jsuites.css loaded, size:", jsuitesCss.length);
+        const stampThemeResponse = await fetch(stampThemeUrl);
+        if (!stampThemeResponse.ok) {
+          throw new Error(`Failed to fetch stamp-spreadsheet-theme.css: ${stampThemeResponse.status} ${stampThemeResponse.statusText}`);
+        }
+        const stampThemeCss = await stampThemeResponse.text();
+        console.log("[SHADOW DOM] \u2705 stamp-spreadsheet-theme.css loaded, size:", stampThemeCss.length);
+        console.log("[SHADOW DOM] Theme CSS preview:", stampThemeCss.substring(0, 200) + "...");
         const styleElement = document.createElement("style");
         styleElement.textContent = `
         /* Material Icons - Required for toolbar */
@@ -73183,7 +73192,11 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         
         /* jsuites.css */
         ${jsuitesCss}
+        
+        /* stamp-spreadsheet-theme.css - Custom green theme (loaded last for override) */
+        ${stampThemeCss}
       `;
+        styleElement.setAttribute("data-theme", "stamp-green");
         shadowRoot.appendChild(styleElement);
         console.log("[SHADOW DOM] \u2705 Local CSS files loaded successfully");
         return true;
@@ -73217,8 +73230,11 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       }
       .jexcel tr, .jspreadsheet tr { height: 16px; }
       .jexcel thead th, .jspreadsheet thead th {
-        background: #f9fafb;
-        font-weight: 600;
+        background: linear-gradient(135deg, #10b981 0%, #059669 50%, #065f46 100%);
+        color: white;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
       .jexcel .selected, .jspreadsheet .selected { outline: 2px solid #10b981; }
       .jexcel .highlight, .jspreadsheet .highlight { background: #f3f4f6; }
