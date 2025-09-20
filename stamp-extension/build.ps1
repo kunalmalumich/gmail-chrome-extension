@@ -146,6 +146,14 @@ if (Test-Path "jsuites.css") {
     Write-Host "   Warning: jsuites.css not found" -ForegroundColor Yellow
 }
 
+# Copy jsuites.js library for dropdown functionality
+if (Test-Path "node_modules/jsuites/dist/jsuites.js") {
+    Copy-Item "node_modules/jsuites/dist/jsuites.js" "dist/"
+    Write-Host "   jsuites.js copied successfully" -ForegroundColor Yellow
+} else {
+    Write-Host "   Warning: jsuites.js not found" -ForegroundColor Yellow
+}
+
 if (Test-Path "stamp-spreadsheet-theme.css") {
     Copy-Item "stamp-spreadsheet-theme.css" "dist/"
     Write-Host "   stamp-spreadsheet-theme.css copied successfully" -ForegroundColor Yellow

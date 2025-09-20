@@ -79,10 +79,15 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     {
       title: 'Currency',
-      width: 60,
-      type: 'text',
+      width: 80,
+      type: 'dropdown',
+      source: ['USD', 'INR', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CNY', 'OTHER'],
       fieldName: 'currency',
-      editable: true
+      editable: true,
+      options: {
+        type: 'default',
+        placeholder: 'Select Currency'
+      }
     },
     { 
       title: 'Issue Date', 
@@ -125,10 +130,15 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     {
       title: 'Approver',
-      width: 150,
-      type: 'text',
-      fieldName: null, // Computed field from involvementHistory
-      editable: false
+      width: 120,
+      type: 'dropdown',
+      source: ['PENDING', 'APPROVED', 'REJECTED'],
+      fieldName: 'approvalStatus',
+      editable: true,
+      options: {
+        type: 'default',
+        placeholder: 'Select Status'
+      }
     },
     {
       title: 'Notes',
@@ -164,6 +174,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
 
   // Create the spreadsheet with clean default configuration and field edit handling
   console.log('[JS001] Creating jspreadsheet, data rows:', spreadsheetData.length);
+  console.log('[JS001] Column configuration:', columns);
   const spreadsheet = jspreadsheet(cleanContainer, {
     root: shadowRoot,  // Critical parameter for Shadow DOM event handling
     toolbar: true,     // Enable the toolbar with tools
@@ -203,6 +214,102 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   
   // === ENHANCE EXISTING SEARCH WITH REAL-TIME FUNCTIONALITY ===
   oncreateworksheet: function(worksheet) {
+    console.log('[DROPDOWN DEBUG] Worksheet created, checking for dropdown columns...');
+    console.log('[DROPDOWN DEBUG] Worksheet element:', worksheet.element);
+    
+    // Check if dropdown columns are properly initialized
+    setTimeout(() => {
+      const dropdownCells = worksheet.element.querySelectorAll('td[data-type="dropdown"]');
+      console.log('[DROPDOWN DEBUG] Found dropdown cells:', dropdownCells.length);
+      
+      const selectCells = worksheet.element.querySelectorAll('select');
+      console.log('[DROPDOWN DEBUG] Found select elements:', selectCells.length);
+      
+      const jdropdownCells = worksheet.element.querySelectorAll('.jdropdown');
+      console.log('[DROPDOWN DEBUG] Found jdropdown elements:', jdropdownCells.length);
+      
+      // Add dropdown indicators to Currency and Approver columns
+      const currencyColumnIndex = 3; // Currency is the 4th column (0-indexed)
+      const approverColumnIndex = 7; // Approver is the 8th column (0-indexed)
+      
+      // Find all rows and add dropdown indicators
+      const rows = worksheet.element.querySelectorAll('tbody tr');
+      rows.forEach((row, rowIndex) => {
+        const currencyCell = row.children[currencyColumnIndex];
+        const approverCell = row.children[approverColumnIndex];
+        
+        if (currencyCell) {
+          currencyCell.setAttribute('data-type', 'dropdown');
+          currencyCell.setAttribute('data-column', 'currency');
+          currencyCell.style.cursor = 'pointer';
+          currencyCell.style.position = 'relative';
+          currencyCell.style.paddingRight = '20px';
+          
+          // Create and add dropdown arrow element
+          const dropdownArrow = document.createElement('span');
+          dropdownArrow.innerHTML = '▼';
+          dropdownArrow.style.cssText = `
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: #6b7280;
+            pointer-events: none;
+            z-index: 10;
+            display: block;
+            opacity: 1;
+          `;
+          currencyCell.appendChild(dropdownArrow);
+          
+          console.log('[DROPDOWN DEBUG] Added dropdown indicator to currency cell in row', rowIndex);
+        }
+        
+        if (approverCell) {
+          approverCell.setAttribute('data-type', 'dropdown');
+          approverCell.setAttribute('data-column', 'approver');
+          approverCell.style.cursor = 'pointer';
+          approverCell.style.position = 'relative';
+          approverCell.style.paddingRight = '20px';
+          
+          // Create and add dropdown arrow element
+          const dropdownArrow = document.createElement('span');
+          dropdownArrow.innerHTML = '▼';
+          dropdownArrow.style.cssText = `
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: #6b7280;
+            pointer-events: none;
+            z-index: 10;
+            display: block;
+            opacity: 1;
+          `;
+          approverCell.appendChild(dropdownArrow);
+          
+          console.log('[DROPDOWN DEBUG] Added dropdown indicator to approver cell in row', rowIndex);
+        }
+      });
+      
+      // Also add dropdown indicators to header cells
+      const headerRow = worksheet.element.querySelector('thead tr');
+      if (headerRow) {
+        const currencyHeader = headerRow.children[currencyColumnIndex];
+        const approverHeader = headerRow.children[approverColumnIndex];
+        
+        if (currencyHeader) {
+          currencyHeader.setAttribute('data-type', 'dropdown');
+          currencyHeader.setAttribute('data-column', 'currency');
+        }
+        
+        if (approverHeader) {
+          approverHeader.setAttribute('data-type', 'dropdown');
+          approverHeader.setAttribute('data-column', 'approver');
+        }
+      }
+    }, 1000);
     console.log('[SEARCH] oncreateworksheet event fired!');
     console.log('[SEARCH] Worksheet element:', worksheet.element);
     
@@ -774,14 +881,16 @@ async function setupShadowDOMContainer(container) {
 
       console.log('[SHADOW DOM] Loading local CSS files...');
       
-      // Get CSS file URLs
-      const jspreadsheetUrl = chrome.runtime.getURL('jspreadsheet.css');
-      const jsuitesUrl = chrome.runtime.getURL('jsuites.css');
-      const stampThemeUrl = chrome.runtime.getURL('stamp-spreadsheet-theme.css');
+    // Get CSS and JS file URLs
+    const jspreadsheetUrl = chrome.runtime.getURL('jspreadsheet.css');
+    const jsuitesUrl = chrome.runtime.getURL('jsuites.css');
+    const jsuitesJsUrl = chrome.runtime.getURL('jsuites.js');
+    const stampThemeUrl = chrome.runtime.getURL('stamp-spreadsheet-theme.css');
       
-      console.log('[SHADOW DOM] CSS URLs:', {
+      console.log('[SHADOW DOM] CSS and JS URLs:', {
         jspreadsheet: jspreadsheetUrl,
         jsuites: jsuitesUrl,
+        jsuitesJs: jsuitesJsUrl,
         stampTheme: stampThemeUrl
       });
       
@@ -807,10 +916,29 @@ async function setupShadowDOMContainer(container) {
         throw new Error(`Failed to fetch stamp-spreadsheet-theme.css: ${stampThemeResponse.status} ${stampThemeResponse.statusText}`);
       }
       const stampThemeCss = await stampThemeResponse.text();
-      console.log('[SHADOW DOM] ✅ stamp-spreadsheet-theme.css loaded, size:', stampThemeCss.length);
-      console.log('[SHADOW DOM] Theme CSS preview:', stampThemeCss.substring(0, 200) + '...');
-      
-      // Create style element with combined CSS content
+    console.log('[SHADOW DOM] ✅ stamp-spreadsheet-theme.css loaded, size:', stampThemeCss.length);
+    console.log('[SHADOW DOM] Theme CSS preview:', stampThemeCss.substring(0, 200) + '...');
+
+    // Load jsuites.js library for dropdown functionality
+    const jsuitesJsResponse = await fetch(jsuitesJsUrl);
+    if (!jsuitesJsResponse.ok) {
+      throw new Error(`Failed to fetch jsuites.js: ${jsuitesJsResponse.status} ${jsuitesJsResponse.statusText}`);
+    }
+    const jsuitesJs = await jsuitesJsResponse.text();
+    console.log('[SHADOW DOM] ✅ jsuites.js loaded, size:', jsuitesJs.length);
+
+    // Create script element for jsuites (load first)
+    const jsuitesScript = document.createElement('script');
+    jsuitesScript.textContent = jsuitesJs;
+    shadowRoot.appendChild(jsuitesScript);
+    
+    // Wait for jsuites to load before proceeding
+    await new Promise(resolve => {
+      jsuitesScript.onload = resolve;
+      setTimeout(resolve, 100); // Fallback timeout
+    });
+
+    // Create style element with combined CSS content
       const styleElement = document.createElement('style');
       styleElement.textContent = `
         /* Material Icons - Required for toolbar */
@@ -1282,13 +1410,14 @@ function generateMockData() {
           issueDate: '2024-01-15',
           dueDate: '2024-02-15',
           paymentTerms: 'Net 30',
+          approvalStatus: 'PENDING',
           notes: 'Annual software license renewal'
         }
       },
       vendor: { name: 'Tech Solutions Inc.' },
       amount: 15000.00,
       currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
       involvementHistory: [
         {
           actor: { name: 'John Smith', email: 'john@acme.com' },
@@ -1319,17 +1448,18 @@ function generateMockData() {
           description: 'Office furniture and equipment',
           period: 'January 2024',
           amount: 8750.50,
-          currency: 'USD',
+          currency: 'INR',
           issueDate: '2024-01-20',
           dueDate: '2024-02-20',
           paymentTerms: 'Net 30',
+          approvalStatus: 'APPROVED',
           notes: 'Bulk office furniture purchase'
         }
       },
       vendor: { name: 'Office Supplies Co.' },
       amount: 8750.50,
       currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
       involvementHistory: [
         {
           actor: { name: 'Mike Wilson', email: 'mike@global.com' },
@@ -1361,7 +1491,8 @@ function generateMockData() {
           ],
           date: '2024-01-25',
           amount: 2500.00,
-          currency: 'USD'
+          currency: 'EUR',
+          approvalStatus: 'REJECTED'
         }
       },
       vendor: { name: 'Property Management LLC' },
@@ -1394,17 +1525,18 @@ function generateMockData() {
           description: 'AWS cloud infrastructure services',
           period: 'January 2024',
           amount: 3200.75,
-          currency: 'USD',
+          currency: 'GBP',
           issueDate: '2024-01-28',
           dueDate: '2024-02-28',
           paymentTerms: 'Net 30',
+          approvalStatus: 'PENDING',
           notes: 'Monthly cloud hosting costs'
         }
       },
       vendor: { name: 'Cloud Services Provider' },
       amount: 3200.75,
       currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
       involvementHistory: [
         {
           actor: { name: 'Alex Rodriguez', email: 'alex@startupxyz.com' },
@@ -1445,7 +1577,7 @@ function generateMockData() {
       vendor: { name: 'Marketing Agency Pro' },
       amount: 25000.00,
       currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
       involvementHistory: [
         {
           actor: { name: 'Robert Kim', email: 'robert@manufacturing.com' },
@@ -1486,7 +1618,7 @@ function generateMockData() {
       vendor: { name: 'Logistics Solutions' },
       amount: 18000.00,
       currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
       involvementHistory: [
         {
           actor: { name: 'Tom Anderson', email: 'tom@retail.com' },
@@ -1527,7 +1659,7 @@ function generateMockData() {
       vendor: { name: 'IT Consulting Group' },
       amount: 45000.00,
       currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
       involvementHistory: [
         {
           actor: { name: 'Dr. Susan White', email: 'susan@healthcare.com' },
@@ -1568,7 +1700,7 @@ function generateMockData() {
       vendor: { name: 'Legal Advisory Firm' },
       amount: 12500.00,
       currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
       involvementHistory: [
         {
           actor: { name: 'Patricia Moore', email: 'patricia@financial.com' },
@@ -1614,7 +1746,7 @@ function generateMockData() {
       vendor: { name: 'Design Studio Creative' },
       amount: 8500.00,
       currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
       involvementHistory: [
         {
           actor: { name: 'Chris Wilson', email: 'chris@techstartup.com' },
@@ -1655,7 +1787,7 @@ function generateMockData() {
       vendor: { name: 'Unknown Vendor' },
       amount: 0.00,
       currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'status', 'notes'],
+      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
       involvementHistory: [
         {
           actor: { name: 'System', email: 'system@company.com' },

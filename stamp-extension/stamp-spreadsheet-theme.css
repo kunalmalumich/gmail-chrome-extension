@@ -295,6 +295,144 @@
   white-space: nowrap !important;
 }
 
+/* Special styling for dropdown cells */
+.jss_worksheet > tbody > tr > td[data-type="dropdown"],
+.jss_worksheet > tbody > tr > td[data-type="select"],
+.jexcel > tbody > tr > td[data-type="dropdown"],
+.jexcel > tbody > tr > td[data-type="select"] {
+  padding-right: 20px !important;
+  position: relative !important;
+  cursor: pointer !important;
+}
+
+.jss_worksheet > tbody > tr > td[data-type="dropdown"]:hover,
+.jss_worksheet > tbody > tr > td[data-type="select"]:hover,
+.jexcel > tbody > tr > td[data-type="dropdown"]:hover,
+.jexcel > tbody > tr > td[data-type="select"]:hover {
+  background: #f0f9ff !important;
+  border-color: #10b981 !important;
+}
+
+/* Ensure dropdown arrows are always visible - Multiple selectors for better coverage */
+.jss_worksheet > tbody > tr > td[data-type="dropdown"]::after,
+.jss_worksheet > tbody > tr > td[data-type="select"]::after,
+.jexcel > tbody > tr > td[data-type="dropdown"]::after,
+.jexcel > tbody > tr > td[data-type="select"]::after,
+.jss_worksheet tbody tr td[data-type="dropdown"]::after,
+.jss_worksheet tbody tr td[data-type="select"]::after,
+.jexcel tbody tr td[data-type="dropdown"]::after,
+.jexcel tbody tr td[data-type="select"]::after,
+.jss_worksheet td[data-type="dropdown"]::after,
+.jss_worksheet td[data-type="select"]::after,
+.jexcel td[data-type="dropdown"]::after,
+.jexcel td[data-type="select"]::after {
+  content: '▼' !important;
+  position: absolute !important;
+  right: 6px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  font-size: 10px !important;
+  color: #6b7280 !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+  display: block !important;
+  opacity: 1 !important;
+}
+
+/* Hide any duplicate arrows from jspreadsheet */
+.jss_worksheet > tbody > tr > td[data-type="dropdown"] .jdropdown::after,
+.jss_worksheet > tbody > tr > td[data-type="select"] .jdropdown::after,
+.jexcel > tbody > tr > td[data-type="dropdown"] .jdropdown::after,
+.jexcel > tbody > tr > td[data-type="select"] .jdropdown::after {
+  display: none !important;
+}
+
+/* Direct column targeting for Currency (8th column) and Status (12th column) - Force dropdown arrows */
+.jss_worksheet tbody tr td:nth-child(8)::after,
+.jexcel tbody tr td:nth-child(8)::after,
+.jss_worksheet tbody tr td:nth-child(12)::after,
+.jexcel tbody tr td:nth-child(12)::after,
+.jss_worksheet tbody tr td:nth-child(8)[data-type="dropdown"]::after,
+.jexcel tbody tr td:nth-child(8)[data-type="dropdown"]::after,
+.jss_worksheet tbody tr td:nth-child(8)[data-type="select"]::after,
+.jexcel tbody tr td:nth-child(8)[data-type="select"]::after,
+.jss_worksheet tbody tr td:nth-child(12)[data-type="dropdown"]::after,
+.jexcel tbody tr td:nth-child(12)[data-type="dropdown"]::after,
+.jss_worksheet tbody tr td:nth-child(12)[data-type="select"]::after,
+.jexcel tbody tr td:nth-child(12)[data-type="select"]::after {
+  content: '▼' !important;
+  position: absolute !important;
+  right: 6px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  font-size: 10px !important;
+  color: #6b7280 !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+  display: block !important;
+  opacity: 1 !important;
+}
+
+/* Ensure these columns have proper positioning */
+.jss_worksheet tbody tr td:nth-child(8),
+.jexcel tbody tr td:nth-child(8),
+.jss_worksheet tbody tr td:nth-child(12),
+.jexcel tbody tr td:nth-child(12),
+.jss_worksheet tbody tr td:nth-child(8)[data-type="dropdown"],
+.jexcel tbody tr td:nth-child(8)[data-type="dropdown"],
+.jss_worksheet tbody tr td:nth-child(8)[data-type="select"],
+.jexcel tbody tr td:nth-child(8)[data-type="select"],
+.jss_worksheet tbody tr td:nth-child(12)[data-type="dropdown"],
+.jexcel tbody tr td:nth-child(12)[data-type="dropdown"],
+.jss_worksheet tbody tr td:nth-child(12)[data-type="select"],
+.jexcel tbody tr td:nth-child(12)[data-type="select"] {
+  position: relative !important;
+  padding-right: 20px !important;
+  cursor: pointer !important;
+}
+
+/* Remove dropdown icon from Amount column (7th column) - Override all dropdown rules */
+.jss_worksheet tbody tr td:nth-child(7)::after,
+.jexcel tbody tr td:nth-child(7)::after,
+.jss_worksheet tbody tr td:nth-child(7)[data-type="dropdown"]::after,
+.jexcel tbody tr td:nth-child(7)[data-type="dropdown"]::after,
+.jss_worksheet tbody tr td:nth-child(7)[data-type="select"]::after,
+.jexcel tbody tr td:nth-child(7)[data-type="select"]::after {
+  display: none !important;
+}
+
+/* Ensure Amount column has normal padding */
+.jss_worksheet tbody tr td:nth-child(7),
+.jexcel tbody tr td:nth-child(7),
+.jss_worksheet tbody tr td:nth-child(7)[data-type="dropdown"],
+.jexcel tbody tr td:nth-child(7)[data-type="dropdown"],
+.jss_worksheet tbody tr td:nth-child(7)[data-type="select"],
+.jexcel tbody tr td:nth-child(7)[data-type="select"] {
+  padding-right: 4px !important;
+  cursor: default !important;
+}
+
+/* Remove dropdown icon from Terms column (11th column) - Override all dropdown rules */
+.jss_worksheet tbody tr td:nth-child(11)::after,
+.jexcel tbody tr td:nth-child(11)::after,
+.jss_worksheet tbody tr td:nth-child(11)[data-type="dropdown"]::after,
+.jexcel tbody tr td:nth-child(11)[data-type="dropdown"]::after,
+.jss_worksheet tbody tr td:nth-child(11)[data-type="select"]::after,
+.jexcel tbody tr td:nth-child(11)[data-type="select"]::after {
+  display: none !important;
+}
+
+/* Ensure Terms column has normal padding */
+.jss_worksheet tbody tr td:nth-child(11),
+.jexcel tbody tr td:nth-child(11),
+.jss_worksheet tbody tr td:nth-child(11)[data-type="dropdown"],
+.jexcel tbody tr td:nth-child(11)[data-type="dropdown"],
+.jss_worksheet tbody tr td:nth-child(11)[data-type="select"],
+.jexcel tbody tr td:nth-child(11)[data-type="select"] {
+  padding-right: 4px !important;
+  cursor: default !important;
+}
+
 .jss_worksheet > tbody > tr > td:hover {
   background: rgba(16, 185, 129, 0.05) !important;
   border-color: #34d399 !important;
@@ -535,6 +673,104 @@
   visibility: visible !important;
   opacity: 1 !important;
   display: block !important;
+}
+
+/* Cell dropdown styles - Enhanced for better visibility */
+.jss_worksheet .jdropdown,
+.jss_worksheet .jdropdown-content,
+.jexcel .jdropdown,
+.jexcel .jdropdown-content {
+  background: #ffffff !important;
+  border: 1px solid #34d399 !important;
+  border-radius: 3px !important;
+  padding: 2px 6px !important;
+  font-size: 11px !important;
+  color: #1f2937 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  z-index: 1000 !important;
+  position: relative !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  min-width: 80px !important;
+}
+
+/* Dropdown arrow styling for all dropdown cells - Always visible */
+.jss_worksheet td[data-type="dropdown"]::after,
+.jexcel td[data-type="dropdown"]::after,
+.jss_worksheet td[data-type="select"]::after,
+.jexcel td[data-type="select"]::after {
+  content: '▼' !important;
+  position: absolute !important;
+  right: 6px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  font-size: 10px !important;
+  color: #6b7280 !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+  display: block !important;
+  opacity: 1 !important;
+}
+
+/* Hide the default jspreadsheet dropdown arrow to avoid duplicates */
+.jss_worksheet .jdropdown::after,
+.jexcel .jdropdown::after {
+  display: none !important;
+}
+
+/* When dropdown is open, change arrow color */
+.jss_worksheet td[data-type="dropdown"]:focus::after,
+.jexcel td[data-type="dropdown"]:focus::after,
+.jss_worksheet td[data-type="select"]:focus::after,
+.jexcel td[data-type="select"]:focus::after {
+  color: #10b981 !important;
+}
+
+/* Ensure dropdown cells have relative positioning for the arrow */
+.jss_worksheet td[data-type="dropdown"],
+.jexcel td[data-type="dropdown"],
+.jss_worksheet td[data-type="select"],
+.jexcel td[data-type="select"] {
+  position: relative !important;
+  padding-right: 20px !important;
+}
+
+/* Dropdown content styling */
+.jss_worksheet .jdropdown-content,
+.jexcel .jdropdown-content {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  min-width: 120px !important;
+  max-height: 200px !important;
+  overflow-y: auto !important;
+  background: #ffffff !important;
+  border: 1px solid #34d399 !important;
+  border-radius: 3px !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+  z-index: 1001 !important;
+}
+
+/* Dropdown option styling */
+.jss_worksheet .jdropdown-content .jdropdown-option,
+.jexcel .jdropdown-content .jdropdown-option {
+  padding: 6px 8px !important;
+  font-size: 11px !important;
+  color: #1f2937 !important;
+  cursor: pointer !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.jss_worksheet .jdropdown-content .jdropdown-option:hover,
+.jexcel .jdropdown-content .jdropdown-option:hover {
+  background: #d1fae5 !important;
+  color: #065f46 !important;
+}
+
+.jss_worksheet .jdropdown-content .jdropdown-option:last-child,
+.jexcel .jdropdown-content .jdropdown-option:last-child {
+  border-bottom: none !important;
 }
 
 .jss_toolbar select:hover,

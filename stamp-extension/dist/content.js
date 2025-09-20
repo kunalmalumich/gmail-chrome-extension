@@ -72584,10 +72584,15 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       },
       {
         title: "Currency",
-        width: 60,
-        type: "text",
+        width: 80,
+        type: "dropdown",
+        source: ["USD", "INR", "EUR", "GBP", "CAD", "AUD", "JPY", "CNY", "OTHER"],
         fieldName: "currency",
-        editable: true
+        editable: true,
+        options: {
+          type: "default",
+          placeholder: "Select Currency"
+        }
       },
       {
         title: "Issue Date",
@@ -72631,11 +72636,15 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       },
       {
         title: "Approver",
-        width: 150,
-        type: "text",
-        fieldName: null,
-        // Computed field from involvementHistory
-        editable: false
+        width: 120,
+        type: "dropdown",
+        source: ["PENDING", "APPROVED", "REJECTED"],
+        fieldName: "approvalStatus",
+        editable: true,
+        options: {
+          type: "default",
+          placeholder: "Select Status"
+        }
       },
       {
         title: "Notes",
@@ -72661,6 +72670,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
     const containerDimensions = calculateOptimalDimensions(container);
     const isLargeDataset = spreadsheetData.length > 50;
     console.log("[JS001] Creating jspreadsheet, data rows:", spreadsheetData.length);
+    console.log("[JS001] Column configuration:", columns);
     const spreadsheet = jspreadsheet(cleanContainer, {
       root: shadowRoot,
       // Critical parameter for Shadow DOM event handling
@@ -72704,6 +72714,82 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       // Let jspreadsheet handle search natively
       // === ENHANCE EXISTING SEARCH WITH REAL-TIME FUNCTIONALITY ===
       oncreateworksheet: function(worksheet) {
+        console.log("[DROPDOWN DEBUG] Worksheet created, checking for dropdown columns...");
+        console.log("[DROPDOWN DEBUG] Worksheet element:", worksheet.element);
+        setTimeout(() => {
+          const dropdownCells = worksheet.element.querySelectorAll('td[data-type="dropdown"]');
+          console.log("[DROPDOWN DEBUG] Found dropdown cells:", dropdownCells.length);
+          const selectCells = worksheet.element.querySelectorAll("select");
+          console.log("[DROPDOWN DEBUG] Found select elements:", selectCells.length);
+          const jdropdownCells = worksheet.element.querySelectorAll(".jdropdown");
+          console.log("[DROPDOWN DEBUG] Found jdropdown elements:", jdropdownCells.length);
+          const currencyColumnIndex = 3;
+          const approverColumnIndex = 7;
+          const rows = worksheet.element.querySelectorAll("tbody tr");
+          rows.forEach((row, rowIndex) => {
+            const currencyCell = row.children[currencyColumnIndex];
+            const approverCell = row.children[approverColumnIndex];
+            if (currencyCell) {
+              currencyCell.setAttribute("data-type", "dropdown");
+              currencyCell.setAttribute("data-column", "currency");
+              currencyCell.style.cursor = "pointer";
+              currencyCell.style.position = "relative";
+              currencyCell.style.paddingRight = "20px";
+              const dropdownArrow = document.createElement("span");
+              dropdownArrow.innerHTML = "\u25BC";
+              dropdownArrow.style.cssText = `
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: #6b7280;
+            pointer-events: none;
+            z-index: 10;
+            display: block;
+            opacity: 1;
+          `;
+              currencyCell.appendChild(dropdownArrow);
+              console.log("[DROPDOWN DEBUG] Added dropdown indicator to currency cell in row", rowIndex);
+            }
+            if (approverCell) {
+              approverCell.setAttribute("data-type", "dropdown");
+              approverCell.setAttribute("data-column", "approver");
+              approverCell.style.cursor = "pointer";
+              approverCell.style.position = "relative";
+              approverCell.style.paddingRight = "20px";
+              const dropdownArrow = document.createElement("span");
+              dropdownArrow.innerHTML = "\u25BC";
+              dropdownArrow.style.cssText = `
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: #6b7280;
+            pointer-events: none;
+            z-index: 10;
+            display: block;
+            opacity: 1;
+          `;
+              approverCell.appendChild(dropdownArrow);
+              console.log("[DROPDOWN DEBUG] Added dropdown indicator to approver cell in row", rowIndex);
+            }
+          });
+          const headerRow = worksheet.element.querySelector("thead tr");
+          if (headerRow) {
+            const currencyHeader = headerRow.children[currencyColumnIndex];
+            const approverHeader = headerRow.children[approverColumnIndex];
+            if (currencyHeader) {
+              currencyHeader.setAttribute("data-type", "dropdown");
+              currencyHeader.setAttribute("data-column", "currency");
+            }
+            if (approverHeader) {
+              approverHeader.setAttribute("data-type", "dropdown");
+              approverHeader.setAttribute("data-column", "approver");
+            }
+          }
+        }, 1e3);
         console.log("[SEARCH] oncreateworksheet event fired!");
         console.log("[SEARCH] Worksheet element:", worksheet.element);
         setTimeout(() => {
@@ -73157,10 +73243,12 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         console.log("[SHADOW DOM] Loading local CSS files...");
         const jspreadsheetUrl = chrome.runtime.getURL("jspreadsheet.css");
         const jsuitesUrl = chrome.runtime.getURL("jsuites.css");
+        const jsuitesJsUrl = chrome.runtime.getURL("jsuites.js");
         const stampThemeUrl = chrome.runtime.getURL("stamp-spreadsheet-theme.css");
-        console.log("[SHADOW DOM] CSS URLs:", {
+        console.log("[SHADOW DOM] CSS and JS URLs:", {
           jspreadsheet: jspreadsheetUrl,
           jsuites: jsuitesUrl,
+          jsuitesJs: jsuitesJsUrl,
           stampTheme: stampThemeUrl
         });
         const jspreadsheetResponse = await fetch(jspreadsheetUrl);
@@ -73182,6 +73270,19 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         const stampThemeCss = await stampThemeResponse.text();
         console.log("[SHADOW DOM] \u2705 stamp-spreadsheet-theme.css loaded, size:", stampThemeCss.length);
         console.log("[SHADOW DOM] Theme CSS preview:", stampThemeCss.substring(0, 200) + "...");
+        const jsuitesJsResponse = await fetch(jsuitesJsUrl);
+        if (!jsuitesJsResponse.ok) {
+          throw new Error(`Failed to fetch jsuites.js: ${jsuitesJsResponse.status} ${jsuitesJsResponse.statusText}`);
+        }
+        const jsuitesJs = await jsuitesJsResponse.text();
+        console.log("[SHADOW DOM] \u2705 jsuites.js loaded, size:", jsuitesJs.length);
+        const jsuitesScript = document.createElement("script");
+        jsuitesScript.textContent = jsuitesJs;
+        shadowRoot.appendChild(jsuitesScript);
+        await new Promise((resolve) => {
+          jsuitesScript.onload = resolve;
+          setTimeout(resolve, 100);
+        });
         const styleElement = document.createElement("style");
         styleElement.textContent = `
         /* Material Icons - Required for toolbar */
@@ -73476,13 +73577,14 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             issueDate: "2024-01-15",
             dueDate: "2024-02-15",
             paymentTerms: "Net 30",
+            approvalStatus: "PENDING",
             notes: "Annual software license renewal"
           }
         },
         vendor: { name: "Tech Solutions Inc." },
         amount: 15e3,
         currency: "USD",
-        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "status", "notes"],
+        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "approvalStatus", "notes"],
         involvementHistory: [
           {
             actor: { name: "John Smith", email: "john@acme.com" },
@@ -73513,17 +73615,18 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             description: "Office furniture and equipment",
             period: "January 2024",
             amount: 8750.5,
-            currency: "USD",
+            currency: "INR",
             issueDate: "2024-01-20",
             dueDate: "2024-02-20",
             paymentTerms: "Net 30",
+            approvalStatus: "APPROVED",
             notes: "Bulk office furniture purchase"
           }
         },
         vendor: { name: "Office Supplies Co." },
         amount: 8750.5,
         currency: "USD",
-        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "status", "notes"],
+        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "approvalStatus", "notes"],
         involvementHistory: [
           {
             actor: { name: "Mike Wilson", email: "mike@global.com" },
@@ -73555,7 +73658,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             ],
             date: "2024-01-25",
             amount: 2500,
-            currency: "USD"
+            currency: "EUR",
+            approvalStatus: "REJECTED"
           }
         },
         vendor: { name: "Property Management LLC" },
@@ -73588,17 +73692,18 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             description: "AWS cloud infrastructure services",
             period: "January 2024",
             amount: 3200.75,
-            currency: "USD",
+            currency: "GBP",
             issueDate: "2024-01-28",
             dueDate: "2024-02-28",
             paymentTerms: "Net 30",
+            approvalStatus: "PENDING",
             notes: "Monthly cloud hosting costs"
           }
         },
         vendor: { name: "Cloud Services Provider" },
         amount: 3200.75,
         currency: "USD",
-        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "status", "notes"],
+        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "approvalStatus", "notes"],
         involvementHistory: [
           {
             actor: { name: "Alex Rodriguez", email: "alex@startupxyz.com" },
@@ -73639,7 +73744,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         vendor: { name: "Marketing Agency Pro" },
         amount: 25e3,
         currency: "USD",
-        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "status", "notes"],
+        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "approvalStatus", "notes"],
         involvementHistory: [
           {
             actor: { name: "Robert Kim", email: "robert@manufacturing.com" },
@@ -73680,7 +73785,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         vendor: { name: "Logistics Solutions" },
         amount: 18e3,
         currency: "USD",
-        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "status", "notes"],
+        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "approvalStatus", "notes"],
         involvementHistory: [
           {
             actor: { name: "Tom Anderson", email: "tom@retail.com" },
@@ -73721,7 +73826,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         vendor: { name: "IT Consulting Group" },
         amount: 45e3,
         currency: "USD",
-        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "status", "notes"],
+        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "approvalStatus", "notes"],
         involvementHistory: [
           {
             actor: { name: "Dr. Susan White", email: "susan@healthcare.com" },
@@ -73762,7 +73867,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         vendor: { name: "Legal Advisory Firm" },
         amount: 12500,
         currency: "USD",
-        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "status", "notes"],
+        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "approvalStatus", "notes"],
         involvementHistory: [
           {
             actor: { name: "Patricia Moore", email: "patricia@financial.com" },
@@ -73808,7 +73913,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         vendor: { name: "Design Studio Creative" },
         amount: 8500,
         currency: "USD",
-        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "status", "notes"],
+        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "approvalStatus", "notes"],
         involvementHistory: [
           {
             actor: { name: "Chris Wilson", email: "chris@techstartup.com" },
@@ -73849,7 +73954,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         vendor: { name: "Unknown Vendor" },
         amount: 0,
         currency: "USD",
-        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "status", "notes"],
+        editableFields: ["invoiceNumber", "entityName", "vendor.name", "description", "period", "amount", "currency", "issueDate", "dueDate", "paymentTerms", "approvalStatus", "notes"],
         involvementHistory: [
           {
             actor: { name: "System", email: "system@company.com" },
