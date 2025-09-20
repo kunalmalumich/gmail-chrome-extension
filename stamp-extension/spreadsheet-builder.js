@@ -39,35 +39,40 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       width: 100, 
       type: 'text',
       fieldName: 'invoiceNumber',
-      editable: true
+      editable: true,
+      filter: true
     },
     { 
       title: 'Entity Name', 
       width: 120, 
       type: 'text',
       fieldName: 'entityName',
-      editable: true
+      editable: true,
+      filter: true
     },
     { 
       title: 'Vendor Name', 
       width: 120, 
       type: 'text',
       fieldName: 'vendor.name',
-      editable: true
+      editable: true,
+      filter: true
     },
     { 
       title: 'Invoice Description', 
       width: 100, 
       type: 'text',
       fieldName: 'description',
-      editable: true
+      editable: true,
+      filter: true
     },
     { 
       title: 'Period', 
       width: 80, 
       type: 'text',
       fieldName: 'period',
-      editable: true
+      editable: true,
+      filter: true
     },
     { 
       title: 'Amount', 
@@ -75,7 +80,8 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       type: 'numeric', 
       mask: '$ #,##.00',
       fieldName: 'amount',
-      editable: true
+      editable: true,
+      filter: true
     },
     {
       title: 'Currency',
@@ -84,6 +90,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       source: ['USD', 'INR', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CNY', 'OTHER'],
       fieldName: 'currency',
       editable: true,
+      filter: true,
       options: {
         type: 'default',
         placeholder: 'Select Currency'
@@ -95,7 +102,8 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       type: 'calendar', 
       options: { format: 'YYYY-MM-DD' },
       fieldName: 'issueDate',
-      editable: true
+      editable: true,
+      filter: true
     },
     { 
       title: 'Due Date', 
@@ -103,14 +111,16 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       type: 'calendar', 
       options: { format: 'YYYY-MM-DD' },
       fieldName: 'dueDate',
-      editable: true
+      editable: true,
+      filter: true
     },
     {
       title: 'Terms',
       width: 70,
       type: 'text',
       fieldName: 'paymentTerms',
-      editable: true
+      editable: true,
+      filter: true
     },
     { 
       title: 'Status', 
@@ -118,7 +128,8 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       type: 'dropdown',
       source: [ 'pending', 'approved', 'rejected', 'paid', 'on_hold', 'requires_review', 'partially_approved', 'ready_for_payment', 'duplicate', 'unknown' ],
       fieldName: 'status',
-      editable: true
+      editable: true,
+      filter: true
     },
     {
       title: '📤', // Gmail icon column (moved next to Status)
@@ -135,6 +146,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       source: ['PENDING', 'APPROVED', 'REJECTED'],
       fieldName: 'approvalStatus',
       editable: true,
+      filter: true,
       options: {
         type: 'default',
         placeholder: 'Select Status'
@@ -145,7 +157,8 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       width: 250,
       type: 'text',
       fieldName: 'notes',
-      editable: true
+      editable: true,
+      filter: true
     },
     { 
       title: 'Actions', 
@@ -190,9 +203,10 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       // === PAGINATION CONFIGURATION ===
       pagination: 10, // Show 10 rows per page
       paginationOptions: [10, 25, 50, 100], // Available page size options
+      showPagination: true, // Ensure pagination controls are visible
       
       // === SEARCH CONFIGURATION ===
-      search: 1, // Enable search functionality (jspreadsheet-ce v5.0.3 expects 1, not true)
+      search: true, // Enable search functionality
       
       // === USE JSPREADSHEET DEFAULTS ===
       allowComments: true,
@@ -214,102 +228,9 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   
   // === ENHANCE EXISTING SEARCH WITH REAL-TIME FUNCTIONALITY ===
   oncreateworksheet: function(worksheet) {
-    console.log('[DROPDOWN DEBUG] Worksheet created, checking for dropdown columns...');
-    console.log('[DROPDOWN DEBUG] Worksheet element:', worksheet.element);
+    console.log('[DROPDOWN] Worksheet created - using jspreadsheet native dropdown handling');
     
-    // Check if dropdown columns are properly initialized
-    setTimeout(() => {
-      const dropdownCells = worksheet.element.querySelectorAll('td[data-type="dropdown"]');
-      console.log('[DROPDOWN DEBUG] Found dropdown cells:', dropdownCells.length);
-      
-      const selectCells = worksheet.element.querySelectorAll('select');
-      console.log('[DROPDOWN DEBUG] Found select elements:', selectCells.length);
-      
-      const jdropdownCells = worksheet.element.querySelectorAll('.jdropdown');
-      console.log('[DROPDOWN DEBUG] Found jdropdown elements:', jdropdownCells.length);
-      
-      // Add dropdown indicators to Currency and Approver columns
-      const currencyColumnIndex = 3; // Currency is the 4th column (0-indexed)
-      const approverColumnIndex = 7; // Approver is the 8th column (0-indexed)
-      
-      // Find all rows and add dropdown indicators
-      const rows = worksheet.element.querySelectorAll('tbody tr');
-      rows.forEach((row, rowIndex) => {
-        const currencyCell = row.children[currencyColumnIndex];
-        const approverCell = row.children[approverColumnIndex];
-        
-        if (currencyCell) {
-          currencyCell.setAttribute('data-type', 'dropdown');
-          currencyCell.setAttribute('data-column', 'currency');
-          currencyCell.style.cursor = 'pointer';
-          currencyCell.style.position = 'relative';
-          currencyCell.style.paddingRight = '20px';
-          
-          // Create and add dropdown arrow element
-          const dropdownArrow = document.createElement('span');
-          dropdownArrow.innerHTML = '▼';
-          dropdownArrow.style.cssText = `
-            position: absolute;
-            right: 6px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 10px;
-            color: #6b7280;
-            pointer-events: none;
-            z-index: 10;
-            display: block;
-            opacity: 1;
-          `;
-          currencyCell.appendChild(dropdownArrow);
-          
-          console.log('[DROPDOWN DEBUG] Added dropdown indicator to currency cell in row', rowIndex);
-        }
-        
-        if (approverCell) {
-          approverCell.setAttribute('data-type', 'dropdown');
-          approverCell.setAttribute('data-column', 'approver');
-          approverCell.style.cursor = 'pointer';
-          approverCell.style.position = 'relative';
-          approverCell.style.paddingRight = '20px';
-          
-          // Create and add dropdown arrow element
-          const dropdownArrow = document.createElement('span');
-          dropdownArrow.innerHTML = '▼';
-          dropdownArrow.style.cssText = `
-            position: absolute;
-            right: 6px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 10px;
-            color: #6b7280;
-            pointer-events: none;
-            z-index: 10;
-            display: block;
-            opacity: 1;
-          `;
-          approverCell.appendChild(dropdownArrow);
-          
-          console.log('[DROPDOWN DEBUG] Added dropdown indicator to approver cell in row', rowIndex);
-        }
-      });
-      
-      // Also add dropdown indicators to header cells
-      const headerRow = worksheet.element.querySelector('thead tr');
-      if (headerRow) {
-        const currencyHeader = headerRow.children[currencyColumnIndex];
-        const approverHeader = headerRow.children[approverColumnIndex];
-        
-        if (currencyHeader) {
-          currencyHeader.setAttribute('data-type', 'dropdown');
-          currencyHeader.setAttribute('data-column', 'currency');
-        }
-        
-        if (approverHeader) {
-          approverHeader.setAttribute('data-type', 'dropdown');
-          approverHeader.setAttribute('data-column', 'approver');
-        }
-      }
-    }, 1000);
+    // Search functionality (keeping existing search logic)
     console.log('[SEARCH] oncreateworksheet event fired!');
     console.log('[SEARCH] Worksheet element:', worksheet.element);
     
@@ -1000,36 +921,25 @@ async function setupShadowDOMContainer(container) {
       .jexcel .highlight, .jspreadsheet .highlight { background: #f3f4f6; }
       .jss_highlight { background: #fef3c7 !important; border: 1px solid #f59e0b !important; }
       
-      /* Pagination and Search Controls Styling */
-      .jspreadsheet-pagination, .jspreadsheet-search {
-        margin: 10px 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 14px;
-        color: #374151;
+      /* Minimal Pagination and Search Controls Styling */
+      .jss_filter, .jss_pagination {
+        margin: 8px 0;
       }
-      .jspreadsheet-pagination select, .jspreadsheet-search input {
-        padding: 4px 8px;
+      .jss_filter input, .jss_pagination select {
         border: 1px solid #d1d5db;
         border-radius: 4px;
+        padding: 4px 6px;
         font-size: 14px;
       }
-      .jspreadsheet-pagination button {
-        padding: 4px 8px;
+      .jss_pagination > div > div {
         border: 1px solid #d1d5db;
         border-radius: 4px;
-        background: #f9fafb;
         cursor: pointer;
-        font-size: 14px;
       }
-      .jspreadsheet-pagination button:hover {
-        background: #f3f4f6;
-      }
-      .jspreadsheet-pagination button.active {
-        background: #3b82f6;
+      .jss_page_selected {
+        background: #10b981;
         color: white;
-        border-color: #3b82f6;
+        border-color: #10b981;
       }
     `;
     shadowRoot.appendChild(style);

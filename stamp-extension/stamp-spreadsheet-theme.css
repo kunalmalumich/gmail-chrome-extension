@@ -178,6 +178,33 @@
   line-height: 16px !important;
 }
 
+/* Filter Icons in Header - Small gray triangle */
+.jss_worksheet > thead > tr > td .jss_filter_icon,
+.jss_worksheet > thead > tr > td[data-filter="true"]::after,
+.jexcel > thead > tr > td .jss_filter_icon,
+.jexcel > thead > tr > td[data-filter="true"]::after {
+  content: '▼' !important;
+  position: absolute !important;
+  right: 4px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  font-size: 8px !important;
+  color: #ffffff !important;
+  opacity: 0.7 !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+  display: block !important;
+}
+
+/* Filter icon hover effect */
+.jss_worksheet > thead > tr > td:hover .jss_filter_icon,
+.jss_worksheet > thead > tr > td[data-filter="true"]:hover::after,
+.jexcel > thead > tr > td:hover .jss_filter_icon,
+.jexcel > thead > tr > td[data-filter="true"]:hover::after {
+  opacity: 1 !important;
+  color: #ffffff !important;
+}
+
 /* Remove header shiny effects */
 .jss_worksheet > thead > tr > td::before {
   display: none !important;
@@ -347,90 +374,35 @@
   display: none !important;
 }
 
-/* Direct column targeting for Currency (8th column) and Status (12th column) - Force dropdown arrows */
-.jss_worksheet tbody tr td:nth-child(8)::after,
-.jexcel tbody tr td:nth-child(8)::after,
-.jss_worksheet tbody tr td:nth-child(12)::after,
-.jexcel tbody tr td:nth-child(12)::after,
-.jss_worksheet tbody tr td:nth-child(8)[data-type="dropdown"]::after,
-.jexcel tbody tr td:nth-child(8)[data-type="dropdown"]::after,
-.jss_worksheet tbody tr td:nth-child(8)[data-type="select"]::after,
-.jexcel tbody tr td:nth-child(8)[data-type="select"]::after,
-.jss_worksheet tbody tr td:nth-child(12)[data-type="dropdown"]::after,
-.jexcel tbody tr td:nth-child(12)[data-type="dropdown"]::after,
-.jss_worksheet tbody tr td:nth-child(12)[data-type="select"]::after,
-.jexcel tbody tr td:nth-child(12)[data-type="select"]::after {
-  content: '▼' !important;
-  position: absolute !important;
-  right: 6px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  font-size: 10px !important;
-  color: #6b7280 !important;
-  pointer-events: none !important;
-  z-index: 10 !important;
-  display: block !important;
-  opacity: 1 !important;
-}
+/* Let jspreadsheet handle dropdown styling natively */
 
-/* Ensure these columns have proper positioning */
-.jss_worksheet tbody tr td:nth-child(8),
-.jexcel tbody tr td:nth-child(8),
-.jss_worksheet tbody tr td:nth-child(12),
-.jexcel tbody tr td:nth-child(12),
-.jss_worksheet tbody tr td:nth-child(8)[data-type="dropdown"],
-.jexcel tbody tr td:nth-child(8)[data-type="dropdown"],
-.jss_worksheet tbody tr td:nth-child(8)[data-type="select"],
-.jexcel tbody tr td:nth-child(8)[data-type="select"],
-.jss_worksheet tbody tr td:nth-child(12)[data-type="dropdown"],
-.jexcel tbody tr td:nth-child(12)[data-type="dropdown"],
-.jss_worksheet tbody tr td:nth-child(12)[data-type="select"],
-.jexcel tbody tr td:nth-child(12)[data-type="select"] {
-  position: relative !important;
-  padding-right: 20px !important;
+/* Make dropdown icons visible at all times in Currency and Status columns */
+/* Currency column (2nd column) - always show dropdown arrow */
+.jss_worksheet tbody tr td:nth-child(2)[data-type="dropdown"],
+.jexcel tbody tr td:nth-child(2)[data-type="dropdown"] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23666' d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 8px center !important;
+  padding-right: 25px !important;
   cursor: pointer !important;
 }
 
-/* Remove dropdown icon from Amount column (7th column) - Override all dropdown rules */
-.jss_worksheet tbody tr td:nth-child(7)::after,
-.jexcel tbody tr td:nth-child(7)::after,
-.jss_worksheet tbody tr td:nth-child(7)[data-type="dropdown"]::after,
-.jexcel tbody tr td:nth-child(7)[data-type="dropdown"]::after,
-.jss_worksheet tbody tr td:nth-child(7)[data-type="select"]::after,
-.jexcel tbody tr td:nth-child(7)[data-type="select"]::after {
-  display: none !important;
+/* Status column (6th column) - always show dropdown arrow */
+.jss_worksheet tbody tr td:nth-child(6)[data-type="dropdown"],
+.jexcel tbody tr td:nth-child(6)[data-type="dropdown"] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23666' d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 8px center !important;
+  padding-right: 25px !important;
+  cursor: pointer !important;
 }
 
-/* Ensure Amount column has normal padding */
-.jss_worksheet tbody tr td:nth-child(7),
-.jexcel tbody tr td:nth-child(7),
-.jss_worksheet tbody tr td:nth-child(7)[data-type="dropdown"],
-.jexcel tbody tr td:nth-child(7)[data-type="dropdown"],
-.jss_worksheet tbody tr td:nth-child(7)[data-type="select"],
-.jexcel tbody tr td:nth-child(7)[data-type="select"] {
-  padding-right: 4px !important;
-  cursor: default !important;
-}
-
-/* Remove dropdown icon from Terms column (11th column) - Override all dropdown rules */
-.jss_worksheet tbody tr td:nth-child(11)::after,
-.jexcel tbody tr td:nth-child(11)::after,
-.jss_worksheet tbody tr td:nth-child(11)[data-type="dropdown"]::after,
-.jexcel tbody tr td:nth-child(11)[data-type="dropdown"]::after,
-.jss_worksheet tbody tr td:nth-child(11)[data-type="select"]::after,
-.jexcel tbody tr td:nth-child(11)[data-type="select"]::after {
-  display: none !important;
-}
-
-/* Ensure Terms column has normal padding */
-.jss_worksheet tbody tr td:nth-child(11),
-.jexcel tbody tr td:nth-child(11),
-.jss_worksheet tbody tr td:nth-child(11)[data-type="dropdown"],
-.jexcel tbody tr td:nth-child(11)[data-type="dropdown"],
-.jss_worksheet tbody tr td:nth-child(11)[data-type="select"],
-.jexcel tbody tr td:nth-child(11)[data-type="select"] {
-  padding-right: 4px !important;
-  cursor: default !important;
+/* Ensure dropdown arrows are visible even when not selected */
+.jss_worksheet tbody tr td:nth-child(2)[data-type="dropdown"]:not(.selected),
+.jexcel tbody tr td:nth-child(2)[data-type="dropdown"]:not(.selected),
+.jss_worksheet tbody tr td:nth-child(6)[data-type="dropdown"]:not(.selected),
+.jexcel tbody tr td:nth-child(6)[data-type="dropdown"]:not(.selected) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23666' d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E") !important;
 }
 
 .jss_worksheet > tbody > tr > td:hover {
@@ -486,106 +458,57 @@
   box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
 }
 
-/* Search and Pagination Controls - Enhanced with dynamic effects */
-.jspreadsheet-search, .jspreadsheet-pagination {
-  background: linear-gradient(135deg, var(--stamp-bg-secondary) 0%, rgba(16, 185, 129, 0.05) 100%);
-  border-radius: var(--stamp-radius-lg);
-  padding: 20px;
-  margin: 20px 0;
-  box-shadow: var(--stamp-shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  border: 2px solid var(--stamp-primary-light);
-  position: relative;
-  overflow: hidden;
+/* Minimal Search and Pagination Styling - Let jspreadsheet handle layout */
+.jss_filter {
+  margin: 8px 0 !important;
 }
 
-.jspreadsheet-search::before, .jspreadsheet-pagination::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.1), transparent);
-  transition: left 0.8s ease;
+.jss_filter input[type="text"] {
+  border: 1px solid #d1d5db !important;
+  border-radius: 4px !important;
+  padding: 6px 8px !important;
+  font-size: 14px !important;
 }
 
-.jspreadsheet-search:hover::before, .jspreadsheet-pagination:hover::before {
-  left: 100%;
+.jss_filter input[type="text"]:focus {
+  outline: none !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1) !important;
 }
 
-.jspreadsheet-search input {
-  background: linear-gradient(135deg, var(--stamp-bg-primary) 0%, rgba(16, 185, 129, 0.02) 100%);
-  border: 2px solid var(--stamp-primary-light);
-  border-radius: var(--stamp-radius-lg);
-  padding: 14px 20px;
-  font-size: 15px;
-  font-weight: 500;
-  transition: all var(--stamp-transition-normal);
-  box-shadow: var(--stamp-shadow-md), inset 0 1px 3px rgba(16, 185, 129, 0.1);
-  color: var(--stamp-text-primary);
-  position: relative;
+.jss_pagination {
+  margin: 8px 0 !important;
 }
 
-.jspreadsheet-search input::placeholder {
-  color: var(--stamp-text-muted);
-  font-style: italic;
+.jss_pagination select {
+  border: 1px solid #d1d5db !important;
+  border-radius: 4px !important;
+  padding: 4px 6px !important;
+  font-size: 14px !important;
 }
 
-.jspreadsheet-search input:focus {
-  outline: none;
-  border-color: var(--stamp-primary);
-  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15), var(--stamp-shadow-lg);
-  transform: translateY(-2px) scale(1.02);
-  background: linear-gradient(135deg, var(--stamp-bg-primary) 0%, rgba(16, 185, 129, 0.05) 100%);
+.jss_pagination select:focus {
+  outline: none !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1) !important;
 }
 
-.jspreadsheet-search button, .jspreadsheet-pagination button {
-  background: linear-gradient(135deg, var(--stamp-primary) 0%, var(--stamp-primary-dark) 50%, var(--stamp-secondary) 100%);
-  color: white;
-  border: none;
-  border-radius: var(--stamp-radius-lg);
-  padding: 14px 24px;
-  font-weight: 700;
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  transition: all var(--stamp-transition-normal);
-  box-shadow: var(--stamp-shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  position: relative;
-  overflow: hidden;
+.jss_pagination > div > div {
+  border: 1px solid #d1d5db !important;
+  border-radius: 4px !important;
+  transition: all 0.15s ease !important;
 }
 
-.jspreadsheet-search button::before, .jspreadsheet-pagination button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: left 0.5s ease;
+.jss_pagination > div > div:hover {
+  background: #f3f4f6 !important;
+  border-color: #10b981 !important;
 }
 
-.jspreadsheet-search button:hover::before, .jspreadsheet-pagination button:hover::before {
-  left: 100%;
-}
-
-.jspreadsheet-search button:hover, .jspreadsheet-pagination button:hover {
-  background: linear-gradient(135deg, var(--stamp-primary-dark) 0%, var(--stamp-secondary) 100%);
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: var(--stamp-shadow-xl), 0 0 20px rgba(16, 185, 129, 0.4);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-.jspreadsheet-search button:active, .jspreadsheet-pagination button:active {
-  transform: translateY(-1px) scale(1.02);
-  box-shadow: var(--stamp-shadow-md);
-}
-
-.jspreadsheet-pagination button.active {
-  background: linear-gradient(135deg, var(--stamp-secondary) 0%, var(--stamp-gray-800) 100%);
-  transform: scale(1.05);
+.jss_page_selected {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border-color: #10b981 !important;
+  font-weight: 600 !important;
 }
 
 /* Toolbar - Green but clean */
@@ -750,6 +673,139 @@
   border-radius: 3px !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
   z-index: 1001 !important;
+}
+
+/* Filter Panel Styling - Two-pane filter dropdown */
+.jss_filter_panel,
+.jss_filter_dropdown,
+.jexcel_filter_panel,
+.jexcel_filter_dropdown {
+  background: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 4px !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  padding: 12px !important;
+  min-width: 200px !important;
+  max-width: 300px !important;
+  z-index: 1002 !important;
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+}
+
+/* Filter Panel Header */
+.jss_filter_panel .jss_filter_header,
+.jexcel_filter_panel .jexcel_filter_header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 8px !important;
+  padding-bottom: 8px !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+/* Filter Search Input */
+.jss_filter_panel .jss_filter_search,
+.jexcel_filter_panel .jexcel_filter_search {
+  flex: 1 !important;
+  padding: 6px 8px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 3px !important;
+  font-size: 12px !important;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+}
+
+.jss_filter_panel .jss_filter_search:focus,
+.jexcel_filter_panel .jexcel_filter_search:focus {
+  outline: none !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1) !important;
+}
+
+/* Filter Condition Dropdown */
+.jss_filter_panel .jss_filter_condition,
+.jexcel_filter_panel .jexcel_filter_condition {
+  padding: 6px 8px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 3px !important;
+  font-size: 12px !important;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  min-width: 80px !important;
+}
+
+/* Filter Options List */
+.jss_filter_panel .jss_filter_options,
+.jexcel_filter_panel .jexcel_filter_options {
+  max-height: 150px !important;
+  overflow-y: auto !important;
+  margin-bottom: 8px !important;
+}
+
+/* Filter Option Items */
+.jss_filter_panel .jss_filter_option,
+.jexcel_filter_panel .jexcel_filter_option {
+  display: flex !important;
+  align-items: center !important;
+  padding: 4px 0 !important;
+  font-size: 12px !important;
+  color: #1f2937 !important;
+  cursor: pointer !important;
+}
+
+.jss_filter_panel .jss_filter_option:hover,
+.jexcel_filter_panel .jexcel_filter_option:hover {
+  background: #f3f4f6 !important;
+  border-radius: 2px !important;
+}
+
+/* Filter Checkboxes */
+.jss_filter_panel .jss_filter_option input[type="checkbox"],
+.jexcel_filter_panel .jexcel_filter_option input[type="checkbox"] {
+  margin-right: 6px !important;
+  accent-color: #10b981 !important;
+}
+
+/* Filter Panel Buttons */
+.jss_filter_panel .jss_filter_buttons,
+.jexcel_filter_panel .jexcel_filter_buttons {
+  display: flex !important;
+  gap: 8px !important;
+  justify-content: flex-end !important;
+  padding-top: 8px !important;
+  border-top: 1px solid #e5e7eb !important;
+}
+
+.jss_filter_panel .jss_filter_button,
+.jexcel_filter_panel .jexcel_filter_button {
+  padding: 6px 12px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 3px !important;
+  font-size: 12px !important;
+  cursor: pointer !important;
+  background: #ffffff !important;
+  color: #374151 !important;
+  transition: all 0.15s ease !important;
+}
+
+.jss_filter_panel .jss_filter_button:hover,
+.jexcel_filter_panel .jexcel_filter_button:hover {
+  background: #f9fafb !important;
+  border-color: #9ca3af !important;
+}
+
+.jss_filter_panel .jss_filter_button.primary,
+.jexcel_filter_panel .jexcel_filter_button.primary {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border-color: #10b981 !important;
+}
+
+.jss_filter_panel .jss_filter_button.primary:hover,
+.jexcel_filter_panel .jexcel_filter_button.primary:hover {
+  background: #059669 !important;
+  border-color: #059669 !important;
 }
 
 /* Dropdown option styling */

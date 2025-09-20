@@ -72537,42 +72537,54 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         type: "html",
         readOnly: true,
         fieldName: null,
-        editable: false
+        editable: false,
+        filter: false
+        // No filter for icon column
       },
       {
         title: "Invoice #",
         width: 100,
         type: "text",
         fieldName: "invoiceNumber",
-        editable: true
+        editable: true,
+        filter: true
+        // Enable filter for Invoice Number
       },
       {
         title: "Entity Name",
         width: 120,
         type: "text",
         fieldName: "entityName",
-        editable: true
+        editable: true,
+        filter: true
+        // Enable filter for Entity Name
       },
       {
         title: "Vendor Name",
         width: 120,
         type: "text",
         fieldName: "vendor.name",
-        editable: true
+        editable: true,
+        filter: true
+        // Enable filter for Vendor Name
       },
       {
         title: "Invoice Description",
         width: 100,
         type: "text",
         fieldName: "description",
-        editable: true
+        editable: true,
+        filter: true
+        // Enable filter for Description
       },
       {
         title: "Period",
         width: 80,
         type: "text",
         fieldName: "period",
-        editable: true
+        editable: true,
+        filter: true
+        // Enable filter for Period
       },
       {
         title: "Amount",
@@ -72580,7 +72592,9 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         type: "numeric",
         mask: "$ #,##.00",
         fieldName: "amount",
-        editable: true
+        editable: true,
+        filter: true
+        // Enable filter for Amount
       },
       {
         title: "Currency",
@@ -72589,6 +72603,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         source: ["USD", "INR", "EUR", "GBP", "CAD", "AUD", "JPY", "CNY", "OTHER"],
         fieldName: "currency",
         editable: true,
+        filter: true,
+        // Enable filter for Currency
         options: {
           type: "default",
           placeholder: "Select Currency"
@@ -72600,7 +72616,9 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         type: "calendar",
         options: { format: "YYYY-MM-DD" },
         fieldName: "issueDate",
-        editable: true
+        editable: true,
+        filter: true
+        // Enable filter for Issue Date
       },
       {
         title: "Due Date",
@@ -72608,14 +72626,18 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         type: "calendar",
         options: { format: "YYYY-MM-DD" },
         fieldName: "dueDate",
-        editable: true
+        editable: true,
+        filter: true
+        // Enable filter for Due Date
       },
       {
         title: "Terms",
         width: 70,
         type: "text",
         fieldName: "paymentTerms",
-        editable: true
+        editable: true,
+        filter: true
+        // Enable filter for Terms
       },
       {
         title: "Status",
@@ -72623,7 +72645,9 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         type: "dropdown",
         source: ["pending", "approved", "rejected", "paid", "on_hold", "requires_review", "partially_approved", "ready_for_payment", "duplicate", "unknown"],
         fieldName: "status",
-        editable: true
+        editable: true,
+        filter: true
+        // Enable filter for Status
       },
       {
         title: "\u{1F4E4}",
@@ -72632,7 +72656,9 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         type: "html",
         readOnly: true,
         fieldName: null,
-        editable: false
+        editable: false,
+        filter: false
+        // No filter for icon column
       },
       {
         title: "Approver",
@@ -72641,6 +72667,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         source: ["PENDING", "APPROVED", "REJECTED"],
         fieldName: "approvalStatus",
         editable: true,
+        filter: true,
+        // Enable filter for Approver
         options: {
           type: "default",
           placeholder: "Select Status"
@@ -72651,7 +72679,9 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         width: 250,
         type: "text",
         fieldName: "notes",
-        editable: true
+        editable: true,
+        filter: true
+        // Enable filter for Notes
       },
       {
         title: "Actions",
@@ -72659,7 +72689,9 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         type: "html",
         readOnly: true,
         fieldName: null,
-        editable: false
+        editable: false,
+        filter: false
+        // No filter for Actions column
       }
     ];
     const pdfCache = /* @__PURE__ */ new Map();
@@ -72708,88 +72740,30 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         columnSorting: true,
         columnResize: true,
         rowResize: true,
-        filters: true
+        filters: true,
+        // Enable global filters
+        // === FILTER CONFIGURATION ===
+        // Filter events for enhanced functionality
+        onbeforefilter: function(worksheet, terms, rowNumbers) {
+          console.log("[FILTER] Before filter applied:", { terms, rowNumbers });
+          return true;
+        },
+        onfilter: function(worksheet, terms, rowNumbers) {
+          console.log("[FILTER] Filter applied:", { terms, rowNumbers });
+          const totalRows = worksheet.getData().length;
+          const filteredRows = rowNumbers ? rowNumbers.length : totalRows;
+          console.log(`[FILTER] Showing ${filteredRows} of ${totalRows} rows`);
+        },
+        onopenfilter: function(worksheet, column, options) {
+          console.log("[FILTER] Opening filter for column:", column, "options:", options);
+          return options;
+        }
       }],
       // === SEARCH EVENT HANDLERS ===
       // Let jspreadsheet handle search natively
       // === ENHANCE EXISTING SEARCH WITH REAL-TIME FUNCTIONALITY ===
       oncreateworksheet: function(worksheet) {
-        console.log("[DROPDOWN DEBUG] Worksheet created, checking for dropdown columns...");
-        console.log("[DROPDOWN DEBUG] Worksheet element:", worksheet.element);
-        setTimeout(() => {
-          const dropdownCells = worksheet.element.querySelectorAll('td[data-type="dropdown"]');
-          console.log("[DROPDOWN DEBUG] Found dropdown cells:", dropdownCells.length);
-          const selectCells = worksheet.element.querySelectorAll("select");
-          console.log("[DROPDOWN DEBUG] Found select elements:", selectCells.length);
-          const jdropdownCells = worksheet.element.querySelectorAll(".jdropdown");
-          console.log("[DROPDOWN DEBUG] Found jdropdown elements:", jdropdownCells.length);
-          const currencyColumnIndex = 3;
-          const approverColumnIndex = 7;
-          const rows = worksheet.element.querySelectorAll("tbody tr");
-          rows.forEach((row, rowIndex) => {
-            const currencyCell = row.children[currencyColumnIndex];
-            const approverCell = row.children[approverColumnIndex];
-            if (currencyCell) {
-              currencyCell.setAttribute("data-type", "dropdown");
-              currencyCell.setAttribute("data-column", "currency");
-              currencyCell.style.cursor = "pointer";
-              currencyCell.style.position = "relative";
-              currencyCell.style.paddingRight = "20px";
-              const dropdownArrow = document.createElement("span");
-              dropdownArrow.innerHTML = "\u25BC";
-              dropdownArrow.style.cssText = `
-            position: absolute;
-            right: 6px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 10px;
-            color: #6b7280;
-            pointer-events: none;
-            z-index: 10;
-            display: block;
-            opacity: 1;
-          `;
-              currencyCell.appendChild(dropdownArrow);
-              console.log("[DROPDOWN DEBUG] Added dropdown indicator to currency cell in row", rowIndex);
-            }
-            if (approverCell) {
-              approverCell.setAttribute("data-type", "dropdown");
-              approverCell.setAttribute("data-column", "approver");
-              approverCell.style.cursor = "pointer";
-              approverCell.style.position = "relative";
-              approverCell.style.paddingRight = "20px";
-              const dropdownArrow = document.createElement("span");
-              dropdownArrow.innerHTML = "\u25BC";
-              dropdownArrow.style.cssText = `
-            position: absolute;
-            right: 6px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 10px;
-            color: #6b7280;
-            pointer-events: none;
-            z-index: 10;
-            display: block;
-            opacity: 1;
-          `;
-              approverCell.appendChild(dropdownArrow);
-              console.log("[DROPDOWN DEBUG] Added dropdown indicator to approver cell in row", rowIndex);
-            }
-          });
-          const headerRow = worksheet.element.querySelector("thead tr");
-          if (headerRow) {
-            const currencyHeader = headerRow.children[currencyColumnIndex];
-            const approverHeader = headerRow.children[approverColumnIndex];
-            if (currencyHeader) {
-              currencyHeader.setAttribute("data-type", "dropdown");
-              currencyHeader.setAttribute("data-column", "currency");
-            }
-            if (approverHeader) {
-              approverHeader.setAttribute("data-type", "dropdown");
-              approverHeader.setAttribute("data-column", "approver");
-            }
-          }
-        }, 1e3);
+        console.log("[DROPDOWN] Worksheet created - using jspreadsheet native dropdown handling");
         console.log("[SEARCH] oncreateworksheet event fired!");
         console.log("[SEARCH] Worksheet element:", worksheet.element);
         setTimeout(() => {
@@ -73027,7 +73001,72 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           console.warn("[SEARCH] Sheet or updateSearch method not available");
         }
       },
-      // Debug method to check search functionality
+      // === FILTER CONTROL METHODS ===
+      // Apply filters programmatically to a specific column
+      setFilter: (columnNumber, values) => {
+        console.log("[FILTER] Setting filter for column:", columnNumber, "values:", values);
+        if (sheet && sheet.setFilter) {
+          sheet.setFilter(columnNumber, values);
+        } else {
+          console.warn("[FILTER] Sheet or setFilter method not available");
+        }
+      },
+      // Get currently applied filters
+      getFilter: (columnNumber) => {
+        console.log("[FILTER] Getting filter for column:", columnNumber);
+        if (sheet && sheet.getFilter) {
+          return sheet.getFilter(columnNumber);
+        } else {
+          console.warn("[FILTER] Sheet or getFilter method not available");
+          return null;
+        }
+      },
+      // Open filter input for a specific column
+      openFilter: (columnNumber, getAsSets) => {
+        console.log("[FILTER] Opening filter for column:", columnNumber);
+        if (sheet && sheet.openFilter) {
+          sheet.openFilter(columnNumber, getAsSets);
+        } else {
+          console.warn("[FILTER] Sheet or openFilter method not available");
+        }
+      },
+      // Close filter input
+      closeFilter: () => {
+        console.log("[FILTER] Closing filter input");
+        if (sheet && sheet.closeFilter) {
+          sheet.closeFilter();
+        } else {
+          console.warn("[FILTER] Sheet or closeFilter method not available");
+        }
+      },
+      // Reset all filters
+      resetFilters: (columnNumber, destroy) => {
+        console.log("[FILTER] Resetting filters for column:", columnNumber);
+        if (sheet && sheet.resetFilters) {
+          sheet.resetFilters(columnNumber, destroy);
+        } else {
+          console.warn("[FILTER] Sheet or resetFilters method not available");
+        }
+      },
+      // Show filter icon for one or all columns
+      showFilter: (columnOrCellRange) => {
+        console.log("[FILTER] Showing filter for:", columnOrCellRange);
+        if (sheet && sheet.showFilter) {
+          sheet.showFilter(columnOrCellRange);
+        } else {
+          console.warn("[FILTER] Sheet or showFilter method not available");
+        }
+      },
+      // Hide filter for a specific column
+      hideFilter: (columnNumber) => {
+        console.log("[FILTER] Hiding filter for column:", columnNumber);
+        if (sheet && sheet.hideFilter) {
+          sheet.hideFilter(columnNumber);
+        } else {
+          console.warn("[FILTER] Sheet or hideFilter method not available");
+        }
+      },
+      // Debug method to check search and filter functionality
       debugSearch: () => {
         console.log("[SEARCH DEBUG] Sheet available:", !!sheet);
         console.log("[SEARCH DEBUG] Sheet methods:", sheet ? Object.getOwnPropertyNames(sheet) : "N/A");
@@ -73037,6 +73076,15 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         console.log("[SEARCH DEBUG] All filter containers:", document.querySelectorAll(".jss_filter"));
         console.log("[SEARCH DEBUG] Sheet element:", sheet ? sheet.element : "N/A");
         console.log("[SEARCH DEBUG] Sheet search method:", sheet ? typeof sheet.search : "N/A");
+        console.log("[FILTER DEBUG] Sheet filter methods:", sheet ? {
+          setFilter: typeof sheet.setFilter,
+          getFilter: typeof sheet.getFilter,
+          openFilter: typeof sheet.openFilter,
+          closeFilter: typeof sheet.closeFilter,
+          resetFilters: typeof sheet.resetFilters,
+          showFilter: typeof sheet.showFilter,
+          hideFilter: typeof sheet.hideFilter
+        } : "N/A");
         if (sheet && sheet.element) {
           const searchInSheet = sheet.element.querySelector(".jss_search");
           console.log("[SEARCH DEBUG] Search input in sheet element:", !!searchInSheet);
