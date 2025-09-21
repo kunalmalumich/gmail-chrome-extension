@@ -225,7 +225,6 @@ class ApiClient {
 
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
-      'Content-Type': 'application/json',
       'X-Installation-ID': installationId,
       'X-User-Email': userEmail,
       'ngrok-skip-browser-warning': 'true', // Add ngrok header
@@ -233,6 +232,11 @@ class ApiClient {
       "User-Agent": "Chrome Extension Stamp v1.0",
       ...options.headers
     };
+
+    // Only add Content-Type for requests with bodies
+    if (options.method === 'POST' && options.body) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     console.log("[API] Request headers:", JSON.stringify(headers, null, 2));
     
@@ -412,6 +416,16 @@ class ApiClient {
     console.log('[API] ✅ Raw response received from /api/finops/documents/detailed');
     const jsonData = await response.json();
     console.log('[API] 📊 Parsed JSON response. It is an array of length:', jsonData?.length || 0);
+    
+    // Log detailed structure of first few documents for debugging
+    if (jsonData && jsonData.length > 0) {
+      console.log('[API] 🔍 First document structure for ID debugging:', jsonData[0]);
+      console.log('[API] 🔍 Available top-level fields:', Object.keys(jsonData[0]));
+      if (jsonData[0].document) {
+        console.log('[API] 🔍 Document nested fields:', Object.keys(jsonData[0].document));
+      }
+    }
+    
     return jsonData;
   }
 
@@ -3635,12 +3649,14 @@ InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
       loadingController.completeStatus();
       console.log('[AI LOADING] ✅ Invoice status processed');
       
-      // Build spreadsheet immediately with the live data
+      // Build and render the spreadsheet
       spreadsheetResult = await buildSpreadsheet(container, allInvoices, {
-        fetchPdf: ({ threadId, documentName }) => apiClient.fetchGmailAttachmentPdf({ threadId, documentName }),
-        apiClient: apiClient // Pass API client for corrections batching
+        apiClient: apiClient,
+        fetchPdf: (params) => apiClient.fetchGmailAttachmentPdf(params), // Correctly use apiClient
+        sdk: sdk
       });
-      console.log('[AI LOADING] 🎯 Spreadsheet built successfully');
+      
+      console.log("[SPREADSHEET] Spreadsheet built and rendered successfully.");
       
       // Single cleanup handler using sendBeacon
       handleCleanup = () => {

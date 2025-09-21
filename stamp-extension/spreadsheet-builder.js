@@ -50,7 +50,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       editable: true
     },
     { 
-      title: 'Invoice Description', 
+      title: 'Description', 
       width: 100, 
       type: 'text',
       fieldName: 'description',
@@ -201,15 +201,8 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       const invoice = data[rowIndex]; // No header row adjustment needed
       if (!invoice) return;
       
-      // Check if field is in editableFields array
-      if (!invoice.editableFields || !invoice.editableFields.includes(columnDef.fieldName)) {
-        console.warn(`[EDIT] Field "${columnDef.fieldName}" is not editable for this invoice`);
-
-        // Revert to original value
-        const originalValue = getOriginalValue(invoice, columnDef.fieldName);
-        instance.setValueFromCoords(x, y, originalValue);
-        return;
-      }
+      // Skip editableFields validation - allow all edits
+      // TODO: Implement proper validation using onbeforechange to prevent infinite loops
       
       console.log(`[JS003] Processing field: ${columnDef.fieldName} = ${value}`);
       handleFieldEdit(invoice, columnDef.fieldName, value, rowIndex, correctionsBatcher);
@@ -255,137 +248,56 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     });
 
     // Document hover preview (thumbnail) and click to open inline overlay
-    let previewEl = null;
-    let overlayEl = null;
-
-    const showPreview = (iconEl) => {
-      // Preview remains optional; we use thumbnail url if present
-      const docUrl = iconEl.getAttribute('data-doc-url');
-      if (!docUrl) return;
-      const rect = iconEl.getBoundingClientRect();
-      if (!previewEl) {
-        previewEl = document.createElement('div');
-        previewEl.style.cssText = 'position:fixed; z-index:2147483646; width:280px; height:210px; background:#fff; box-shadow:0 8px 24px rgba(60,64,67,0.3); border:1px solid #e0e0e0; border-radius:8px; overflow:hidden;';
-        document.body.appendChild(previewEl);
+    // We no longer need a manual overlay implementation.
+    // The InboxSDK will handle creating the modal.
+    const openInboxSDKModal = (blob) => {
+      if (!opts.sdk) {
+        console.error('InboxSDK instance not provided to buildSpreadsheet. Cannot open modal.');
+        return;
       }
-      previewEl.innerHTML = `<iframe src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1" style="width:100%;height:100%;border:0;" loading="eager"></iframe>`;
-      const rectLeft = Math.max(8, rect.left - 40);
-      previewEl.style.top = `${Math.round(rect.bottom + 8)}px`;
-      previewEl.style.left = `${Math.round(rectLeft)}px`;
-      previewEl.style.display = 'block';
-    };
 
-    const hidePreview = () => {
-      if (previewEl) previewEl.style.display = 'none';
-    };
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result;
 
-    const ensureOverlay = () => {
-      if (!overlayEl) {
-        overlayEl = document.createElement('div');
-        overlayEl.style.cssText = 'position:fixed; inset:0; background:rgba(32,33,36,0.6); z-index:2147483647; display:flex; align-items:center; justify-content:center;';
-        overlayEl.innerHTML = `
-          <div style="width:80vw; height:80vh; background:#fff; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.35); display:flex; flex-direction:column; overflow:hidden;">
-            <div style="padding:10px; border-bottom:1px solid #e0e0e0; display:flex; align-items:center; justify-content:space-between;">
-              <div style="font-weight:600; color:#202124;">Document Preview</div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <button id="stamp-doc-zoom-out" style="border:none; background:#f3f4f6; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:14px;">−</button>
-                <span id="stamp-doc-zoom-level" style="font-size:14px; color:#374151; min-width:50px; text-align:center;">100%</span>
-                <button id="stamp-doc-zoom-in" style="border:none; background:#f3f4f6; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:14px;">+</button>
-                <button id="stamp-doc-fit-width" style="border:none; background:#e5e7eb; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:12px;">Fit Width</button>
-                <button id="stamp-doc-close" style="border:none; background:#eef2f7; color:#1f2937; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600;">Close</button>
-              </div>
-            </div>
-            <div id="stamp-doc-container" style="flex:1; overflow:auto; position:relative;">
-              <iframe id="stamp-doc-frame" src="" style="width:100%; height:100%; border:0; transform-origin:top left;" loading="eager"></iframe>
-            </div>
-          </div>`;
-        document.body.appendChild(overlayEl);
-        
-        // Add zoom functionality
-        let currentZoom = 1;
-        const zoomLevel = overlayEl.querySelector('#stamp-doc-zoom-level');
-        const iframe = overlayEl.querySelector('#stamp-doc-frame');
-        const container = overlayEl.querySelector('#stamp-doc-container');
-        
-        const updateZoom = (newZoom) => {
-          currentZoom = Math.max(0.25, Math.min(3, newZoom)); // Limit zoom between 25% and 300%
-          iframe.style.transform = `scale(${currentZoom})`;
-          iframe.style.width = `${100 / currentZoom}%`;
-          iframe.style.height = `${100 / currentZoom}%`;
-          zoomLevel.textContent = `${Math.round(currentZoom * 100)}%`;
-        };
-        
-        const fitToWidth = () => {
-          // Reset zoom and let the PDF fit naturally
-          currentZoom = 1;
-          iframe.style.transform = 'scale(1)';
-          iframe.style.width = '100%';
-          iframe.style.height = '100%';
-          zoomLevel.textContent = '100%';
-        };
-        
-        // Add event listeners for zoom controls
-        overlayEl.querySelector('#stamp-doc-zoom-out').addEventListener('click', (e) => {
-          e.stopPropagation();
-          updateZoom(currentZoom - 0.25);
-        });
-        
-        overlayEl.querySelector('#stamp-doc-zoom-in').addEventListener('click', (e) => {
-          e.stopPropagation();
-          updateZoom(currentZoom + 0.25);
-        });
-        
-        overlayEl.querySelector('#stamp-doc-fit-width').addEventListener('click', (e) => {
-          e.stopPropagation();
-          fitToWidth();
-        });
-        
-        // Add keyboard shortcuts
-        const handleKeydown = (e) => {
-          if (e.key === 'Escape') {
-            overlayEl.style.display = 'none';
-          } else if (e.key === '+' || e.key === '=') {
-            e.preventDefault();
-            updateZoom(currentZoom + 0.25);
-          } else if (e.key === '-') {
-            e.preventDefault();
-            updateZoom(currentZoom - 0.25);
-          } else if (e.key === '0') {
-            e.preventDefault();
-            fitToWidth();
-          }
-        };
-        
-        overlayEl.addEventListener('keydown', handleKeydown);
-        
-        // Make the overlay focusable for keyboard events
-        overlayEl.setAttribute('tabindex', '0');
-        overlayEl.focus();
-        
-        overlayEl.addEventListener('click', (evt) => {
-          if (evt.target && (evt.target.id === 'stamp-doc-close' || evt.target === overlayEl)) {
-            overlayEl.style.display = 'none';
-            document.removeEventListener('keydown', handleKeydown);
-          }
-        });
-      }
-      return overlayEl;
-    };
+        // --- FINAL APPROACH: Pass the <img> tag directly to the modal ---
+        const imageEl = document.createElement('img');
+        imageEl.src = dataUrl;
+        imageEl.style.cssText = 'max-width: 100%; max-height: 80vh; object-fit: contain;';
 
-    const openOverlayUrl = (url) => {
-      const el = ensureOverlay();
-      el.querySelector('#stamp-doc-frame').setAttribute('src', url);
-      el.style.display = 'flex';
+        opts.sdk.Widgets.showModalView({
+          el: imageEl,
+          title: 'Document Preview',
+          showCloseButton: true,
+          chrome: true,
+        });
+      };
+      reader.readAsDataURL(blob);
     };
 
     cleanContainer.addEventListener('mouseover', (e) => {
       const icon = e.target.closest('.doc-preview-icon');
-      if (icon && icon.getAttribute('data-has-doc') === '1') showPreview(icon);
+      if (icon && icon.getAttribute('data-has-doc') === '1') {
+        const docUrl = icon.getAttribute('data-doc-url');
+        if (docUrl) {
+          const rect = icon.getBoundingClientRect();
+          const previewEl = document.createElement('div');
+          previewEl.style.cssText = 'position:fixed; z-index:2147483646; width:280px; height:210px; background:#fff; box-shadow:0 8px 24px rgba(60,64,67,0.3); border:1px solid #e0e0e0; border-radius:8px; overflow:hidden;';
+          previewEl.innerHTML = `<iframe src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1" style="width:100%;height:100%;border:0;" loading="eager"></iframe>`;
+          previewEl.style.top = `${Math.round(rect.bottom + 8)}px`;
+          previewEl.style.left = `${Math.round(rect.left - 40)}px`;
+          previewEl.style.display = 'block';
+          document.body.appendChild(previewEl);
+        }
+      }
     });
 
     cleanContainer.addEventListener('mouseout', (e) => {
       const icon = e.target.closest('.doc-preview-icon');
-      if (icon) hidePreview();
+      if (icon) {
+        const previewEl = document.querySelector('.doc-preview-icon-iframe');
+        if (previewEl) previewEl.style.display = 'none';
+      }
     });
 
     cleanContainer.addEventListener('click', async (e) => {
@@ -399,31 +311,26 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       const cacheKey = `${threadId}|${documentName}`;
 
       // Try cache first
-      let objectUrl = pdfCache.get(cacheKey);
-      if (objectUrl) {
-        console.log('[DOC] Cache hit for', cacheKey);
-        openOverlayUrl(objectUrl);
+      let cachedBlob = pdfCache.get(cacheKey);
+      if (cachedBlob) {
+        openInboxSDKModal(cachedBlob);
         return;
       }
 
       // No cache: fetch via authenticated client hook
       try {
-        console.log('[DOC] Cache miss. Fetching PDF via hook for', { threadId, documentName });
         if (!opts.fetchPdf) {
           console.warn('[DOC] No fetchPdf hook provided. Cannot stream PDF.');
           return;
         }
         const blob = await opts.fetchPdf({ threadId, documentName });
-        objectUrl = URL.createObjectURL(blob);
         // Small LRU: cap at 25 items
         if (pdfCache.size > 25) {
           const firstKey = pdfCache.keys().next().value;
-          const oldUrl = pdfCache.get(firstKey);
-          if (oldUrl) URL.revokeObjectURL(oldUrl);
           pdfCache.delete(firstKey);
         }
-        pdfCache.set(cacheKey, objectUrl);
-        openOverlayUrl(objectUrl);
+        pdfCache.set(cacheKey, blob);
+        openInboxSDKModal(blob);
       } catch (err) {
         console.error('[DOC] Failed to fetch PDF:', err);
       }
@@ -657,29 +564,12 @@ function transformDataForSpreadsheet(invoices) {
       (invoice.receiptNumber || 'N/A') : 
       (details.invoiceNumber || 'N/A');
 
-    // (b) Entity Name for receipts: combine units + property addresses
-    let entityName = '';
-    if (isReceipt) {
-      const units = details.units || [];
-      const propertyAddresses = details.property_addresses || [];
-      const unitsText = units.length > 0 ? units.join(', ') : '';
-      const addressText = propertyAddresses.length > 0 ? propertyAddresses.map(addr => {
-        // Handle both string and object cases
-        if (typeof addr === 'string') {
-          return addr;
-        } else if (typeof addr === 'object' && addr !== null) {
-          return addr.name || addr.address || JSON.stringify(addr);
-        }
-        return '';
-      }).filter(Boolean).join(', ') : '';
-      entityName = [unitsText, addressText].filter(Boolean).join(' + ') || '';
-    } else {
-      entityName = details.entityName || '';
-    }
+    // (b) Entity Name for both receipts and invoices
+    const entityName = details.entityName || null;
 
     // (c) Description
     const description = isReceipt ? 
-      (invoice.notes || '') : 
+      (details.notes || invoice.notes || '') : 
       (details.description || '');
 
     // (d) Issue Date
@@ -687,8 +577,21 @@ function transformDataForSpreadsheet(invoices) {
       (details.date || '') : 
       (details.issueDate || '');
 
-    // (e) Status - always "paid" for receipts
-    const status = isReceipt ? 'paid' : (invoice.status || 'unknown');
+    // Debug invoice structure before status extraction
+    console.log(`[STATUS DEBUG] Invoice structure:`, {
+      'invoice.status': invoice.status,
+      'invoice.document?.details?.status': invoice.document?.details?.status,
+      'topLevelFields': Object.keys(invoice),
+      'fullInvoice': invoice
+    });
+
+    // (e) Status - use API status from document details, fallback to processed status
+    const status = invoice.document?.details?.status || invoice.status || 'unknown';
+    
+    console.log(`[STATUS DEBUG] Final status for invoice ${invoice.document?.details?.invoiceNumber || 'unknown'}: "${status}"`);
+    if (invoice.status !== status) {
+      console.warn(`[STATUS MISMATCH] Expected "${invoice.status}" but got "${status}"`);
+    }
 
     return [
       docIcon, // New first column
@@ -769,19 +672,19 @@ class CorrectionsBatcher {
     this.sent = false; // Prevent duplicate sends
   }
 
-  addCorrection(messageId, contentHash, fieldName, newValue) {
+  addCorrection(messageId, contentHash, documentId, documentType, fieldName, newValue) {
     console.log(`[JS004] Queued correction: ${fieldName} = ${newValue}`);
     
-    if (!this.pendingCorrections.has(messageId)) {
-      this.pendingCorrections.set(messageId, {
-        message_id: messageId,
-        content_hash: contentHash || null,
-        changes: {}
-      });
-    }
+    // Create a unique key for this specific field correction
+    const correctionKey = `${documentId}_${fieldName}_${Date.now()}`;
     
-    const correction = this.pendingCorrections.get(messageId);
-    correction.changes[fieldName] = newValue;
+    // Each field change gets its own correction object matching backend API
+    this.pendingCorrections.set(correctionKey, {
+      document_id: documentId || null,
+      document_type: documentType || 'invoice',
+      field_name: fieldName,
+      new_value: newValue
+    });
     
     console.log(`[BATCH] ${this.pendingCorrections.size} corrections queued`);
   }
@@ -795,7 +698,7 @@ class CorrectionsBatcher {
     console.log(`[BATCH] Sending ${edits.length} corrections`);
     
     try {
-      const response = await this.apiClient.makeAuthenticatedRequest('/api/finops/invoices/corrections', {
+      const response = await this.apiClient.makeAuthenticatedRequest('/api/finops/documents/corrections', {
         method: 'POST',
         body: JSON.stringify({ 
           edits: edits,
@@ -821,7 +724,7 @@ class CorrectionsBatcher {
     this.sent = true;
 
     const edits = Array.from(this.pendingCorrections.values());
-    const success = navigator.sendBeacon('/api/finops/invoices/corrections', JSON.stringify({ 
+    const success = navigator.sendBeacon('/api/finops/documents/corrections', JSON.stringify({ 
       edits: edits,
       propagate: true 
     }));
@@ -857,11 +760,15 @@ function handleFieldEdit(invoice, fieldName, newValue, invoiceIndex, batcher) {
   // Queue correction (don't send immediately)
   const messageId = invoice.document?.message_id;
   const contentHash = invoice.document?.content_hash;
+  const documentId = invoice.document?.details?.id;
+  const documentType = invoice.documentType || 'invoice';
   
-  if (messageId && batcher) {
-    batcher.addCorrection(messageId, contentHash, fieldName, newValue);
-  } else if (!messageId) {
-    console.warn(`[EDIT] No message_id for invoice ${invoiceIndex}`);
+  console.log(`[EDIT] ✅ Extracted document ID: ${documentId} for field: ${fieldName}`);
+  
+  if (documentId && batcher) {
+    batcher.addCorrection(messageId, contentHash, documentId, documentType, fieldName, newValue);
+  } else if (!documentId) {
+    console.warn(`[EDIT] ❌ No document_id found at invoice.document.details.id for invoice ${invoiceIndex}`);
   }
 }
 
