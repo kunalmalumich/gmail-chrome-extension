@@ -72595,8 +72595,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         source: ["USD", "INR", "EUR", "GBP", "CAD", "AUD", "JPY", "CNY", "OTHER"],
         fieldName: "currency",
         editable: true,
-        filter: false,
-        // Data editing dropdown - no filter functionality
+        filter: true,
         options: {
           type: "default",
           placeholder: "Select Currency"
@@ -72635,8 +72634,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         source: ["pending", "approved", "rejected", "paid", "on_hold", "requires_review", "partially_approved", "ready_for_payment", "duplicate", "unknown"],
         fieldName: "status",
         editable: true,
-        filter: false
-        // Data editing dropdown - no filter functionality
+        filter: true
       },
       {
         title: "\u{1F4E4}",
@@ -72654,8 +72652,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         source: ["PENDING", "APPROVED", "REJECTED"],
         fieldName: "approvalStatus",
         editable: true,
-        filter: false,
-        // Data editing dropdown - no filter functionality
+        filter: true,
         options: {
           type: "default",
           placeholder: "Select Status"
@@ -72735,15 +72732,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         console.log("[DROPDOWN] Worksheet created - using jspreadsheet native dropdown handling");
         console.log("[SEARCH] oncreateworksheet event fired!");
         console.log("[SEARCH] Worksheet element:", worksheet.element);
-        console.log("[FILTER] Setting up two-pane filter functionality");
-        console.log("[FILTER] Worksheet object:", worksheet);
-        console.log("[FILTER] Worksheet element:", worksheet.element);
-        if (typeof setupTwoPaneFilters === "function") {
-          console.log("[FILTER] setupTwoPaneFilters function exists, calling it");
-          setupTwoPaneFilters(worksheet);
-        } else {
-          console.error("[FILTER] setupTwoPaneFilters function not found!");
-        }
         setTimeout(() => {
           const existingSearchInput = worksheet.element.querySelector('input[type="text"]') || worksheet.element.querySelector(".jss_search") || worksheet.element.querySelector('input[placeholder*="Search"]') || worksheet.element.querySelector('input[placeholder*="search"]');
           console.log("[SEARCH] Found existing search input:", !!existingSearchInput);
@@ -72852,13 +72840,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
     console.log("[SEARCH DEBUG] Search method available:", typeof sheet?.search);
     console.log("[SEARCH DEBUG] ResetSearch method available:", typeof sheet?.resetSearch);
     console.log("[SEARCH DEBUG] ShowSearch method available:", typeof sheet?.showSearch);
-    console.log("[FILTER] Immediate setup - checking if oncreateworksheet fired");
-    console.log("[FILTER] Sheet element:", sheet.element);
-    console.log("[FILTER] Sheet element HTML:", sheet.element.outerHTML.substring(0, 200) + "...");
-    setTimeout(() => {
-      console.log("[FILTER] Immediate setup - attempting direct filter setup");
-      setupTwoPaneFilters(sheet);
-    }, 1e3);
     setTimeout(() => {
       console.log("[SEARCH FALLBACK] Looking for existing search input");
       const existingSearchInput = cleanContainer.querySelector('input[type="text"]') || cleanContainer.querySelector(".jss_search") || cleanContainer.querySelector('input[placeholder*="Search"]') || cleanContainer.querySelector('input[placeholder*="search"]');
@@ -73030,7 +73011,194 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           }
         }
       });
-      let rightPreviewPanel2 = null;
+      let previewEl = null;
+      let overlayEl = null;
+      let previewTimeout = null;
+      let isPreviewHovered = false;
+      const showPreview = (iconEl) => {
+        if (previewTimeout) {
+          clearTimeout(previewTimeout);
+          previewTimeout = null;
+        }
+        const docUrl = iconEl.getAttribute("data-doc-url");
+        const thumbUrl = iconEl.getAttribute("data-thumb-url");
+        if (!docUrl) return;
+        const rect = iconEl.getBoundingClientRect();
+        if (!previewEl) {
+          previewEl = document.createElement("div");
+          previewEl.style.cssText = "position:fixed; z-index:2147483646; width:360px; height:280px; background:#fff; box-shadow:0 20px 40px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.05); border:none; border-radius:16px; overflow:hidden; backdrop-filter:blur(12px); transform:scale(1); transition:all 0.2s ease;";
+          document.body.appendChild(previewEl);
+          previewEl.addEventListener("mouseenter", () => {
+            isPreviewHovered = true;
+            if (previewTimeout) {
+              clearTimeout(previewTimeout);
+              previewTimeout = null;
+            }
+          });
+          previewEl.addEventListener("mouseleave", () => {
+            isPreviewHovered = false;
+            previewTimeout = setTimeout(() => {
+              if (!isPreviewHovered) {
+                previewEl.style.display = "none";
+              }
+            }, 100);
+          });
+        }
+        const previewContent = thumbUrl ? `<div style="display:flex; flex-direction:column; height:100%; background:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+           <div style="flex:1; background:url('${thumbUrl}') center/cover; display:flex; align-items:center; justify-content:center; background-color:#4CAF50; border-radius:12px 12px 0 0; position:relative; min-height:160px;">
+             <div style="text-align:center; color:#fff; font-size:16px; background:rgba(0,0,0,0.1); padding:20px; border-radius:12px; backdrop-filter:blur(4px); border:1px solid rgba(255,255,255,0.2);">
+               <div style="font-size:32px; margin-bottom:12px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));">\u{1F4C4}</div>
+               <div style="font-weight:700; margin-bottom:6px; font-size:18px; text-shadow:0 1px 2px rgba(0,0,0,0.3);">Sample Invoice</div>
+               <div style="font-size:13px; opacity:0.9; font-weight:500;">Sample Document Preview</div>
+               <div style="font-size:11px; opacity:0.8; margin-top:4px;">Click to open full document</div>
+             </div>
+           </div>
+           <div style="padding:16px; background:#f8f9fa; border-top:1px solid #e0e0e0; text-align:center; border-radius:0 0 12px 12px;">
+             <button id="preview-open-doc-btn" data-doc-url="${docUrl}" style="background:linear-gradient(135deg, #1a73e8 0%, #1557b0 100%); color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease; box-shadow:0 2px 8px rgba(26,115,232,0.3); min-width:140px;">Open Document</button>
+           </div>
+         </div>` : `<iframe src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1" style="width:100%;height:100%;border:0;" loading="eager"></iframe>`;
+        previewEl.innerHTML = previewContent;
+        const openDocBtn = previewEl.querySelector("#preview-open-doc-btn");
+        if (openDocBtn) {
+          openDocBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const docUrl2 = openDocBtn.getAttribute("data-doc-url");
+            if (docUrl2) {
+              window.open(docUrl2, "_blank");
+            }
+          });
+          openDocBtn.addEventListener("mouseenter", () => {
+            openDocBtn.style.background = "linear-gradient(135deg, #1557b0 0%, #0d47a1 100%)";
+            openDocBtn.style.transform = "translateY(-2px) scale(1.02)";
+            openDocBtn.style.boxShadow = "0 4px 12px rgba(26,115,232,0.4)";
+          });
+          openDocBtn.addEventListener("mouseleave", () => {
+            openDocBtn.style.background = "linear-gradient(135deg, #1a73e8 0%, #1557b0 100%)";
+            openDocBtn.style.transform = "translateY(0) scale(1)";
+            openDocBtn.style.boxShadow = "0 2px 8px rgba(26,115,232,0.3)";
+          });
+        }
+        const bridge = document.createElement("div");
+        bridge.style.cssText = "position:absolute; z-index:2147483645; width:20px; height:8px; background:transparent; top:-8px; left:10px;";
+        previewEl.appendChild(bridge);
+        bridge.addEventListener("mouseenter", () => {
+          isPreviewHovered = true;
+          if (previewTimeout) {
+            clearTimeout(previewTimeout);
+            previewTimeout = null;
+          }
+        });
+        const rectLeft = Math.max(8, rect.left - 20);
+        previewEl.style.top = `${Math.round(rect.bottom + 4)}px`;
+        previewEl.style.left = `${Math.round(rectLeft)}px`;
+        previewEl.style.display = "block";
+        previewEl.style.opacity = "0";
+        previewEl.style.transform = "scale(0.9) translateY(10px)";
+        requestAnimationFrame(() => {
+          previewEl.style.transition = "all 0.2s ease";
+          previewEl.style.opacity = "1";
+          previewEl.style.transform = "scale(1) translateY(0)";
+        });
+      };
+      const hidePreview = () => {
+        previewTimeout = setTimeout(() => {
+          if (!isPreviewHovered && previewEl) {
+            previewEl.style.display = "none";
+          }
+        }, 150);
+      };
+      const ensureOverlay = () => {
+        if (!overlayEl) {
+          overlayEl = document.createElement("div");
+          overlayEl.style.cssText = "position:fixed; inset:0; background:rgba(32,33,36,0.6); z-index:2147483647; display:flex; align-items:center; justify-content:center;";
+          overlayEl.innerHTML = `
+          <div style="width:80vw; height:80vh; background:#fff; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.35); display:flex; flex-direction:column; overflow:hidden;">
+            <div style="padding:10px; border-bottom:1px solid #e0e0e0; display:flex; align-items:center; justify-content:space-between;">
+              <div style="font-weight:600; color:#202124;">Document Preview</div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <button id="stamp-doc-zoom-out" style="border:none; background:#f3f4f6; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:14px;">\u2212</button>
+                <span id="stamp-doc-zoom-level" style="font-size:14px; color:#374151; min-width:50px; text-align:center;">100%</span>
+                <button id="stamp-doc-zoom-in" style="border:none; background:#f3f4f6; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:14px;">+</button>
+                <button id="stamp-doc-fit-width" style="border:none; background:#e5e7eb; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:12px;">Fit Width</button>
+                <button id="stamp-doc-close" style="border:none; background:#eef2f7; color:#1f2937; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600;">Close</button>
+              </div>
+            </div>
+            <div id="stamp-doc-container" style="flex:1; overflow:auto; position:relative;">
+              <iframe id="stamp-doc-frame" src="" style="width:100%; height:100%; border:0; transform-origin:top left;" loading="eager"></iframe>
+            </div>
+          </div>`;
+          document.body.appendChild(overlayEl);
+          let currentZoom = 1;
+          const zoomLevel = overlayEl.querySelector("#stamp-doc-zoom-level");
+          const iframe = overlayEl.querySelector("#stamp-doc-frame");
+          const container2 = overlayEl.querySelector("#stamp-doc-container");
+          const updateZoom = (newZoom) => {
+            currentZoom = Math.max(0.25, Math.min(3, newZoom));
+            iframe.style.transform = `scale(${currentZoom})`;
+            iframe.style.width = `${100 / currentZoom}%`;
+            iframe.style.height = `${100 / currentZoom}%`;
+            zoomLevel.textContent = `${Math.round(currentZoom * 100)}%`;
+          };
+          const fitToWidth = () => {
+            currentZoom = 1;
+            iframe.style.transform = "scale(1)";
+            iframe.style.width = "100%";
+            iframe.style.height = "100%";
+            zoomLevel.textContent = "100%";
+          };
+          overlayEl.querySelector("#stamp-doc-zoom-out").addEventListener("click", (e) => {
+            e.stopPropagation();
+            updateZoom(currentZoom - 0.25);
+          });
+          overlayEl.querySelector("#stamp-doc-zoom-in").addEventListener("click", (e) => {
+            e.stopPropagation();
+            updateZoom(currentZoom + 0.25);
+          });
+          overlayEl.querySelector("#stamp-doc-fit-width").addEventListener("click", (e) => {
+            e.stopPropagation();
+            fitToWidth();
+          });
+          const handleKeydown = (e) => {
+            if (e.key === "Escape") {
+              overlayEl.style.display = "none";
+            } else if (e.key === "+" || e.key === "=") {
+              e.preventDefault();
+              updateZoom(currentZoom + 0.25);
+            } else if (e.key === "-") {
+              e.preventDefault();
+              updateZoom(currentZoom - 0.25);
+            } else if (e.key === "0") {
+              e.preventDefault();
+              fitToWidth();
+            }
+          };
+          overlayEl.addEventListener("keydown", handleKeydown);
+          overlayEl.setAttribute("tabindex", "0");
+          overlayEl.focus();
+          overlayEl.addEventListener("click", (evt) => {
+            if (evt.target && (evt.target.id === "stamp-doc-close" || evt.target === overlayEl)) {
+              overlayEl.style.display = "none";
+              document.removeEventListener("keydown", handleKeydown);
+            }
+          });
+        }
+        return overlayEl;
+      };
+      const openOverlayUrl = (url) => {
+        const el = ensureOverlay();
+        el.querySelector("#stamp-doc-frame").setAttribute("src", url);
+        el.style.display = "flex";
+      };
+      cleanContainer.addEventListener("mouseover", (e) => {
+        const icon = e.target.closest(".doc-preview-icon");
+        if (icon && icon.getAttribute("data-has-doc") === "1") showPreview(icon);
+      });
+      cleanContainer.addEventListener("mouseout", (e) => {
+        const icon = e.target.closest(".doc-preview-icon");
+        if (icon) hidePreview();
+      });
+      let rightPreviewPanel = null;
       let currentPreviewData = null;
       const showRightPreview = (iconEl) => {
         const docUrl = iconEl.getAttribute("data-doc-url");
@@ -73047,10 +73215,10 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         console.log("[PREVIEW] Document URL is:", docUrl);
         console.log("[PREVIEW] Document name is:", docName);
         console.log("[PREVIEW] File type detected:", fileType);
-        if (!rightPreviewPanel2) {
-          rightPreviewPanel2 = document.createElement("div");
-          rightPreviewPanel2.id = "stamp-right-preview-panel";
-          rightPreviewPanel2.style.cssText = `
+        if (!rightPreviewPanel) {
+          rightPreviewPanel = document.createElement("div");
+          rightPreviewPanel.id = "stamp-right-preview-panel";
+          rightPreviewPanel.style.cssText = `
           position: fixed;
           top: 0;
           right: 0;
@@ -73059,8 +73227,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           background: #ffffff;
           border-left: 1px solid #e0e0e0;
           box-shadow: -4px 0 12px rgba(0,0,0,0.1);
-          z-index: 1000;
-          display: flex;
+          z-index: 2147483647;
+          display: none;
           flex-direction: column;
           transform: translateX(100%);
           transition: transform 0.3s ease;
@@ -73087,10 +73255,10 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           z-index: 1001;
         `;
           closeBtn.addEventListener("click", () => {
-            hideRightPreview2();
+            hideRightPreview();
           });
-          rightPreviewPanel2.appendChild(closeBtn);
-          document.body.appendChild(rightPreviewPanel2);
+          rightPreviewPanel.appendChild(closeBtn);
+          document.body.appendChild(rightPreviewPanel);
         }
         const previewContent = `
         <div style="flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto;">
@@ -73215,8 +73383,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
               transition: all 0.2s ease;
               box-shadow: 0 2px 8px rgba(26,115,232,0.3);
             ">Open Document</button>
-            <button id="preview-download-btn" data-doc-url="${docUrl}" style="
-              padding: 12px 16px;
+            <button id="preview-download-btn" data-doc-url="${docUrl}" data-doc-name="${docName}" style="
+              padding: 12px 20px;
               background: #f8f9fa;
               color: #374151;
               border: 1px solid #d1d5db;
@@ -73229,11 +73397,11 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           </div>
         </div>
       `;
-        rightPreviewPanel2.innerHTML = previewContent;
-        const previewImage = rightPreviewPanel2.querySelector("#preview-image");
-        const imageLoading = rightPreviewPanel2.querySelector("#image-loading");
-        const imageError = rightPreviewPanel2.querySelector("#image-error");
-        const documentStatus = rightPreviewPanel2.querySelector("#document-status");
+        rightPreviewPanel.innerHTML = previewContent;
+        const previewImage = rightPreviewPanel.querySelector("#preview-image");
+        const imageLoading = rightPreviewPanel.querySelector("#image-loading");
+        const imageError = rightPreviewPanel.querySelector("#image-error");
+        const documentStatus = rightPreviewPanel.querySelector("#document-status");
         if (previewImage) {
           const handleImageLoad = () => {
             console.log("[PREVIEW] Image loaded successfully");
@@ -73258,9 +73426,9 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             }
           }, 5e3);
         }
-        const pdfIframe = rightPreviewPanel2.querySelector("#pdf-iframe");
-        const pdfLoading = rightPreviewPanel2.querySelector("#pdf-loading");
-        const pdfError = rightPreviewPanel2.querySelector("#pdf-error");
+        const pdfIframe = rightPreviewPanel.querySelector("#pdf-iframe");
+        const pdfLoading = rightPreviewPanel.querySelector("#pdf-loading");
+        const pdfError = rightPreviewPanel.querySelector("#pdf-error");
         if (pdfIframe) {
           const handlePdfLoad = () => {
             console.log("[PREVIEW] PDF loaded successfully");
@@ -73293,8 +73461,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             originalError.apply(console, args);
           };
         }
-        const openDocBtn = rightPreviewPanel2.querySelector("#preview-open-doc-btn");
-        const downloadBtn = rightPreviewPanel2.querySelector("#preview-download-btn");
+        const openDocBtn = rightPreviewPanel.querySelector("#preview-open-doc-btn");
+        const downloadBtn = rightPreviewPanel.querySelector("#preview-download-btn");
         if (openDocBtn) {
           openDocBtn.addEventListener("click", (e) => {
             e.preventDefault();
@@ -73336,9 +73504,9 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             downloadBtn.style.borderColor = "#d1d5db";
           });
         }
-        const quickViewBtn = rightPreviewPanel2.querySelector("#preview-quick-view-btn");
-        const quickDownloadBtn = rightPreviewPanel2.querySelector("#preview-quick-download-btn");
-        const quickCopyBtn = rightPreviewPanel2.querySelector("#preview-quick-copy-btn");
+        const quickViewBtn = rightPreviewPanel.querySelector("#preview-quick-view-btn");
+        const quickDownloadBtn = rightPreviewPanel.querySelector("#preview-quick-download-btn");
+        const quickCopyBtn = rightPreviewPanel.querySelector("#preview-quick-copy-btn");
         if (quickViewBtn) {
           quickViewBtn.addEventListener("click", (e) => {
             e.preventDefault();
@@ -73396,14 +73564,10 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           try {
             const link = document.createElement("a");
             link.href = url;
-            link.download = filename || "document.pdf";
-            link.target = "_blank";
-            document.body.appendChild(link);
+            link.download = filename || "document";
             link.click();
-            document.body.removeChild(link);
           } catch (error) {
             console.error("[PREVIEW] Download failed:", error);
-            window.open(url, "_blank");
           }
         };
         window.copyDocumentLink = function(url) {
@@ -73411,6 +73575,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           try {
             navigator.clipboard.writeText(url).then(() => {
               const notification = document.createElement("div");
+              notification.textContent = "Link copied to clipboard!";
               notification.style.cssText = `
               position: fixed;
               top: 20px;
@@ -73422,21 +73587,12 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
               font-size: 14px;
               font-weight: 500;
               z-index: 10000;
-              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+              box-shadow: 0 4px 12px rgba(16,185,129,0.3);
             `;
-              notification.textContent = "Link copied to clipboard!";
               document.body.appendChild(notification);
               setTimeout(() => {
                 document.body.removeChild(notification);
               }, 3e3);
-            }).catch(() => {
-              const textArea = document.createElement("textarea");
-              textArea.value = url;
-              document.body.appendChild(textArea);
-              textArea.select();
-              document.execCommand("copy");
-              document.body.removeChild(textArea);
-              alert("Link copied to clipboard!");
             });
           } catch (error) {
             console.error("[PREVIEW] Copy failed:", error);
@@ -73444,103 +73600,25 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           }
         };
         console.log("[PREVIEW] Showing right preview panel");
-        rightPreviewPanel2.style.display = "flex";
-        rightPreviewPanel2.style.transform = "translateX(0)";
+        console.log("[PREVIEW] Panel element:", rightPreviewPanel);
+        console.log("[PREVIEW] Panel computed style before:", window.getComputedStyle(rightPreviewPanel).display);
+        rightPreviewPanel.style.display = "flex";
+        rightPreviewPanel.offsetHeight;
+        console.log("[PREVIEW] Panel computed style after:", window.getComputedStyle(rightPreviewPanel).display);
+        console.log("[PREVIEW] Panel position:", rightPreviewPanel.getBoundingClientRect());
+        rightPreviewPanel.style.transform = "translateX(0)";
         currentPreviewData = { docUrl, thumbUrl, docName };
         console.log("[PREVIEW] Panel should now be visible");
       };
-      const hideRightPreview2 = () => {
-        if (rightPreviewPanel2) {
-          rightPreviewPanel2.style.transform = "translateX(100%)";
+      const hideRightPreview = () => {
+        if (rightPreviewPanel) {
+          rightPreviewPanel.style.transform = "translateX(100%)";
           setTimeout(() => {
-            if (rightPreviewPanel2) {
-              rightPreviewPanel2.style.display = "none";
+            if (rightPreviewPanel) {
+              rightPreviewPanel.style.display = "none";
             }
           }, 300);
-          currentPreviewData = null;
         }
-      };
-      const ensureOverlay = () => {
-        if (!overlayEl) {
-          overlayEl = document.createElement("div");
-          overlayEl.style.cssText = "position:fixed; inset:0; background:rgba(32,33,36,0.6); z-index:2147483647; display:flex; align-items:center; justify-content:center;";
-          overlayEl.innerHTML = `
-          <div style="width:80vw; height:80vh; background:#fff; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.35); display:flex; flex-direction:column; overflow:hidden;">
-            <div style="padding:10px; border-bottom:1px solid #e0e0e0; display:flex; align-items:center; justify-content:space-between;">
-              <div style="font-weight:600; color:#202124;">Document Preview</div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <button id="stamp-doc-zoom-out" style="border:none; background:#f3f4f6; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:14px;">\u2212</button>
-                <span id="stamp-doc-zoom-level" style="font-size:14px; color:#374151; min-width:50px; text-align:center;">100%</span>
-                <button id="stamp-doc-zoom-in" style="border:none; background:#f3f4f6; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:14px;">+</button>
-                <button id="stamp-doc-fit-width" style="border:none; background:#e5e7eb; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:12px;">Fit Width</button>
-                <button id="stamp-doc-close" style="border:none; background:#eef2f7; color:#1f2937; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600;">Close</button>
-              </div>
-            </div>
-            <div id="stamp-doc-container" style="flex:1; overflow:auto; position:relative;">
-              <iframe id="stamp-doc-frame" src="" style="width:100%; height:100%; border:0; transform-origin:top left;" loading="eager"></iframe>
-            </div>
-          </div>`;
-          document.body.appendChild(overlayEl);
-          let currentZoom = 1;
-          const zoomLevel = overlayEl.querySelector("#stamp-doc-zoom-level");
-          const iframe = overlayEl.querySelector("#stamp-doc-frame");
-          const container2 = overlayEl.querySelector("#stamp-doc-container");
-          const updateZoom = (newZoom) => {
-            currentZoom = Math.max(0.25, Math.min(3, newZoom));
-            iframe.style.transform = `scale(${currentZoom})`;
-            iframe.style.width = `${100 / currentZoom}%`;
-            iframe.style.height = `${100 / currentZoom}%`;
-            zoomLevel.textContent = `${Math.round(currentZoom * 100)}%`;
-          };
-          const fitToWidth = () => {
-            currentZoom = 1;
-            iframe.style.transform = "scale(1)";
-            iframe.style.width = "100%";
-            iframe.style.height = "100%";
-            zoomLevel.textContent = "100%";
-          };
-          overlayEl.querySelector("#stamp-doc-zoom-out").addEventListener("click", (e) => {
-            e.stopPropagation();
-            updateZoom(currentZoom - 0.25);
-          });
-          overlayEl.querySelector("#stamp-doc-zoom-in").addEventListener("click", (e) => {
-            e.stopPropagation();
-            updateZoom(currentZoom + 0.25);
-          });
-          overlayEl.querySelector("#stamp-doc-fit-width").addEventListener("click", (e) => {
-            e.stopPropagation();
-            fitToWidth();
-          });
-          const handleKeydown = (e) => {
-            if (e.key === "Escape") {
-              overlayEl.style.display = "none";
-            } else if (e.key === "+" || e.key === "=") {
-              e.preventDefault();
-              updateZoom(currentZoom + 0.25);
-            } else if (e.key === "-") {
-              e.preventDefault();
-              updateZoom(currentZoom - 0.25);
-            } else if (e.key === "0") {
-              e.preventDefault();
-              fitToWidth();
-            }
-          };
-          overlayEl.addEventListener("keydown", handleKeydown);
-          overlayEl.setAttribute("tabindex", "0");
-          overlayEl.focus();
-          overlayEl.addEventListener("click", (evt) => {
-            if (evt.target && (evt.target.id === "stamp-doc-close" || evt.target === overlayEl)) {
-              overlayEl.style.display = "none";
-              document.removeEventListener("keydown", handleKeydown);
-            }
-          });
-        }
-        return overlayEl;
-      };
-      const openOverlayUrl = (url) => {
-        const el = ensureOverlay();
-        el.querySelector("#stamp-doc-frame").setAttribute("src", url);
-        el.style.display = "flex";
       };
       cleanContainer.addEventListener("click", async (e) => {
         console.log("[DOC] Click detected on:", e.target);
@@ -73560,246 +73638,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       searchControls,
       cleanup: () => {
         console.log("[CLEANUP] Spreadsheet cleanup called");
-        if (rightPreviewPanel) {
-          hideRightPreview();
-        }
       }
     };
-    console.log("[FILTER] Setting up filters as fallback after spreadsheet creation");
-    setTimeout(() => {
-      if (spreadsheet && spreadsheet.sheets && spreadsheet.sheets[0]) {
-        console.log("[FILTER] Fallback: Setting up filters on first sheet");
-        setupTwoPaneFilters(spreadsheet.sheets[0]);
-      } else if (Array.isArray(spreadsheet) && spreadsheet[0]) {
-        console.log("[FILTER] Fallback: Setting up filters on array spreadsheet");
-        setupTwoPaneFilters(spreadsheet[0]);
-      } else {
-        console.log("[FILTER] Fallback: No valid spreadsheet found for filter setup");
-      }
-    }, 2e3);
-    setTimeout(() => {
-      console.log("[FILTER] Setting up default dropdown customization");
-      function customizeFilterDropdowns() {
-        const existingDropdowns = document.querySelectorAll('.jdropdown-content, .jdropdown-picker, [class*="dropdown"]');
-        console.log("[FILTER] Found dropdowns to customize:", existingDropdowns.length);
-        existingDropdowns.forEach((dropdown) => {
-          const isFilterDropdown = dropdown.closest(".jss_filter, .jexcel_filter") || dropdown.querySelector(".jdropdown-option") || dropdown.textContent.includes("Search") || dropdown.textContent.includes("Contains") || dropdown.textContent.includes("Acme Corporation") || dropdown.textContent.includes("Global Enterprises");
-          if (isFilterDropdown && !dropdown.classList.contains("jss_customized")) {
-            console.log("[FILTER] Customizing filter dropdown:", dropdown);
-            console.log("[FILTER] Dropdown content:", dropdown.innerHTML);
-            const input = findAssociatedInput(dropdown);
-            if (input) {
-              console.log("[FILTER] Found associated input:", input);
-              customizeDropdownToTwoPane(dropdown, input);
-            } else {
-              console.log("[FILTER] No associated input found, customizing dropdown directly");
-              customizeDropdownToTwoPane(dropdown);
-            }
-            dropdown.classList.add("jss_customized");
-          }
-        });
-      }
-      function findAssociatedInput(dropdown) {
-        const parentTd = dropdown.closest("td");
-        if (parentTd) {
-          const input = parentTd.querySelector('input[type="text"]');
-          if (input) return input;
-        }
-        const filterRow = dropdown.closest(".jss_filter, .jexcel_filter");
-        if (filterRow) {
-          const inputs = filterRow.querySelectorAll('input[type="text"]');
-          if (inputs.length > 0) {
-            let closestInput = inputs[0];
-            let minDistance = Infinity;
-            inputs.forEach((input) => {
-              const inputRect = input.getBoundingClientRect();
-              const dropdownRect = dropdown.getBoundingClientRect();
-              const distance = Math.abs(inputRect.left - dropdownRect.left);
-              if (distance < minDistance) {
-                minDistance = distance;
-                closestInput = input;
-              }
-            });
-            return closestInput;
-          }
-        }
-        return null;
-      }
-      function customizeWorksheetDropdowns() {
-        const worksheet2 = spreadsheet.sheets ? spreadsheet.sheets[0] : spreadsheet;
-        if (worksheet2 && worksheet2.element) {
-          const worksheetDropdowns = worksheet2.element.querySelectorAll('.jdropdown-content, .jdropdown-picker, [class*="dropdown"]');
-          console.log("[FILTER] Found worksheet dropdowns:", worksheetDropdowns.length);
-          worksheetDropdowns.forEach((dropdown) => {
-            if (!dropdown.classList.contains("jss_customized")) {
-              console.log("[FILTER] Customizing worksheet dropdown:", dropdown);
-              customizeDropdownToTwoPane(dropdown);
-              dropdown.classList.add("jss_customized");
-            }
-          });
-        }
-      }
-      function customizeDropdownToTwoPane(dropdown, input = null) {
-        const originalContent = dropdown.innerHTML;
-        if (input) {
-          const inputRect = input.getBoundingClientRect();
-          const inputParent = input.closest("td");
-          if (inputParent) {
-            inputParent.style.position = "relative";
-            console.log("[FILTER] Set input parent td position to relative:", inputParent);
-            dropdown.style.position = "absolute";
-            dropdown.style.top = "100%";
-            dropdown.style.left = "0";
-            dropdown.style.zIndex = "1002";
-            dropdown.style.transform = "none";
-            dropdown.style.margin = "0";
-            inputParent.appendChild(dropdown);
-            console.log("[FILTER] Moved dropdown to input parent td");
-          }
-        } else {
-          dropdown.style.position = "absolute";
-          dropdown.style.top = "100%";
-          dropdown.style.left = "0";
-          dropdown.style.zIndex = "1002";
-          dropdown.style.transform = "none";
-          dropdown.style.margin = "0";
-          const parentTd = dropdown.closest("td");
-          if (parentTd) {
-            parentTd.style.position = "relative";
-            console.log("[FILTER] Set parent td position to relative:", parentTd);
-          }
-        }
-        dropdown.innerHTML = `
-        <div class="jss_filter_panel" style="display: flex; flex-direction: row; min-width: 400px; max-width: 500px;">
-          <!-- Left Panel - Value Selection -->
-          <div class="jss_filter_values" style="flex: 1; padding: 16px; border-right: 1px solid #e5e7eb; min-width: 200px;">
-            <input type="text" class="jss_filter_search" placeholder="Search" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; background: #ffffff; color: #1f2937; margin-bottom: 12px;">
-            <div class="jss_filter_options" style="max-height: 200px; overflow-y: auto; margin-bottom: 0;">
-              <div class="jss_filter_option" style="display: flex; align-items: center; padding: 8px 0; font-size: 14px; color: #1f2937; cursor: pointer; border-bottom: 1px solid #f3f4f6;">
-                <input type="checkbox" style="margin-right: 12px; width: 16px; height: 16px; accent-color: #3b82f6; cursor: pointer;" checked>
-                <span>(Select all)</span>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Right Panel - Condition Selection -->
-          <div class="jss_filter_conditions" style="flex: 1; padding: 16px; min-width: 200px;">
-            <select class="jss_filter_condition" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; background: #ffffff; color: #1f2937; margin-bottom: 12px; cursor: pointer;">
-              <option value="contains">Contains</option>
-              <option value="does_not_contain">Does not contain</option>
-              <option value="begins_with">Begins with</option>
-              <option value="ends_with">Ends with</option>
-              <option value="equal">Equal</option>
-              <option value="not_equal">Not equal</option>
-              <option value="greater_than">Greater than</option>
-              <option value="lower_than">Lower than</option>
-            </select>
-            
-            <div class="jss_filter_actions" style="display: flex; gap: 8px; justify-content: flex-end; padding: 12px 0; border-top: 1px solid #e5e7eb; background: #f8fafc; border-radius: 0 0 6px 6px; margin-top: 12px;">
-              <button class="jss_filter_button primary" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500;">Ok</button>
-              <button class="jss_filter_button" style="padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500;">Cancel</button>
-            </div>
-          </div>
-        </div>
-      `;
-        setupCustomizedDropdownEvents(dropdown);
-      }
-      function setupCustomizedDropdownEvents(dropdown) {
-        const searchInput = dropdown.querySelector(".jss_filter_search");
-        const valueOptions = dropdown.querySelector(".jss_filter_options");
-        const conditionSelect = dropdown.querySelector(".jss_filter_condition");
-        const okButton = dropdown.querySelector(".jss_filter_button.primary");
-        const cancelButton = dropdown.querySelector(".jss_filter_button:not(.primary)");
-        if (searchInput) {
-          searchInput.addEventListener("input", (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const options = valueOptions.querySelectorAll(".jss_filter_option");
-            options.forEach((option) => {
-              const text = option.textContent.toLowerCase();
-              option.style.display = text.includes(searchTerm) ? "flex" : "none";
-            });
-          });
-        }
-        if (cancelButton) {
-          cancelButton.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropdown.style.display = "none";
-          });
-        }
-        if (okButton) {
-          okButton.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log("[FILTER] Applying filter with selected values and condition");
-            dropdown.style.display = "none";
-          });
-        }
-      }
-      customizeFilterDropdowns();
-      customizeWorksheetDropdowns();
-      setTimeout(() => {
-        customizeFilterDropdowns();
-        customizeWorksheetDropdowns();
-      }, 1e3);
-      setTimeout(() => {
-        customizeFilterDropdowns();
-        customizeWorksheetDropdowns();
-      }, 3e3);
-      const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          if (mutation.type === "childList") {
-            mutation.addedNodes.forEach((node) => {
-              if (node.nodeType === 1) {
-                if (node.matches && (node.matches('.jdropdown-content, .jdropdown-picker, [class*="dropdown"]') || node.querySelector('.jdropdown-content, .jdropdown-picker, [class*="dropdown"]'))) {
-                  console.log("[FILTER] New dropdown detected, customizing:", node);
-                  setTimeout(() => {
-                    customizeFilterDropdowns();
-                    customizeWorksheetDropdowns();
-                  }, 100);
-                }
-              }
-            });
-          }
-        });
-      });
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      });
-      document.addEventListener("click", (e) => {
-        if (e.target.matches('input[type="text"]') && e.target.closest(".jss_filter, .jexcel_filter")) {
-          console.log("[FILTER] Filter input clicked, checking for dropdowns");
-          setTimeout(() => {
-            customizeFilterDropdowns();
-            customizeWorksheetDropdowns();
-          }, 200);
-        }
-      });
-      setInterval(() => {
-        const newDropdowns = document.querySelectorAll(".jdropdown-content:not(.jss_customized), .jdropdown-picker:not(.jss_customized)");
-        if (newDropdowns.length > 0) {
-          console.log("[FILTER] Found new uncustomized dropdowns:", newDropdowns.length);
-          customizeFilterDropdowns();
-          customizeWorksheetDropdowns();
-        }
-      }, 500);
-      const worksheet = spreadsheet.sheets ? spreadsheet.sheets[0] : spreadsheet;
-      if (worksheet && worksheet.openFilter) {
-        const originalOpenFilter = worksheet.openFilter;
-        worksheet.openFilter = function(columnNumber, getAsSets) {
-          console.log("[FILTER] Intercepted openFilter call for column:", columnNumber);
-          const result = originalOpenFilter.call(this, columnNumber, getAsSets);
-          setTimeout(() => {
-            console.log("[FILTER] Customizing dropdown after openFilter");
-            customizeFilterDropdowns();
-            customizeWorksheetDropdowns();
-          }, 100);
-          return result;
-        };
-        console.log("[FILTER] Overrode openFilter method");
-      }
-    }, 3e3);
   }
   async function setupShadowDOMContainer(container) {
     console.log("[SHADOW DOM] Creating shadow DOM container for CSS isolation...");
@@ -73988,7 +73828,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       const docUrl = details.documentUrl || details.document_url || invoice.document?.url || "";
       const thumbUrl = details.thumbnailUrl || details.thumbnail_url || invoice.document?.thumbnailUrl || invoice.document?.thumbnail_url || "";
       const hasDoc = !!(docThreadId && docName);
-      const hasSampleDoc = !!(docUrl && (docUrl.includes("w3.org") || docUrl.includes("mozilla.github.io") || docUrl.includes("picsum.photos")));
+      const hasSampleDoc = !!(docUrl && docUrl.includes("w3.org"));
       const docIcon = `
       <span class="doc-preview-icon" 
             data-doc-url="${docUrl}"
@@ -74540,339 +74380,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
     ];
     console.log("[MOCK DATA] Generated", mockInvoices.length, "mock invoices");
     return mockInvoices;
-  }
-  function setupTwoPaneFilters(worksheet) {
-    console.log("[FILTER] Setting up two-pane filters for worksheet");
-    console.log("[FILTER] Worksheet element:", worksheet.element);
-    setTimeout(() => {
-      console.log("[FILTER] Looking for filter row...");
-      const filterRow = worksheet.element.querySelector(".jss_worksheet > thead > tr.jss_filter") || worksheet.element.querySelector("tr.jss_filter") || worksheet.element.querySelector(".jss_filter");
-      console.log("[FILTER] Filter row found:", !!filterRow);
-      if (filterRow) {
-        console.log("[FILTER] Setting up custom filter panels on filter row");
-        setupFiltersOnRow(filterRow, worksheet);
-      } else {
-        console.log("[FILTER] No filter row found, looking for filter inputs in thead");
-        const filterInputs = worksheet.element.querySelectorAll('thead input[type="text"]');
-        console.log("[FILTER] Found filter inputs in thead:", filterInputs.length);
-        filterInputs.forEach((input, index) => {
-          if (input && input.parentElement) {
-            const columnIndex = Array.from(input.closest("tr").children).indexOf(input.closest("td"));
-            const column = worksheet.options.columns[columnIndex];
-            if (column && column.filter === true) {
-              console.log(`[FILTER] Setting up filter panel for input ${index} (column: ${column.title})`);
-              setupFilterPanel(input, index, worksheet);
-            } else {
-              console.log(`[FILTER] Skipping input ${index} - column does not have filter enabled`);
-            }
-          }
-        });
-      }
-    }, 1500);
-  }
-  function setupFiltersOnRow(filterRow, worksheet) {
-    console.log("[FILTER] Setting up filters on row:", filterRow);
-    const filterInputs = filterRow.querySelectorAll('td > input, input[type="text"], input');
-    console.log("[FILTER] Found filter inputs:", filterInputs.length);
-    const allTds = filterRow.querySelectorAll("td");
-    console.log("[FILTER] Found td elements:", allTds.length);
-    allTds.forEach((td, index) => {
-      console.log(`[FILTER] TD ${index}:`, td);
-      console.log(`[FILTER] TD ${index} innerHTML:`, td.innerHTML);
-      const input = td.querySelector("input");
-      if (input) {
-        console.log(`[FILTER] Found input in TD ${index}:`, input);
-        setupFilterPanel(input, index, worksheet);
-      } else {
-        console.log(`[FILTER] No input found in TD ${index}, checking if it's a filter column`);
-        const column = worksheet.options.columns[index];
-        if (column && column.filter === true) {
-          console.log(`[FILTER] Column ${index} (${column.title}) has filter enabled, creating input`);
-          const input2 = document.createElement("input");
-          input2.type = "text";
-          input2.placeholder = `Filter ${column.title}`;
-          input2.style.cssText = `
-          width: 100%;
-          height: 100%;
-          border: 1px solid #d1d5db;
-          border-radius: 4px;
-          padding: 4px 24px 4px 8px;
-          font-size: 12px;
-          background: #ffffff;
-          color: #1f2937;
-          position: relative;
-        `;
-          td.appendChild(input2);
-          setupFilterPanel(input2, index, worksheet);
-        }
-      }
-    });
-    filterInputs.forEach((input, index) => {
-      console.log(`[FILTER] Setting up filter panel for input ${index}:`, input);
-      if (input && input.parentElement) {
-        setupFilterPanel(input, index, worksheet);
-      }
-    });
-  }
-  function setupFilterPanel(input, columnIndex, worksheet) {
-    console.log(`[FILTER] Setting up filter panel for column ${columnIndex}`);
-    const filterPanel = document.createElement("div");
-    filterPanel.className = "jss_custom_filter_panel";
-    filterPanel.style.cssText = `
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background: #ffffff;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    padding: 0;
-    min-width: 400px;
-    max-width: 500px;
-    z-index: 1002;
-    display: none;
-    flex-direction: row;
-  `;
-    const leftPanel = document.createElement("div");
-    leftPanel.className = "jss_filter_values";
-    leftPanel.style.cssText = `
-    flex: 1;
-    padding: 16px;
-    border-right: 1px solid #e5e7eb;
-    min-width: 200px;
-  `;
-    const searchInput = document.createElement("input");
-    searchInput.type = "text";
-    searchInput.placeholder = "Search";
-    searchInput.className = "jss_filter_search";
-    searchInput.style.cssText = `
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 14px;
-    background: #ffffff;
-    color: #1f2937;
-    margin-bottom: 12px;
-  `;
-    const valueList = document.createElement("div");
-    valueList.className = "jss_filter_options";
-    valueList.style.cssText = `
-    max-height: 200px;
-    overflow-y: auto;
-    margin-bottom: 0;
-  `;
-    const rightPanel = document.createElement("div");
-    rightPanel.className = "jss_filter_conditions";
-    rightPanel.style.cssText = `
-    flex: 1;
-    padding: 16px;
-    min-width: 200px;
-  `;
-    const conditionSelect = document.createElement("select");
-    conditionSelect.className = "jss_filter_condition";
-    conditionSelect.style.cssText = `
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 14px;
-    background: #ffffff;
-    color: #1f2937;
-    margin-bottom: 12px;
-    cursor: pointer;
-  `;
-    const conditions = [
-      "Contains",
-      "Does not contain",
-      "Begins with",
-      "Ends with",
-      "Equal",
-      "Not equal",
-      "Greater than",
-      "Lower than"
-    ];
-    conditions.forEach((condition) => {
-      const option = document.createElement("option");
-      option.value = condition.toLowerCase().replace(/\s+/g, "_");
-      option.textContent = condition;
-      conditionSelect.appendChild(option);
-    });
-    const buttonContainer = document.createElement("div");
-    buttonContainer.style.cssText = `
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-  `;
-    const okButton = document.createElement("button");
-    okButton.textContent = "Ok";
-    okButton.style.cssText = `
-    flex: 1;
-    padding: 8px 16px;
-    background: #3b82f6;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-  `;
-    const cancelButton = document.createElement("button");
-    cancelButton.textContent = "Cancel";
-    cancelButton.style.cssText = `
-    flex: 1;
-    padding: 8px 16px;
-    background: #6b7280;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-  `;
-    leftPanel.appendChild(searchInput);
-    leftPanel.appendChild(valueList);
-    rightPanel.appendChild(conditionSelect);
-    rightPanel.appendChild(buttonContainer);
-    buttonContainer.appendChild(okButton);
-    buttonContainer.appendChild(cancelButton);
-    filterPanel.appendChild(leftPanel);
-    filterPanel.appendChild(rightPanel);
-    input.parentElement.style.position = "relative";
-    input.parentElement.appendChild(filterPanel);
-    const uniqueValues = getUniqueValuesForColumn(columnIndex, worksheet);
-    populateValueList(valueList, uniqueValues);
-    input.addEventListener("click", (e) => {
-      console.log("[FILTER] Input clicked, toggling panel");
-      e.preventDefault();
-      e.stopPropagation();
-      toggleFilterPanel(filterPanel);
-    });
-    input.addEventListener("focus", (e) => {
-      console.log("[FILTER] Input focused, showing panel");
-      e.preventDefault();
-      e.stopPropagation();
-      filterPanel.style.display = "flex";
-    });
-    searchInput.addEventListener("input", (e) => {
-      filterValueList(valueList, e.target.value);
-    });
-    okButton.addEventListener("click", () => {
-      applyFilter(columnIndex, valueList, conditionSelect.value, worksheet);
-      filterPanel.style.display = "none";
-    });
-    cancelButton.addEventListener("click", () => {
-      filterPanel.style.display = "none";
-    });
-    document.addEventListener("click", (e) => {
-      if (!filterPanel.contains(e.target) && !input.contains(e.target)) {
-        filterPanel.style.display = "none";
-      }
-    });
-  }
-  function toggleFilterPanel(panel) {
-    const isVisible = panel.style.display === "flex";
-    console.log("[FILTER] Toggling panel, currently visible:", isVisible);
-    panel.style.display = isVisible ? "none" : "flex";
-    console.log("[FILTER] Panel display set to:", panel.style.display);
-  }
-  function getUniqueValuesForColumn(columnIndex, worksheet) {
-    const values = /* @__PURE__ */ new Set();
-    const dataRows = worksheet.element.querySelectorAll(".jss_worksheet > tbody > tr");
-    dataRows.forEach((row) => {
-      const cells = row.querySelectorAll("td");
-      if (cells[columnIndex]) {
-        const value = cells[columnIndex].textContent.trim();
-        if (value) {
-          values.add(value);
-        }
-      }
-    });
-    return Array.from(values).sort();
-  }
-  function populateValueList(container, values) {
-    container.innerHTML = "";
-    const selectAllItem = document.createElement("div");
-    selectAllItem.className = "jss_filter_option";
-    selectAllItem.style.cssText = `
-    display: flex;
-    align-items: center;
-    padding: 8px 0;
-    font-size: 14px;
-    color: #1f2937;
-    cursor: pointer;
-    border-bottom: 1px solid #f3f4f6;
-  `;
-    const selectAllCheckbox = document.createElement("input");
-    selectAllCheckbox.type = "checkbox";
-    selectAllCheckbox.checked = true;
-    selectAllCheckbox.style.cssText = `
-    margin-right: 12px;
-    width: 16px;
-    height: 16px;
-    accent-color: #3b82f6;
-    cursor: pointer;
-  `;
-    const selectAllLabel = document.createElement("label");
-    selectAllLabel.textContent = "(Select all)";
-    selectAllLabel.style.cssText = "cursor: pointer; flex: 1;";
-    selectAllItem.appendChild(selectAllCheckbox);
-    selectAllItem.appendChild(selectAllLabel);
-    container.appendChild(selectAllItem);
-    values.forEach((value) => {
-      const item = document.createElement("div");
-      item.className = "jss_filter_option";
-      item.style.cssText = `
-      display: flex;
-      align-items: center;
-      padding: 8px 0;
-      font-size: 14px;
-      color: #1f2937;
-      cursor: pointer;
-      border-bottom: 1px solid #f3f4f6;
-    `;
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.checked = true;
-      checkbox.value = value;
-      checkbox.style.cssText = `
-      margin-right: 12px;
-      width: 16px;
-      height: 16px;
-      accent-color: #3b82f6;
-      cursor: pointer;
-    `;
-      const label = document.createElement("label");
-      label.textContent = value;
-      label.style.cssText = "cursor: pointer; flex: 1;";
-      item.appendChild(checkbox);
-      item.appendChild(label);
-      container.appendChild(item);
-    });
-    selectAllCheckbox.addEventListener("change", (e) => {
-      const checkboxes = container.querySelectorAll('input[type="checkbox"]:not([value=""])');
-      checkboxes.forEach((cb) => {
-        cb.checked = e.target.checked;
-      });
-    });
-  }
-  function filterValueList(container, searchTerm) {
-    const options = container.querySelectorAll(".jss_filter_option");
-    const term = searchTerm.toLowerCase();
-    options.forEach((option) => {
-      const label = option.querySelector("label");
-      const text = label ? label.textContent.toLowerCase() : "";
-      const shouldShow = text.includes(term);
-      option.style.display = shouldShow ? "flex" : "none";
-    });
-  }
-  function applyFilter(columnIndex, valueList, condition, worksheet) {
-    console.log(`[FILTER] Applying filter to column ${columnIndex} with condition: ${condition}`);
-    const selectedValues = Array.from(valueList.querySelectorAll('input[type="checkbox"]:checked')).map((cb) => cb.value).filter((value) => value);
-    console.log("[FILTER] Selected values:", selectedValues);
-    if (selectedValues.length > 0) {
-      worksheet.setFilter(columnIndex, selectedValues);
-    } else {
-      worksheet.resetFilters(columnIndex);
-    }
   }
   var CorrectionsBatcher;
   var init_spreadsheet_builder = __esm({

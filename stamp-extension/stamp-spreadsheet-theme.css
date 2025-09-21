@@ -273,67 +273,15 @@
   font-weight: bold !important;
 }
 
-/* Customize jspreadsheet default filter dropdowns to two-pane design */
-.jdropdown-content.jss_customized,
-.jdropdown-picker.jss_customized {
-  background: #ffffff !important;
-  border: 1px solid #d1d5db !important;
-  border-radius: 6px !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  padding: 0 !important;
-  min-width: 400px !important;
-  max-width: 500px !important;
-  z-index: 1002 !important;
-  position: absolute !important;
-  top: 100% !important;
-  left: 0 !important;
-  display: block !important;
-  transform: none !important;
-  margin: 0 !important;
+/* Debug: Make filter row more visible */
+.jss_worksheet > thead > tr.jss_filter {
+  background: #e5f3ff !important;
+  border: 2px solid #3b82f6 !important;
 }
 
-/* Ensure the dropdown is positioned relative to its parent td */
-.jss_filter td {
-  position: relative !important;
-}
-
-/* Make sure the dropdown appears below the input, not in center */
-.jdropdown-content.jss_customized {
-  position: absolute !important;
-  top: calc(100% + 2px) !important;
-  left: 0 !important;
-  right: auto !important;
-  transform: none !important;
-  margin: 0 !important;
-}
-
-/* Custom filter panel styling */
-.jss_custom_filter_panel {
-  background: #ffffff !important;
-  border: 1px solid #d1d5db !important;
-  border-radius: 6px !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  padding: 0 !important;
-  min-width: 400px !important;
-  max-width: 500px !important;
-  z-index: 1002 !important;
-  position: absolute !important;
-  top: 100% !important;
-  left: 0 !important;
-  display: none !important;
-  flex-direction: row !important;
-}
-
-/* Debug: Make sure the panel is visible when shown */
-.jss_custom_filter_panel[style*="flex"] {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-/* Ensure the panel is not hidden by other elements */
-.jss_custom_filter_panel * {
-  box-sizing: border-box !important;
+.jss_worksheet > thead > tr.jss_filter > td {
+  background: #e5f3ff !important;
+  border: 1px solid #3b82f6 !important;
 }
 
 /* Remove header shiny effects */

@@ -90,7 +90,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       source: ['USD', 'INR', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CNY', 'OTHER'],
       fieldName: 'currency',
       editable: true,
-      filter: false, // Data editing dropdown - no filter functionality
+      filter: true,
       options: {
         type: 'default',
         placeholder: 'Select Currency'
@@ -129,7 +129,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       source: [ 'pending', 'approved', 'rejected', 'paid', 'on_hold', 'requires_review', 'partially_approved', 'ready_for_payment', 'duplicate', 'unknown' ],
       fieldName: 'status',
       editable: true,
-      filter: false // Data editing dropdown - no filter functionality
+      filter: true
     },
     {
       title: '📤', // Gmail icon column (moved next to Status)
@@ -146,7 +146,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       source: ['PENDING', 'APPROVED', 'REJECTED'],
       fieldName: 'approvalStatus',
       editable: true,
-      filter: false, // Data editing dropdown - no filter functionality
+      filter: true,
       options: {
         type: 'default',
         placeholder: 'Select Status'
@@ -233,19 +233,6 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     // Search functionality (keeping existing search logic)
     console.log('[SEARCH] oncreateworksheet event fired!');
     console.log('[SEARCH] Worksheet element:', worksheet.element);
-    
-    // === TWO-PANE FILTER FUNCTIONALITY ===
-    console.log('[FILTER] Setting up two-pane filter functionality');
-    console.log('[FILTER] Worksheet object:', worksheet);
-    console.log('[FILTER] Worksheet element:', worksheet.element);
-    
-    // Call the filter setup function
-    if (typeof setupTwoPaneFilters === 'function') {
-      console.log('[FILTER] setupTwoPaneFilters function exists, calling it');
-      setupTwoPaneFilters(worksheet);
-    } else {
-      console.error('[FILTER] setupTwoPaneFilters function not found!');
-    }
     
     // Wait for jspreadsheet to create its search input
     setTimeout(() => {
@@ -389,17 +376,6 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   console.log('[SEARCH DEBUG] Search method available:', typeof sheet?.search);
   console.log('[SEARCH DEBUG] ResetSearch method available:', typeof sheet?.resetSearch);
   console.log('[SEARCH DEBUG] ShowSearch method available:', typeof sheet?.showSearch);
-  
-  // === IMMEDIATE FILTER SETUP DEBUG ===
-  console.log('[FILTER] Immediate setup - checking if oncreateworksheet fired');
-  console.log('[FILTER] Sheet element:', sheet.element);
-  console.log('[FILTER] Sheet element HTML:', sheet.element.outerHTML.substring(0, 200) + '...');
-  
-  // Try to set up filters immediately
-  setTimeout(() => {
-    console.log('[FILTER] Immediate setup - attempting direct filter setup');
-    setupTwoPaneFilters(sheet);
-  }, 1000);
   
   // FALLBACK: Enhance existing search or create custom one
   setTimeout(() => {
@@ -613,6 +589,244 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       }
     });
 
+    // Document hover preview (thumbnail) and click to open inline overlay
+    let previewEl = null;
+    let overlayEl = null;
+
+    let previewTimeout = null;
+    let isPreviewHovered = false;
+
+    const showPreview = (iconEl) => {
+      // Clear any existing timeout
+      if (previewTimeout) {
+        clearTimeout(previewTimeout);
+        previewTimeout = null;
+      }
+
+      // Preview remains optional; we use thumbnail url if present
+      const docUrl = iconEl.getAttribute('data-doc-url');
+      const thumbUrl = iconEl.getAttribute('data-thumb-url');
+      if (!docUrl) return;
+      const rect = iconEl.getBoundingClientRect();
+      if (!previewEl) {
+        previewEl = document.createElement('div');
+        previewEl.style.cssText = 'position:fixed; z-index:2147483646; width:360px; height:280px; background:#fff; box-shadow:0 20px 40px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.05); border:none; border-radius:16px; overflow:hidden; backdrop-filter:blur(12px); transform:scale(1); transition:all 0.2s ease;';
+        
+        document.body.appendChild(previewEl);
+        
+        // Add hover events to the preview element itself
+        previewEl.addEventListener('mouseenter', () => {
+          isPreviewHovered = true;
+          if (previewTimeout) {
+            clearTimeout(previewTimeout);
+            previewTimeout = null;
+          }
+        });
+        
+        previewEl.addEventListener('mouseleave', () => {
+          isPreviewHovered = false;
+          // Add a small delay before hiding to allow moving between icon and preview
+          previewTimeout = setTimeout(() => {
+            if (!isPreviewHovered) {
+              previewEl.style.display = 'none';
+            }
+          }, 100);
+        });
+      }
+      
+      // Enhanced preview with thumbnail fallback
+      const previewContent = thumbUrl ? 
+        `<div style="display:flex; flex-direction:column; height:100%; background:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+           <div style="flex:1; background:url('${thumbUrl}') center/cover; display:flex; align-items:center; justify-content:center; background-color:#4CAF50; border-radius:12px 12px 0 0; position:relative; min-height:160px;">
+             <div style="text-align:center; color:#fff; font-size:16px; background:rgba(0,0,0,0.1); padding:20px; border-radius:12px; backdrop-filter:blur(4px); border:1px solid rgba(255,255,255,0.2);">
+               <div style="font-size:32px; margin-bottom:12px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));">📄</div>
+               <div style="font-weight:700; margin-bottom:6px; font-size:18px; text-shadow:0 1px 2px rgba(0,0,0,0.3);">Sample Invoice</div>
+               <div style="font-size:13px; opacity:0.9; font-weight:500;">Sample Document Preview</div>
+               <div style="font-size:11px; opacity:0.8; margin-top:4px;">Click to open full document</div>
+             </div>
+           </div>
+           <div style="padding:16px; background:#f8f9fa; border-top:1px solid #e0e0e0; text-align:center; border-radius:0 0 12px 12px;">
+             <button id="preview-open-doc-btn" data-doc-url="${docUrl}" style="background:linear-gradient(135deg, #1a73e8 0%, #1557b0 100%); color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease; box-shadow:0 2px 8px rgba(26,115,232,0.3); min-width:140px;">Open Document</button>
+           </div>
+         </div>` :
+        `<iframe src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1" style="width:100%;height:100%;border:0;" loading="eager"></iframe>`;
+      
+      previewEl.innerHTML = previewContent;
+      
+      // Add event listener for the open document button
+      const openDocBtn = previewEl.querySelector('#preview-open-doc-btn');
+      if (openDocBtn) {
+        openDocBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const docUrl = openDocBtn.getAttribute('data-doc-url');
+          if (docUrl) {
+            window.open(docUrl, '_blank');
+          }
+        });
+        
+        // Add hover effects
+        openDocBtn.addEventListener('mouseenter', () => {
+          openDocBtn.style.background = 'linear-gradient(135deg, #1557b0 0%, #0d47a1 100%)';
+          openDocBtn.style.transform = 'translateY(-2px) scale(1.02)';
+          openDocBtn.style.boxShadow = '0 4px 12px rgba(26,115,232,0.4)';
+        });
+        
+        openDocBtn.addEventListener('mouseleave', () => {
+          openDocBtn.style.background = 'linear-gradient(135deg, #1a73e8 0%, #1557b0 100%)';
+          openDocBtn.style.transform = 'translateY(0) scale(1)';
+          openDocBtn.style.boxShadow = '0 2px 8px rgba(26,115,232,0.3)';
+        });
+      }
+      
+      // Add a small invisible bridge to make it easier to move mouse between icon and preview
+      const bridge = document.createElement('div');
+      bridge.style.cssText = 'position:absolute; z-index:2147483645; width:20px; height:8px; background:transparent; top:-8px; left:10px;';
+      previewEl.appendChild(bridge);
+      
+      // Add hover events to the bridge as well
+      bridge.addEventListener('mouseenter', () => {
+        isPreviewHovered = true;
+        if (previewTimeout) {
+          clearTimeout(previewTimeout);
+          previewTimeout = null;
+        }
+      });
+      
+      // Position the preview closer to the icon with a small gap
+      const rectLeft = Math.max(8, rect.left - 20);
+      previewEl.style.top = `${Math.round(rect.bottom + 4)}px`;
+      previewEl.style.left = `${Math.round(rectLeft)}px`;
+      previewEl.style.display = 'block';
+      
+      // Add entrance animation
+      previewEl.style.opacity = '0';
+      previewEl.style.transform = 'scale(0.9) translateY(10px)';
+      requestAnimationFrame(() => {
+        previewEl.style.transition = 'all 0.2s ease';
+        previewEl.style.opacity = '1';
+        previewEl.style.transform = 'scale(1) translateY(0)';
+      });
+    };
+
+    const hidePreview = () => {
+      // Add a small delay to allow moving between icon and preview
+      previewTimeout = setTimeout(() => {
+        if (!isPreviewHovered && previewEl) {
+          previewEl.style.display = 'none';
+        }
+      }, 150);
+    };
+
+    const ensureOverlay = () => {
+      if (!overlayEl) {
+        overlayEl = document.createElement('div');
+        overlayEl.style.cssText = 'position:fixed; inset:0; background:rgba(32,33,36,0.6); z-index:2147483647; display:flex; align-items:center; justify-content:center;';
+        overlayEl.innerHTML = `
+          <div style="width:80vw; height:80vh; background:#fff; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.35); display:flex; flex-direction:column; overflow:hidden;">
+            <div style="padding:10px; border-bottom:1px solid #e0e0e0; display:flex; align-items:center; justify-content:space-between;">
+              <div style="font-weight:600; color:#202124;">Document Preview</div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <button id="stamp-doc-zoom-out" style="border:none; background:#f3f4f6; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:14px;">−</button>
+                <span id="stamp-doc-zoom-level" style="font-size:14px; color:#374151; min-width:50px; text-align:center;">100%</span>
+                <button id="stamp-doc-zoom-in" style="border:none; background:#f3f4f6; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:14px;">+</button>
+                <button id="stamp-doc-fit-width" style="border:none; background:#e5e7eb; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:12px;">Fit Width</button>
+                <button id="stamp-doc-close" style="border:none; background:#eef2f7; color:#1f2937; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600;">Close</button>
+              </div>
+            </div>
+            <div id="stamp-doc-container" style="flex:1; overflow:auto; position:relative;">
+              <iframe id="stamp-doc-frame" src="" style="width:100%; height:100%; border:0; transform-origin:top left;" loading="eager"></iframe>
+            </div>
+          </div>`;
+        document.body.appendChild(overlayEl);
+        
+        // Add zoom functionality
+        let currentZoom = 1;
+        const zoomLevel = overlayEl.querySelector('#stamp-doc-zoom-level');
+        const iframe = overlayEl.querySelector('#stamp-doc-frame');
+        const container = overlayEl.querySelector('#stamp-doc-container');
+        
+        const updateZoom = (newZoom) => {
+          currentZoom = Math.max(0.25, Math.min(3, newZoom)); // Limit zoom between 25% and 300%
+          iframe.style.transform = `scale(${currentZoom})`;
+          iframe.style.width = `${100 / currentZoom}%`;
+          iframe.style.height = `${100 / currentZoom}%`;
+          zoomLevel.textContent = `${Math.round(currentZoom * 100)}%`;
+        };
+        
+        const fitToWidth = () => {
+          // Reset zoom and let the PDF fit naturally
+          currentZoom = 1;
+          iframe.style.transform = 'scale(1)';
+          iframe.style.width = '100%';
+          iframe.style.height = '100%';
+          zoomLevel.textContent = '100%';
+        };
+        
+        // Add event listeners for zoom controls
+        overlayEl.querySelector('#stamp-doc-zoom-out').addEventListener('click', (e) => {
+          e.stopPropagation();
+          updateZoom(currentZoom - 0.25);
+        });
+        
+        overlayEl.querySelector('#stamp-doc-zoom-in').addEventListener('click', (e) => {
+          e.stopPropagation();
+          updateZoom(currentZoom + 0.25);
+        });
+        
+        overlayEl.querySelector('#stamp-doc-fit-width').addEventListener('click', (e) => {
+          e.stopPropagation();
+          fitToWidth();
+        });
+        
+        // Add keyboard shortcuts
+        const handleKeydown = (e) => {
+          if (e.key === 'Escape') {
+            overlayEl.style.display = 'none';
+          } else if (e.key === '+' || e.key === '=') {
+            e.preventDefault();
+            updateZoom(currentZoom + 0.25);
+          } else if (e.key === '-') {
+            e.preventDefault();
+            updateZoom(currentZoom - 0.25);
+          } else if (e.key === '0') {
+            e.preventDefault();
+            fitToWidth();
+          }
+        };
+        
+        overlayEl.addEventListener('keydown', handleKeydown);
+        
+        // Make the overlay focusable for keyboard events
+        overlayEl.setAttribute('tabindex', '0');
+        overlayEl.focus();
+        
+        overlayEl.addEventListener('click', (evt) => {
+          if (evt.target && (evt.target.id === 'stamp-doc-close' || evt.target === overlayEl)) {
+            overlayEl.style.display = 'none';
+            document.removeEventListener('keydown', handleKeydown);
+          }
+        });
+      }
+      return overlayEl;
+    };
+
+    const openOverlayUrl = (url) => {
+      const el = ensureOverlay();
+      el.querySelector('#stamp-doc-frame').setAttribute('src', url);
+      el.style.display = 'flex';
+    };
+
+    cleanContainer.addEventListener('mouseover', (e) => {
+      const icon = e.target.closest('.doc-preview-icon');
+      if (icon && icon.getAttribute('data-has-doc') === '1') showPreview(icon);
+    });
+
+    cleanContainer.addEventListener('mouseout', (e) => {
+      const icon = e.target.closest('.doc-preview-icon');
+      if (icon) hidePreview();
+    });
+
     // Right-side preview panel
     let rightPreviewPanel = null;
     let currentPreviewData = null;
@@ -651,8 +865,8 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           background: #ffffff;
           border-left: 1px solid #e0e0e0;
           box-shadow: -4px 0 12px rgba(0,0,0,0.1);
-          z-index: 1000;
-          display: flex;
+          z-index: 2147483647;
+          display: none;
           flex-direction: column;
           transform: translateX(100%);
           transition: transform 0.3s ease;
@@ -813,8 +1027,8 @@ export async function buildSpreadsheet(container, data, opts = {}) {
               transition: all 0.2s ease;
               box-shadow: 0 2px 8px rgba(26,115,232,0.3);
             ">Open Document</button>
-            <button id="preview-download-btn" data-doc-url="${docUrl}" style="
-              padding: 12px 16px;
+            <button id="preview-download-btn" data-doc-url="${docUrl}" data-doc-name="${docName}" style="
+              padding: 12px 20px;
               background: #f8f9fa;
               color: #374151;
               border: 1px solid #d1d5db;
@@ -1039,25 +1253,21 @@ export async function buildSpreadsheet(container, data, opts = {}) {
         try {
           const link = document.createElement('a');
           link.href = url;
-          link.download = filename || 'document.pdf';
-          link.target = '_blank';
-          document.body.appendChild(link);
+          link.download = filename || 'document';
           link.click();
-          document.body.removeChild(link);
         } catch (error) {
           console.error('[PREVIEW] Download failed:', error);
-          // Fallback: open in new tab
-          window.open(url, '_blank');
         }
       };
       
-      // Add global copy link function
+      // Add global copy function
       window.copyDocumentLink = function(url) {
         console.log('[PREVIEW] Copying document link:', url);
         try {
           navigator.clipboard.writeText(url).then(() => {
-            // Show a temporary success message
+            // Show temporary success message
             const notification = document.createElement('div');
+            notification.textContent = 'Link copied to clipboard!';
             notification.style.cssText = `
               position: fixed;
               top: 20px;
@@ -1069,24 +1279,12 @@ export async function buildSpreadsheet(container, data, opts = {}) {
               font-size: 14px;
               font-weight: 500;
               z-index: 10000;
-              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+              box-shadow: 0 4px 12px rgba(16,185,129,0.3);
             `;
-            notification.textContent = 'Link copied to clipboard!';
             document.body.appendChild(notification);
-            
             setTimeout(() => {
               document.body.removeChild(notification);
             }, 3000);
-          }).catch(() => {
-            // Fallback for older browsers
-            const textArea = document.createElement('textarea');
-            textArea.value = url;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            
-            alert('Link copied to clipboard!');
           });
         } catch (error) {
           console.error('[PREVIEW] Copy failed:', error);
@@ -1096,7 +1294,18 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       
       // Show the panel with animation
       console.log('[PREVIEW] Showing right preview panel');
+      console.log('[PREVIEW] Panel element:', rightPreviewPanel);
+      console.log('[PREVIEW] Panel computed style before:', window.getComputedStyle(rightPreviewPanel).display);
+      
       rightPreviewPanel.style.display = 'flex';
+      
+      // Force a reflow to ensure the display change takes effect
+      rightPreviewPanel.offsetHeight;
+      
+      console.log('[PREVIEW] Panel computed style after:', window.getComputedStyle(rightPreviewPanel).display);
+      console.log('[PREVIEW] Panel position:', rightPreviewPanel.getBoundingClientRect());
+      
+      // Then animate the transform
       rightPreviewPanel.style.transform = 'translateX(0)';
       currentPreviewData = { docUrl, thumbUrl, docName };
       console.log('[PREVIEW] Panel should now be visible');
@@ -1110,107 +1319,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
             rightPreviewPanel.style.display = 'none';
           }
         }, 300);
-        currentPreviewData = null;
       }
-    };
-
-    const ensureOverlay = () => {
-      if (!overlayEl) {
-        overlayEl = document.createElement('div');
-        overlayEl.style.cssText = 'position:fixed; inset:0; background:rgba(32,33,36,0.6); z-index:2147483647; display:flex; align-items:center; justify-content:center;';
-        overlayEl.innerHTML = `
-          <div style="width:80vw; height:80vh; background:#fff; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.35); display:flex; flex-direction:column; overflow:hidden;">
-            <div style="padding:10px; border-bottom:1px solid #e0e0e0; display:flex; align-items:center; justify-content:space-between;">
-              <div style="font-weight:600; color:#202124;">Document Preview</div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <button id="stamp-doc-zoom-out" style="border:none; background:#f3f4f6; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:14px;">−</button>
-                <span id="stamp-doc-zoom-level" style="font-size:14px; color:#374151; min-width:50px; text-align:center;">100%</span>
-                <button id="stamp-doc-zoom-in" style="border:none; background:#f3f4f6; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:14px;">+</button>
-                <button id="stamp-doc-fit-width" style="border:none; background:#e5e7eb; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:12px;">Fit Width</button>
-                <button id="stamp-doc-close" style="border:none; background:#eef2f7; color:#1f2937; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600;">Close</button>
-              </div>
-            </div>
-            <div id="stamp-doc-container" style="flex:1; overflow:auto; position:relative;">
-              <iframe id="stamp-doc-frame" src="" style="width:100%; height:100%; border:0; transform-origin:top left;" loading="eager"></iframe>
-            </div>
-          </div>`;
-        document.body.appendChild(overlayEl);
-        
-        // Add zoom functionality
-        let currentZoom = 1;
-        const zoomLevel = overlayEl.querySelector('#stamp-doc-zoom-level');
-        const iframe = overlayEl.querySelector('#stamp-doc-frame');
-        const container = overlayEl.querySelector('#stamp-doc-container');
-        
-        const updateZoom = (newZoom) => {
-          currentZoom = Math.max(0.25, Math.min(3, newZoom)); // Limit zoom between 25% and 300%
-          iframe.style.transform = `scale(${currentZoom})`;
-          iframe.style.width = `${100 / currentZoom}%`;
-          iframe.style.height = `${100 / currentZoom}%`;
-          zoomLevel.textContent = `${Math.round(currentZoom * 100)}%`;
-        };
-        
-        const fitToWidth = () => {
-          // Reset zoom and let the PDF fit naturally
-          currentZoom = 1;
-          iframe.style.transform = 'scale(1)';
-          iframe.style.width = '100%';
-          iframe.style.height = '100%';
-          zoomLevel.textContent = '100%';
-        };
-        
-        // Add event listeners for zoom controls
-        overlayEl.querySelector('#stamp-doc-zoom-out').addEventListener('click', (e) => {
-          e.stopPropagation();
-          updateZoom(currentZoom - 0.25);
-        });
-        
-        overlayEl.querySelector('#stamp-doc-zoom-in').addEventListener('click', (e) => {
-          e.stopPropagation();
-          updateZoom(currentZoom + 0.25);
-        });
-        
-        overlayEl.querySelector('#stamp-doc-fit-width').addEventListener('click', (e) => {
-          e.stopPropagation();
-          fitToWidth();
-        });
-        
-        // Add keyboard shortcuts
-        const handleKeydown = (e) => {
-          if (e.key === 'Escape') {
-            overlayEl.style.display = 'none';
-          } else if (e.key === '+' || e.key === '=') {
-            e.preventDefault();
-            updateZoom(currentZoom + 0.25);
-          } else if (e.key === '-') {
-            e.preventDefault();
-            updateZoom(currentZoom - 0.25);
-          } else if (e.key === '0') {
-            e.preventDefault();
-            fitToWidth();
-          }
-        };
-        
-        overlayEl.addEventListener('keydown', handleKeydown);
-        
-        // Make the overlay focusable for keyboard events
-        overlayEl.setAttribute('tabindex', '0');
-        overlayEl.focus();
-        
-        overlayEl.addEventListener('click', (evt) => {
-          if (evt.target && (evt.target.id === 'stamp-doc-close' || evt.target === overlayEl)) {
-            overlayEl.style.display = 'none';
-            document.removeEventListener('keydown', handleKeydown);
-          }
-        });
-      }
-      return overlayEl;
-    };
-
-    const openOverlayUrl = (url) => {
-      const el = ensureOverlay();
-      el.querySelector('#stamp-doc-frame').setAttribute('src', url);
-      el.style.display = 'flex';
     };
 
     cleanContainer.addEventListener('click', async (e) => {
@@ -1239,297 +1348,8 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     searchControls,
     cleanup: () => {
       console.log('[CLEANUP] Spreadsheet cleanup called');
-      // Hide the right preview panel when cleaning up
-      if (rightPreviewPanel) {
-        hideRightPreview();
-      }
     }
   };
-  
-  // === FALLBACK FILTER SETUP ===
-  // Also try to set up filters directly after spreadsheet creation
-  console.log('[FILTER] Setting up filters as fallback after spreadsheet creation');
-  setTimeout(() => {
-    if (spreadsheet && spreadsheet.sheets && spreadsheet.sheets[0]) {
-      console.log('[FILTER] Fallback: Setting up filters on first sheet');
-      setupTwoPaneFilters(spreadsheet.sheets[0]);
-    } else if (Array.isArray(spreadsheet) && spreadsheet[0]) {
-      console.log('[FILTER] Fallback: Setting up filters on array spreadsheet');
-      setupTwoPaneFilters(spreadsheet[0]);
-    } else {
-      console.log('[FILTER] Fallback: No valid spreadsheet found for filter setup');
-    }
-  }, 2000);
-  
-  // === CUSTOMIZE DEFAULT DROPDOWN ===
-  // Transform jspreadsheet's default filter dropdown into two-pane design
-  setTimeout(() => {
-    console.log('[FILTER] Setting up default dropdown customization');
-    
-    // Function to customize existing jspreadsheet filter dropdowns
-    function customizeFilterDropdowns() {
-      // Don't automatically create dropdowns - only customize when they appear
-      console.log('[FILTER] Checking for existing filter dropdowns to customize');
-      
-      const existingDropdowns = document.querySelectorAll('.jdropdown-content:not(.jss_customized), .jdropdown-picker:not(.jss_customized)');
-      console.log('[FILTER] Found uncustomized dropdowns:', existingDropdowns.length);
-      
-      existingDropdowns.forEach(dropdown => {
-        // Check if this is a filter-related dropdown by looking for filter-specific content
-        const isFilterDropdown = dropdown.closest('.jss_filter, .jexcel_filter') || 
-                                dropdown.querySelector('.jdropdown-option') ||
-                                dropdown.textContent.includes('Search') ||
-                                dropdown.textContent.includes('Contains') ||
-                                dropdown.textContent.includes('Acme Corporation') ||
-                                dropdown.textContent.includes('Global Enterprises');
-        
-        if (isFilterDropdown) {
-          console.log('[FILTER] Customizing filter dropdown:', dropdown);
-          console.log('[FILTER] Dropdown content:', dropdown.innerHTML);
-          
-          // Find the associated input field
-          const input = findAssociatedInput(dropdown);
-          if (input) {
-            console.log('[FILTER] Found associated input:', input);
-            customizeDropdownToTwoPane(dropdown, input);
-          } else {
-            console.log('[FILTER] No associated input found, customizing dropdown directly');
-            customizeDropdownToTwoPane(dropdown);
-          }
-          
-          dropdown.classList.add('jss_customized');
-        }
-      });
-    }
-    
-    // Function to find the input field associated with a dropdown
-    function findAssociatedInput(dropdown) {
-      // Try to find input in the same td
-      const parentTd = dropdown.closest('td');
-      if (parentTd) {
-        const input = parentTd.querySelector('input[type="text"]');
-        if (input) return input;
-      }
-      
-      // Try to find input in the filter row
-      const filterRow = dropdown.closest('.jss_filter, .jexcel_filter');
-      if (filterRow) {
-        const inputs = filterRow.querySelectorAll('input[type="text"]');
-        if (inputs.length > 0) {
-          // Find the input that's closest to this dropdown
-          let closestInput = inputs[0];
-          let minDistance = Infinity;
-          
-          inputs.forEach(input => {
-            const inputRect = input.getBoundingClientRect();
-            const dropdownRect = dropdown.getBoundingClientRect();
-            const distance = Math.abs(inputRect.left - dropdownRect.left);
-            if (distance < minDistance) {
-              minDistance = distance;
-              closestInput = input;
-            }
-          });
-          
-          return closestInput;
-        }
-      }
-      
-      return null;
-    }
-    
-    
-    // Function to transform a dropdown into two-pane design
-    function customizeDropdownToTwoPane(dropdown, input = null) {
-      // Store original content
-      const originalContent = dropdown.innerHTML;
-      
-      // If we have an input, position the dropdown relative to it
-      if (input) {
-        const inputRect = input.getBoundingClientRect();
-        const inputParent = input.closest('td');
-        
-        if (inputParent) {
-          inputParent.style.position = 'relative';
-          console.log('[FILTER] Set input parent td position to relative:', inputParent);
-          
-          // Position dropdown relative to the input's parent td
-          dropdown.style.position = 'absolute';
-          dropdown.style.top = '100%';
-          dropdown.style.left = '0';
-          dropdown.style.zIndex = '1002';
-          dropdown.style.transform = 'none';
-          dropdown.style.margin = '0';
-          
-          // Move the dropdown to be a child of the input's parent td
-          inputParent.appendChild(dropdown);
-          console.log('[FILTER] Moved dropdown to input parent td');
-        }
-      } else {
-        // Fallback positioning
-        dropdown.style.position = 'absolute';
-        dropdown.style.top = '100%';
-        dropdown.style.left = '0';
-        dropdown.style.zIndex = '1002';
-        dropdown.style.transform = 'none';
-        dropdown.style.margin = '0';
-        
-        // Find the parent td to ensure relative positioning
-        const parentTd = dropdown.closest('td');
-        if (parentTd) {
-          parentTd.style.position = 'relative';
-          console.log('[FILTER] Set parent td position to relative:', parentTd);
-        }
-      }
-      
-      // Create two-pane structure
-      dropdown.innerHTML = `
-        <div class="jss_filter_panel" style="display: flex; flex-direction: row; min-width: 400px; max-width: 500px;">
-          <!-- Left Panel - Value Selection -->
-          <div class="jss_filter_values" style="flex: 1; padding: 16px; border-right: 1px solid #e5e7eb; min-width: 200px;">
-            <input type="text" class="jss_filter_search" placeholder="Search" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; background: #ffffff; color: #1f2937; margin-bottom: 12px;">
-            <div class="jss_filter_options" style="max-height: 200px; overflow-y: auto; margin-bottom: 0;">
-              <div class="jss_filter_option" style="display: flex; align-items: center; padding: 8px 0; font-size: 14px; color: #1f2937; cursor: pointer; border-bottom: 1px solid #f3f4f6;">
-                <input type="checkbox" style="margin-right: 12px; width: 16px; height: 16px; accent-color: #3b82f6; cursor: pointer;" checked>
-                <span>(Select all)</span>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Right Panel - Condition Selection -->
-          <div class="jss_filter_conditions" style="flex: 1; padding: 16px; min-width: 200px;">
-            <select class="jss_filter_condition" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; background: #ffffff; color: #1f2937; margin-bottom: 12px; cursor: pointer;">
-              <option value="contains">Contains</option>
-              <option value="does_not_contain">Does not contain</option>
-              <option value="begins_with">Begins with</option>
-              <option value="ends_with">Ends with</option>
-              <option value="equal">Equal</option>
-              <option value="not_equal">Not equal</option>
-              <option value="greater_than">Greater than</option>
-              <option value="lower_than">Lower than</option>
-            </select>
-            
-            <div class="jss_filter_actions" style="display: flex; gap: 8px; justify-content: flex-end; padding: 12px 0; border-top: 1px solid #e5e7eb; background: #f8fafc; border-radius: 0 0 6px 6px; margin-top: 12px;">
-              <button class="jss_filter_button primary" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500;">Ok</button>
-              <button class="jss_filter_button" style="padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500;">Cancel</button>
-            </div>
-          </div>
-        </div>
-      `;
-      
-      // Add event listeners for the customized dropdown
-      setupCustomizedDropdownEvents(dropdown);
-    }
-    
-    // Function to set up events for customized dropdown
-    function setupCustomizedDropdownEvents(dropdown) {
-      const searchInput = dropdown.querySelector('.jss_filter_search');
-      const valueOptions = dropdown.querySelector('.jss_filter_options');
-      const conditionSelect = dropdown.querySelector('.jss_filter_condition');
-      const okButton = dropdown.querySelector('.jss_filter_button.primary');
-      const cancelButton = dropdown.querySelector('.jss_filter_button:not(.primary)');
-      
-      // Search functionality
-      if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-          const searchTerm = e.target.value.toLowerCase();
-          const options = valueOptions.querySelectorAll('.jss_filter_option');
-          options.forEach(option => {
-            const text = option.textContent.toLowerCase();
-            option.style.display = text.includes(searchTerm) ? 'flex' : 'none';
-          });
-        });
-      }
-      
-      // Cancel button
-      if (cancelButton) {
-        cancelButton.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          dropdown.style.display = 'none';
-        });
-      }
-      
-      // Ok button
-      if (okButton) {
-        okButton.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          // Apply filter logic here
-          console.log('[FILTER] Applying filter with selected values and condition');
-          dropdown.style.display = 'none';
-        });
-      }
-    }
-    
-    // Don't automatically create dropdowns - only customize when they appear
-    console.log('[FILTER] Ready to customize filter dropdowns when they appear');
-    
-    // Set up mutation observer to catch dynamically created dropdowns
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'childList') {
-          mutation.addedNodes.forEach((node) => {
-            if (node.nodeType === 1) { // Element node
-              if (node.matches && (node.matches('.jdropdown-content, .jdropdown-picker, [class*="dropdown"]') ||
-                  node.querySelector('.jdropdown-content, .jdropdown-picker, [class*="dropdown"]'))) {
-                console.log('[FILTER] New dropdown detected, customizing:', node);
-                setTimeout(() => {
-                  customizeFilterDropdowns();
-                }, 100);
-              }
-            }
-          });
-        }
-      });
-    });
-    
-    // Start observing
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
-    
-    // Also add a click listener to catch when dropdowns are opened
-    document.addEventListener('click', (e) => {
-      if (e.target.matches('input[type="text"]') && 
-          e.target.closest('.jss_filter, .jexcel_filter')) {
-        console.log('[FILTER] Filter input clicked, checking for dropdowns');
-        setTimeout(() => {
-          customizeFilterDropdowns();
-        }, 200);
-      }
-    });
-    
-    // Add a more aggressive approach - check every 500ms for new dropdowns
-    setInterval(() => {
-      const newDropdowns = document.querySelectorAll('.jdropdown-content:not(.jss_customized), .jdropdown-picker:not(.jss_customized)');
-      if (newDropdowns.length > 0) {
-        console.log('[FILTER] Found new uncustomized dropdowns:', newDropdowns.length);
-        customizeFilterDropdowns();
-      }
-    }, 500);
-    
-    // Override jspreadsheet's filter functionality to intercept dropdown creation
-    const worksheet = spreadsheet.sheets ? spreadsheet.sheets[0] : spreadsheet;
-    if (worksheet && worksheet.openFilter) {
-      const originalOpenFilter = worksheet.openFilter;
-      worksheet.openFilter = function(columnNumber, getAsSets) {
-        console.log('[FILTER] Intercepted openFilter call for column:', columnNumber);
-        
-        // Call the original function
-        const result = originalOpenFilter.call(this, columnNumber, getAsSets);
-        
-        // Wait a bit for the dropdown to be created, then customize it
-        setTimeout(() => {
-          console.log('[FILTER] Customizing dropdown after openFilter');
-          customizeFilterDropdowns();
-        }, 100);
-        
-        return result;
-      };
-      console.log('[FILTER] Overrode openFilter method');
-    }
-  }, 3000);
 }
 
 // Create a Shadow DOM container for complete CSS isolation
@@ -1766,7 +1586,7 @@ function transformDataForSpreadsheet(invoices) {
 
     // Document icon with click-to-open behavior (always render; disabled if missing identifiers)
     const hasDoc = !!(docThreadId && docName);
-    const hasSampleDoc = !!(docUrl && (docUrl.includes('w3.org') || docUrl.includes('mozilla.github.io') || docUrl.includes('picsum.photos'))); // Check if it's our sample document
+    const hasSampleDoc = !!(docUrl && docUrl.includes('w3.org')); // Check if it's our sample document
     const docIcon = `
       <span class="doc-preview-icon" 
             data-doc-url="${docUrl}"
@@ -2481,600 +2301,6 @@ function generateMockData() {
 
   console.log('[MOCK DATA] Generated', mockInvoices.length, 'mock invoices');
   return mockInvoices;
-}
-
-// === TWO-PANE FILTER FUNCTIONALITY ===
-function setupTwoPaneFilters(worksheet) {
-  console.log('[FILTER] Setting up two-pane filters for worksheet');
-  console.log('[FILTER] Worksheet element:', worksheet.element);
-  
-  // Don't automatically create filter panels - only intercept when dropdowns appear
-  console.log('[FILTER] Ready to intercept filter dropdowns when they appear');
-}
-
-function setupFiltersOnRow(filterRow, worksheet) {
-  console.log('[FILTER] Setting up filters on row:', filterRow);
-  
-  // Get all filter input fields - try multiple selectors
-  const filterInputs = filterRow.querySelectorAll('td > input, input[type="text"], input');
-  console.log('[FILTER] Found filter inputs:', filterInputs.length);
-  
-  // Also try to find inputs in all td elements
-  const allTds = filterRow.querySelectorAll('td');
-  console.log('[FILTER] Found td elements:', allTds.length);
-  
-  allTds.forEach((td, index) => {
-    console.log(`[FILTER] TD ${index}:`, td);
-    console.log(`[FILTER] TD ${index} innerHTML:`, td.innerHTML);
-    
-    // Look for any input in this td
-    const input = td.querySelector('input');
-    if (input) {
-      console.log(`[FILTER] Found input in TD ${index}:`, input);
-      setupFilterPanel(input, index, worksheet);
-    } else {
-      // If no input found, maybe we need to create one or the structure is different
-      console.log(`[FILTER] No input found in TD ${index}, checking if it's a filter column`);
-      
-      // Check if this column has filter enabled
-      const column = worksheet.options.columns[index];
-      if (column && column.filter === true) {
-        console.log(`[FILTER] Column ${index} (${column.title}) has filter enabled, creating input`);
-        
-        // Create an input if none exists
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.placeholder = `Filter ${column.title}`;
-        input.style.cssText = `
-          width: 100%;
-          height: 100%;
-          border: 1px solid #d1d5db;
-          border-radius: 4px;
-          padding: 4px 24px 4px 8px;
-          font-size: 12px;
-          background: #ffffff;
-          color: #1f2937;
-          position: relative;
-        `;
-        
-        td.appendChild(input);
-        setupFilterPanel(input, index, worksheet);
-      }
-    }
-  });
-  
-  filterInputs.forEach((input, index) => {
-    console.log(`[FILTER] Setting up filter panel for input ${index}:`, input);
-    if (input && input.parentElement) {
-      setupFilterPanel(input, index, worksheet);
-    }
-  });
-}
-
-function setupFilterPanel(input, columnIndex, worksheet) {
-  console.log(`[FILTER] Setting up filter panel for column ${columnIndex}`);
-  
-  // Create the filter panel container
-  const filterPanel = document.createElement('div');
-  filterPanel.className = 'jss_custom_filter_panel';
-  filterPanel.style.cssText = `
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background: #ffffff;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    padding: 0;
-    min-width: 400px;
-    max-width: 500px;
-    z-index: 1002;
-    display: none;
-    flex-direction: row;
-  `;
-  
-  // Left Panel - Value Selection
-  const leftPanel = document.createElement('div');
-  leftPanel.className = 'jss_filter_values';
-  leftPanel.style.cssText = `
-    flex: 1;
-    padding: 16px;
-    border-right: 1px solid #e5e7eb;
-    min-width: 200px;
-  `;
-  
-  // Search input
-  const searchInput = document.createElement('input');
-  searchInput.type = 'text';
-  searchInput.placeholder = 'Search';
-  searchInput.className = 'jss_filter_search';
-  searchInput.style.cssText = `
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 14px;
-    background: #ffffff;
-    color: #1f2937;
-    margin-bottom: 12px;
-  `;
-  
-  // Value list container
-  const valueList = document.createElement('div');
-  valueList.className = 'jss_filter_options';
-  valueList.style.cssText = `
-    max-height: 200px;
-    overflow-y: auto;
-    margin-bottom: 0;
-  `;
-  
-  // Right Panel - Condition Selection
-  const rightPanel = document.createElement('div');
-  rightPanel.className = 'jss_filter_conditions';
-  rightPanel.style.cssText = `
-    flex: 1;
-    padding: 16px;
-    min-width: 200px;
-  `;
-  
-  // Condition dropdown
-  const conditionSelect = document.createElement('select');
-  conditionSelect.className = 'jss_filter_condition';
-  conditionSelect.style.cssText = `
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 14px;
-    background: #ffffff;
-    color: #1f2937;
-    margin-bottom: 12px;
-    cursor: pointer;
-  `;
-  
-  // Add condition options
-  const conditions = [
-    'Contains',
-    'Does not contain', 
-    'Begins with',
-    'Ends with',
-    'Equal',
-    'Not equal',
-    'Greater than',
-    'Lower than'
-  ];
-  
-  conditions.forEach(condition => {
-    const option = document.createElement('option');
-    option.value = condition.toLowerCase().replace(/\s+/g, '_');
-    option.textContent = condition;
-    conditionSelect.appendChild(option);
-  });
-  
-  // Action buttons
-  const buttonContainer = document.createElement('div');
-  buttonContainer.style.cssText = `
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-  `;
-  
-  const okButton = document.createElement('button');
-  okButton.textContent = 'Ok';
-  okButton.style.cssText = `
-    flex: 1;
-    padding: 8px 16px;
-    background: #3b82f6;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-  `;
-  
-  const cancelButton = document.createElement('button');
-  cancelButton.textContent = 'Cancel';
-  cancelButton.style.cssText = `
-    flex: 1;
-    padding: 8px 16px;
-    background: #6b7280;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-  `;
-  
-  // Assemble the panels
-  leftPanel.appendChild(searchInput);
-  leftPanel.appendChild(valueList);
-  rightPanel.appendChild(conditionSelect);
-  rightPanel.appendChild(buttonContainer);
-  buttonContainer.appendChild(okButton);
-  buttonContainer.appendChild(cancelButton);
-  
-  filterPanel.appendChild(leftPanel);
-  filterPanel.appendChild(rightPanel);
-  
-  // Position the panel relative to the input
-  input.parentElement.style.position = 'relative';
-  input.parentElement.appendChild(filterPanel);
-  
-  // Get unique values for this column
-  const uniqueValues = getUniqueValuesForColumn(columnIndex, worksheet);
-  populateValueList(valueList, uniqueValues);
-  
-  // Event handlers
-  input.addEventListener('click', (e) => {
-    console.log('[FILTER] Input clicked, toggling panel');
-    e.preventDefault();
-    e.stopPropagation();
-    toggleFilterPanel(filterPanel);
-  });
-  
-  // Also add click handler to the filter icon area
-  input.addEventListener('focus', (e) => {
-    console.log('[FILTER] Input focused, showing panel');
-    e.preventDefault();
-    e.stopPropagation();
-    filterPanel.style.display = 'flex';
-  });
-  
-  searchInput.addEventListener('input', (e) => {
-    filterValueList(valueList, e.target.value);
-  });
-  
-  okButton.addEventListener('click', () => {
-    applyFilter(columnIndex, valueList, conditionSelect.value, worksheet);
-    filterPanel.style.display = 'none';
-  });
-  
-  cancelButton.addEventListener('click', () => {
-    filterPanel.style.display = 'none';
-  });
-  
-  // Close panel when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!filterPanel.contains(e.target) && !input.contains(e.target)) {
-      filterPanel.style.display = 'none';
-    }
-  });
-}
-
-function toggleFilterPanel(panel) {
-  const isVisible = panel.style.display === 'flex';
-  console.log('[FILTER] Toggling panel, currently visible:', isVisible);
-  panel.style.display = isVisible ? 'none' : 'flex';
-  console.log('[FILTER] Panel display set to:', panel.style.display);
-}
-
-function getUniqueValuesForColumn(columnIndex, worksheet) {
-  const values = new Set();
-  const dataRows = worksheet.element.querySelectorAll('.jss_worksheet > tbody > tr');
-  
-  dataRows.forEach(row => {
-    const cells = row.querySelectorAll('td');
-    if (cells[columnIndex]) {
-      const value = cells[columnIndex].textContent.trim();
-      if (value) {
-        values.add(value);
-      }
-    }
-  });
-  
-  return Array.from(values).sort();
-}
-
-function populateValueList(container, values) {
-  container.innerHTML = '';
-  
-  // Add "Select all" option
-  const selectAllItem = document.createElement('div');
-  selectAllItem.className = 'jss_filter_option';
-  selectAllItem.style.cssText = `
-    display: flex;
-    align-items: center;
-    padding: 8px 0;
-    font-size: 14px;
-    color: #1f2937;
-    cursor: pointer;
-    border-bottom: 1px solid #f3f4f6;
-  `;
-  
-  const selectAllCheckbox = document.createElement('input');
-  selectAllCheckbox.type = 'checkbox';
-  selectAllCheckbox.checked = true;
-  selectAllCheckbox.style.cssText = `
-    margin-right: 12px;
-    width: 16px;
-    height: 16px;
-    accent-color: #3b82f6;
-    cursor: pointer;
-  `;
-  
-  const selectAllLabel = document.createElement('label');
-  selectAllLabel.textContent = '(Select all)';
-  selectAllLabel.style.cssText = 'cursor: pointer; flex: 1;';
-  
-  selectAllItem.appendChild(selectAllCheckbox);
-  selectAllItem.appendChild(selectAllLabel);
-  container.appendChild(selectAllItem);
-  
-  // Add individual value options
-  values.forEach(value => {
-    const item = document.createElement('div');
-    item.className = 'jss_filter_option';
-    item.style.cssText = `
-      display: flex;
-      align-items: center;
-      padding: 8px 0;
-      font-size: 14px;
-      color: #1f2937;
-      cursor: pointer;
-      border-bottom: 1px solid #f3f4f6;
-    `;
-    
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = true;
-    checkbox.value = value;
-    checkbox.style.cssText = `
-      margin-right: 12px;
-      width: 16px;
-      height: 16px;
-      accent-color: #3b82f6;
-      cursor: pointer;
-    `;
-    
-    const label = document.createElement('label');
-    label.textContent = value;
-    label.style.cssText = 'cursor: pointer; flex: 1;';
-    
-    item.appendChild(checkbox);
-    item.appendChild(label);
-    container.appendChild(item);
-  });
-  
-  // Handle select all functionality
-  selectAllCheckbox.addEventListener('change', (e) => {
-    const checkboxes = container.querySelectorAll('input[type="checkbox"]:not([value=""])');
-    checkboxes.forEach(cb => {
-      cb.checked = e.target.checked;
-    });
-  });
-}
-
-function filterValueList(container, searchTerm) {
-  const options = container.querySelectorAll('.jss_filter_option');
-  const term = searchTerm.toLowerCase();
-  
-  options.forEach(option => {
-    const label = option.querySelector('label');
-    const text = label ? label.textContent.toLowerCase() : '';
-    const shouldShow = text.includes(term);
-    option.style.display = shouldShow ? 'flex' : 'none';
-  });
-}
-
-function applyFilter(columnIndex, valueList, condition, worksheet) {
-  console.log(`[FILTER] Applying filter to column ${columnIndex} with condition: ${condition}`);
-  
-  const selectedValues = Array.from(valueList.querySelectorAll('input[type="checkbox"]:checked'))
-    .map(cb => cb.value)
-    .filter(value => value); // Remove empty values
-  
-  console.log('[FILTER] Selected values:', selectedValues);
-  
-  // Apply the filter using jspreadsheet's API
-  if (selectedValues.length > 0) {
-    worksheet.setFilter(columnIndex, selectedValues);
-  } else {
-    worksheet.resetFilters(columnIndex);
-  }
-}
-
-function replaceExistingDropdown(dropdown, worksheet) {
-  console.log('[FILTER] Replacing existing dropdown:', dropdown);
-  
-  // Hide the original dropdown
-  dropdown.style.display = 'none';
-  
-  // Find the input that triggered this dropdown
-  const input = dropdown.previousElementSibling || dropdown.parentElement.querySelector('input');
-  if (input) {
-    console.log('[FILTER] Found input for dropdown:', input);
-    
-    // Create our custom two-pane filter panel
-    const customPanel = createTwoPaneFilterPanel(input, worksheet);
-    
-    // Replace the dropdown with our custom panel
-    dropdown.parentNode.replaceChild(customPanel, dropdown);
-  }
-}
-
-function createTwoPaneFilterPanel(input, worksheet) {
-  console.log('[FILTER] Creating two-pane filter panel for input:', input);
-  
-  // Create the filter panel container
-  const filterPanel = document.createElement('div');
-  filterPanel.className = 'jss_custom_filter_panel';
-  filterPanel.style.cssText = `
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background: #ffffff;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    padding: 0;
-    min-width: 400px;
-    max-width: 500px;
-    z-index: 1002;
-    display: none;
-    flex-direction: row;
-  `;
-  
-  // Left Panel - Value Selection
-  const leftPanel = document.createElement('div');
-  leftPanel.className = 'jss_filter_values';
-  leftPanel.style.cssText = `
-    flex: 1;
-    padding: 16px;
-    border-right: 1px solid #e5e7eb;
-    min-width: 200px;
-  `;
-  
-  // Search input
-  const searchInput = document.createElement('input');
-  searchInput.type = 'text';
-  searchInput.placeholder = 'Search';
-  searchInput.className = 'jss_filter_search';
-  searchInput.style.cssText = `
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 14px;
-    background: #ffffff;
-    color: #1f2937;
-    margin-bottom: 12px;
-  `;
-  
-  // Value list container
-  const valueList = document.createElement('div');
-  valueList.className = 'jss_filter_options';
-  valueList.style.cssText = `
-    max-height: 200px;
-    overflow-y: auto;
-    margin-bottom: 0;
-  `;
-  
-  // Right Panel - Condition Selection
-  const rightPanel = document.createElement('div');
-  rightPanel.className = 'jss_filter_conditions';
-  rightPanel.style.cssText = `
-    flex: 1;
-    padding: 16px;
-    min-width: 200px;
-  `;
-  
-  // Condition dropdown
-  const conditionSelect = document.createElement('select');
-  conditionSelect.className = 'jss_filter_condition';
-  conditionSelect.style.cssText = `
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 14px;
-    background: #ffffff;
-    color: #1f2937;
-    margin-bottom: 12px;
-    cursor: pointer;
-  `;
-  
-  // Add condition options
-  const conditions = [
-    'Contains',
-    'Does not contain', 
-    'Begins with',
-    'Ends with',
-    'Equal',
-    'Not equal',
-    'Greater than',
-    'Lower than'
-  ];
-  
-  conditions.forEach(condition => {
-    const option = document.createElement('option');
-    option.value = condition.toLowerCase().replace(/\s+/g, '_');
-    option.textContent = condition;
-    conditionSelect.appendChild(option);
-  });
-  
-  // Action buttons
-  const buttonContainer = document.createElement('div');
-  buttonContainer.style.cssText = `
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-  `;
-  
-  const okButton = document.createElement('button');
-  okButton.textContent = 'Ok';
-  okButton.style.cssText = `
-    flex: 1;
-    padding: 8px 16px;
-    background: #3b82f6;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-  `;
-  
-  const cancelButton = document.createElement('button');
-  cancelButton.textContent = 'Cancel';
-  cancelButton.style.cssText = `
-    flex: 1;
-    padding: 8px 16px;
-    background: #6b7280;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-  `;
-  
-  // Assemble the panels
-  leftPanel.appendChild(searchInput);
-  leftPanel.appendChild(valueList);
-  rightPanel.appendChild(conditionSelect);
-  rightPanel.appendChild(buttonContainer);
-  buttonContainer.appendChild(okButton);
-  buttonContainer.appendChild(cancelButton);
-  
-  filterPanel.appendChild(leftPanel);
-  filterPanel.appendChild(rightPanel);
-  
-  // Position the panel relative to the input
-  input.parentElement.style.position = 'relative';
-  input.parentElement.appendChild(filterPanel);
-  
-  // Get unique values for this column (try to determine column index)
-  const columnIndex = Array.from(input.parentElement.parentElement.children).indexOf(input.parentElement);
-  const uniqueValues = getUniqueValuesForColumn(columnIndex, worksheet);
-  populateValueList(valueList, uniqueValues);
-  
-  // Event handlers
-  input.addEventListener('click', (e) => {
-    console.log('[FILTER] Input clicked, showing custom panel');
-    e.preventDefault();
-    e.stopPropagation();
-    filterPanel.style.display = 'flex';
-  });
-  
-  searchInput.addEventListener('input', (e) => {
-    filterValueList(valueList, e.target.value);
-  });
-  
-  okButton.addEventListener('click', () => {
-    applyFilter(columnIndex, valueList, conditionSelect.value, worksheet);
-    filterPanel.style.display = 'none';
-  });
-  
-  cancelButton.addEventListener('click', () => {
-    filterPanel.style.display = 'none';
-  });
-  
-  // Close panel when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!filterPanel.contains(e.target) && !input.contains(e.target)) {
-      filterPanel.style.display = 'none';
-    }
-  });
-  
-  return filterPanel;
 }
 
  
