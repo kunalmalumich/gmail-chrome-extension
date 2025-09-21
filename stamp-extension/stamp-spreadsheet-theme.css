@@ -178,31 +178,110 @@
   line-height: 16px !important;
 }
 
-/* Filter Icons in Header - Small gray triangle */
-.jss_worksheet > thead > tr > td .jss_filter_icon,
-.jss_worksheet > thead > tr > td[data-filter="true"]::after,
-.jexcel > thead > tr > td .jss_filter_icon,
-.jexcel > thead > tr > td[data-filter="true"]::after {
+/* Filter Row Styling - The actual filter row below headers */
+.jss_worksheet > thead > tr.jss_filter > td,
+.jexcel > thead > tr.jss_filter > td {
+  background: #f8f9fa !important;
+  border: 1px solid #e5e7eb !important;
+  padding: 4px !important;
+  position: relative !important;
+  height: 32px !important;
+  min-height: 32px !important;
+}
+
+/* Make sure filter row is visible */
+.jss_worksheet > thead > tr.jss_filter,
+.jexcel > thead > tr.jss_filter {
+  display: table-row !important;
+  background: #f8f9fa !important;
+}
+
+/* Filter input fields in the filter row - Override jspreadsheet default */
+.jss_worksheet > thead > tr.jss_filter > td > input,
+.jexcel > thead > tr.jss_filter > td > input {
+  width: 100% !important;
+  height: 100% !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 4px !important;
+  padding: 4px 24px 4px 8px !important;
+  font-size: 12px !important;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  position: relative !important;
+}
+
+/* Filter icons in the filter row input fields */
+.jss_worksheet > thead > tr.jss_filter > td > input::after,
+.jexcel > thead > tr.jss_filter > td > input::after {
   content: '▼' !important;
   position: absolute !important;
-  right: 4px !important;
+  right: 8px !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
-  font-size: 8px !important;
-  color: #ffffff !important;
-  opacity: 0.7 !important;
+  font-size: 10px !important;
+  color: #6b7280 !important;
+  opacity: 0.8 !important;
   pointer-events: none !important;
   z-index: 10 !important;
   display: block !important;
+  font-weight: bold !important;
 }
 
-/* Filter icon hover effect */
-.jss_worksheet > thead > tr > td:hover .jss_filter_icon,
-.jss_worksheet > thead > tr > td[data-filter="true"]:hover::after,
-.jexcel > thead > tr > td:hover .jss_filter_icon,
-.jexcel > thead > tr > td[data-filter="true"]:hover::after {
+/* Filter icon hover effect in filter row */
+.jss_worksheet > thead > tr.jss_filter > td > input:hover::after,
+.jexcel > thead > tr.jss_filter > td > input:hover::after {
   opacity: 1 !important;
-  color: #ffffff !important;
+  color: #10b981 !important;
+  transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* Override jspreadsheet's default filter icon */
+.jss_worksheet .jss_column_filter {
+  background-image: none !important;
+  position: relative !important;
+}
+
+.jss_worksheet .jss_column_filter::after {
+  content: '▼' !important;
+  position: absolute !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  font-size: 10px !important;
+  color: #6b7280 !important;
+  opacity: 0.8 !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+  display: block !important;
+  font-weight: bold !important;
+}
+
+/* Additional filter icon selectors - try different approaches */
+.jss_worksheet > thead > tr.jss_filter > td[data-filter="true"]::after,
+.jexcel > thead > tr.jss_filter > td[data-filter="true"]::after {
+  content: '▼' !important;
+  position: absolute !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  font-size: 10px !important;
+  color: #6b7280 !important;
+  opacity: 0.8 !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+  display: block !important;
+  font-weight: bold !important;
+}
+
+/* Debug: Make filter row more visible */
+.jss_worksheet > thead > tr.jss_filter {
+  background: #e5f3ff !important;
+  border: 2px solid #3b82f6 !important;
+}
+
+.jss_worksheet > thead > tr.jss_filter > td {
+  background: #e5f3ff !important;
+  border: 1px solid #3b82f6 !important;
 }
 
 /* Remove header shiny effects */
@@ -675,137 +754,253 @@
   z-index: 1001 !important;
 }
 
-/* Filter Panel Styling - Two-pane filter dropdown */
+/* Filter Panel Styling - Two-pane design matching the image */
 .jss_filter_panel,
 .jss_filter_dropdown,
 .jexcel_filter_panel,
 .jexcel_filter_dropdown {
   background: #ffffff !important;
   border: 1px solid #d1d5db !important;
-  border-radius: 4px !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-  padding: 12px !important;
-  min-width: 200px !important;
-  max-width: 300px !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  padding: 0 !important;
+  min-width: 400px !important;
+  max-width: 500px !important;
   z-index: 1002 !important;
   position: absolute !important;
   top: 100% !important;
   left: 0 !important;
-}
-
-/* Filter Panel Header */
-.jss_filter_panel .jss_filter_header,
-.jexcel_filter_panel .jexcel_filter_header {
   display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  margin-bottom: 8px !important;
-  padding-bottom: 8px !important;
-  border-bottom: 1px solid #e5e7eb !important;
+  flex-direction: row !important;
 }
 
-/* Filter Search Input */
-.jss_filter_panel .jss_filter_search,
-.jexcel_filter_panel .jexcel_filter_search {
+/* Left Panel - Value Selection */
+.jss_filter_panel .jss_filter_values,
+.jexcel_filter_panel .jexcel_filter_values,
+.jss_filter_dropdown .jss_filter_values,
+.jexcel_filter_dropdown .jexcel_filter_values {
   flex: 1 !important;
-  padding: 6px 8px !important;
+  padding: 16px !important;
+  border-right: 1px solid #e5e7eb !important;
+  min-width: 200px !important;
+}
+
+/* Right Panel - Condition Selection */
+.jss_filter_panel .jss_filter_conditions,
+.jexcel_filter_panel .jexcel_filter_conditions,
+.jss_filter_dropdown .jss_filter_conditions,
+.jexcel_filter_dropdown .jss_filter_conditions {
+  flex: 1 !important;
+  padding: 16px !important;
+  min-width: 200px !important;
+}
+
+/* Search Input in Left Panel */
+.jss_filter_panel .jss_filter_search,
+.jexcel_filter_panel .jexcel_filter_search,
+.jss_filter_dropdown .jss_filter_search,
+.jexcel_filter_dropdown .jss_filter_search {
+  width: 100% !important;
+  padding: 8px 12px !important;
   border: 1px solid #d1d5db !important;
-  border-radius: 3px !important;
-  font-size: 12px !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
   background: #ffffff !important;
   color: #1f2937 !important;
+  margin-bottom: 12px !important;
 }
 
 .jss_filter_panel .jss_filter_search:focus,
-.jexcel_filter_panel .jexcel_filter_search:focus {
+.jexcel_filter_panel .jss_filter_search:focus,
+.jss_filter_dropdown .jss_filter_search:focus,
+.jexcel_filter_dropdown .jss_filter_search:focus {
   outline: none !important;
-  border-color: #10b981 !important;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1) !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
 }
 
-/* Filter Condition Dropdown */
-.jss_filter_panel .jss_filter_condition,
-.jexcel_filter_panel .jexcel_filter_condition {
-  padding: 6px 8px !important;
-  border: 1px solid #d1d5db !important;
-  border-radius: 3px !important;
-  font-size: 12px !important;
-  background: #ffffff !important;
-  color: #1f2937 !important;
-  min-width: 80px !important;
-}
-
-/* Filter Options List */
+/* Checkbox List */
 .jss_filter_panel .jss_filter_options,
-.jexcel_filter_panel .jexcel_filter_options {
-  max-height: 150px !important;
+.jexcel_filter_panel .jexcel_filter_options,
+.jss_filter_dropdown .jss_filter_options,
+.jexcel_filter_dropdown .jss_filter_options {
+  max-height: 200px !important;
   overflow-y: auto !important;
-  margin-bottom: 8px !important;
+  margin-bottom: 0 !important;
 }
 
-/* Filter Option Items */
+/* Filter Option Items with Checkboxes */
 .jss_filter_panel .jss_filter_option,
-.jexcel_filter_panel .jexcel_filter_option {
+.jexcel_filter_panel .jexcel_filter_option,
+.jss_filter_dropdown .jss_filter_option,
+.jexcel_filter_dropdown .jss_filter_option {
   display: flex !important;
   align-items: center !important;
-  padding: 4px 0 !important;
-  font-size: 12px !important;
+  padding: 8px 0 !important;
+  font-size: 14px !important;
   color: #1f2937 !important;
   cursor: pointer !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.jss_filter_panel .jss_filter_option:last-child,
+.jexcel_filter_panel .jexcel_filter_option:last-child,
+.jss_filter_dropdown .jss_filter_option:last-child,
+.jexcel_filter_dropdown .jss_filter_option:last-child {
+  border-bottom: none !important;
 }
 
 .jss_filter_panel .jss_filter_option:hover,
-.jexcel_filter_panel .jexcel_filter_option:hover {
-  background: #f3f4f6 !important;
-  border-radius: 2px !important;
+.jexcel_filter_panel .jexcel_filter_option:hover,
+.jss_filter_dropdown .jss_filter_option:hover,
+.jexcel_filter_dropdown .jss_filter_option:hover {
+  background: #f8fafc !important;
+  border-radius: 4px !important;
+  margin: 0 -8px !important;
+  padding: 8px !important;
 }
 
-/* Filter Checkboxes */
+/* Checkboxes */
 .jss_filter_panel .jss_filter_option input[type="checkbox"],
-.jexcel_filter_panel .jexcel_filter_option input[type="checkbox"] {
-  margin-right: 6px !important;
-  accent-color: #10b981 !important;
+.jexcel_filter_panel .jexcel_filter_option input[type="checkbox"],
+.jss_filter_dropdown .jss_filter_option input[type="checkbox"],
+.jexcel_filter_dropdown .jss_filter_option input[type="checkbox"] {
+  margin-right: 12px !important;
+  width: 16px !important;
+  height: 16px !important;
+  accent-color: #3b82f6 !important;
+  cursor: pointer !important;
 }
 
-/* Filter Panel Buttons */
-.jss_filter_panel .jss_filter_buttons,
-.jexcel_filter_panel .jexcel_filter_buttons {
+/* Condition Dropdown in Right Panel */
+.jss_filter_panel .jss_filter_condition,
+.jexcel_filter_panel .jexcel_filter_condition,
+.jss_filter_dropdown .jss_filter_condition,
+.jexcel_filter_dropdown .jss_filter_condition {
+  width: 100% !important;
+  padding: 8px 12px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  margin-bottom: 12px !important;
+  cursor: pointer !important;
+}
+
+.jss_filter_panel .jss_filter_condition:focus,
+.jexcel_filter_panel .jexcel_filter_condition:focus,
+.jss_filter_dropdown .jss_filter_condition:focus,
+.jexcel_filter_dropdown .jss_filter_condition:focus {
+  outline: none !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Condition Options List */
+.jss_filter_panel .jss_filter_condition_options,
+.jexcel_filter_panel .jexcel_filter_condition_options,
+.jss_filter_dropdown .jss_filter_condition_options,
+.jexcel_filter_dropdown .jss_filter_condition_options {
+  max-height: 200px !important;
+  overflow-y: auto !important;
+}
+
+/* Condition Option Items */
+.jss_filter_panel .jss_filter_condition_option,
+.jexcel_filter_panel .jexcel_filter_condition_option,
+.jss_filter_dropdown .jss_filter_condition_option,
+.jexcel_filter_dropdown .jss_filter_condition_option {
+  display: flex !important;
+  align-items: center !important;
+  padding: 8px 0 !important;
+  font-size: 14px !important;
+  color: #1f2937 !important;
+  cursor: pointer !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.jss_filter_panel .jss_filter_condition_option:last-child,
+.jexcel_filter_panel .jexcel_filter_condition_option:last-child,
+.jss_filter_dropdown .jss_filter_condition_option:last-child,
+.jexcel_filter_dropdown .jss_filter_condition_option:last-child {
+  border-bottom: none !important;
+}
+
+.jss_filter_panel .jss_filter_condition_option:hover,
+.jexcel_filter_panel .jexcel_filter_condition_option:hover,
+.jss_filter_dropdown .jss_filter_condition_option:hover,
+.jexcel_filter_dropdown .jss_filter_condition_option:hover {
+  background: #f8fafc !important;
+  border-radius: 4px !important;
+  margin: 0 -8px !important;
+  padding: 8px !important;
+}
+
+/* Selected condition highlighting */
+.jss_filter_panel .jss_filter_condition_option.selected,
+.jexcel_filter_panel .jexcel_filter_condition_option.selected,
+.jss_filter_dropdown .jss_filter_condition_option.selected,
+.jexcel_filter_dropdown .jss_filter_condition_option.selected {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border-radius: 4px !important;
+  margin: 0 -8px !important;
+  padding: 8px !important;
+}
+
+/* Action Buttons at Bottom */
+.jss_filter_panel .jss_filter_actions,
+.jexcel_filter_panel .jexcel_filter_actions,
+.jss_filter_dropdown .jss_filter_actions,
+.jexcel_filter_dropdown .jss_filter_actions {
   display: flex !important;
   gap: 8px !important;
   justify-content: flex-end !important;
-  padding-top: 8px !important;
+  padding: 12px 16px !important;
   border-top: 1px solid #e5e7eb !important;
+  background: #f8fafc !important;
+  border-radius: 0 0 6px 6px !important;
 }
 
 .jss_filter_panel .jss_filter_button,
-.jexcel_filter_panel .jexcel_filter_button {
-  padding: 6px 12px !important;
+.jexcel_filter_panel .jexcel_filter_button,
+.jss_filter_dropdown .jss_filter_button,
+.jexcel_filter_dropdown .jss_filter_button {
+  padding: 8px 16px !important;
   border: 1px solid #d1d5db !important;
-  border-radius: 3px !important;
-  font-size: 12px !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
   cursor: pointer !important;
   background: #ffffff !important;
   color: #374151 !important;
   transition: all 0.15s ease !important;
+  font-weight: 500 !important;
 }
 
 .jss_filter_panel .jss_filter_button:hover,
-.jexcel_filter_panel .jexcel_filter_button:hover {
-  background: #f9fafb !important;
+.jexcel_filter_panel .jexcel_filter_button:hover,
+.jss_filter_dropdown .jss_filter_button:hover,
+.jexcel_filter_dropdown .jss_filter_button:hover {
+  background: #f3f4f6 !important;
   border-color: #9ca3af !important;
 }
 
 .jss_filter_panel .jss_filter_button.primary,
-.jexcel_filter_panel .jexcel_filter_button.primary {
-  background: #10b981 !important;
+.jexcel_filter_panel .jexcel_filter_button.primary,
+.jss_filter_dropdown .jss_filter_button.primary,
+.jexcel_filter_dropdown .jss_filter_button.primary {
+  background: #3b82f6 !important;
   color: #ffffff !important;
-  border-color: #10b981 !important;
+  border-color: #3b82f6 !important;
 }
 
 .jss_filter_panel .jss_filter_button.primary:hover,
-.jexcel_filter_panel .jexcel_filter_button.primary:hover {
-  background: #059669 !important;
-  border-color: #059669 !important;
+.jexcel_filter_panel .jexcel_filter_button.primary:hover,
+.jss_filter_dropdown .jss_filter_button.primary:hover,
+.jexcel_filter_dropdown .jss_filter_button.primary:hover {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
 }
 
 /* Dropdown option styling */
