@@ -629,8 +629,14 @@ export async function buildSpreadsheet(container, data, opts = {}) {
         return;
       }
       
+      // Detect file type
+      const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp|tiff)$/i.test(docUrl);
+      const isPdf = /\.pdf$/i.test(docUrl);
+      const fileType = isImage ? 'Image' : (isPdf ? 'PDF Document' : 'Document');
+      
       console.log('[PREVIEW] Document URL is:', docUrl);
       console.log('[PREVIEW] Document name is:', docName);
+      console.log('[PREVIEW] File type detected:', fileType);
 
       // Create or update the right preview panel
       if (!rightPreviewPanel) {
@@ -694,30 +700,49 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           <div style="flex: 1; display: flex; flex-direction: column; background: #f8f9fa; border-radius: 8px; overflow: hidden; margin-bottom: 20px; position: relative;">
             ${docUrl ? `
               <div style="flex: 1; min-height: 300px; position: relative; background: #f8f9fa; border-radius: 8px 8px 0 0; overflow: hidden;">
-                <!-- PDF Viewer Container -->
-                <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #fff;">
-                  <div id="pdf-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">
-                    <div style="font-size: 24px; margin-bottom: 12px;">📄</div>
-                    <div style="font-size: 16px; font-weight: 500;">Loading PDF...</div>
-                    <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Please wait</div>
+                ${isImage ? `
+                  <!-- Image Viewer Container -->
+                  <div id="image-viewer-container" style="width: 100%; height: 100%; position: relative; background: #fff; display: flex; align-items: center; justify-content: center;">
+                    <div id="image-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">
+                      <div style="font-size: 24px; margin-bottom: 12px;">🖼️</div>
+                      <div style="font-size: 16px; font-weight: 500;">Loading Image...</div>
+                      <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Please wait</div>
+                    </div>
+                    <div id="image-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #dc2626;">
+                      <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
+                      <div style="font-size: 16px; font-weight: 500;">Failed to load Image</div>
+                      <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View Image" to open in new tab</div>
+                    </div>
+                    <img id="preview-image" 
+                      src="${docUrl}" 
+                      style="max-width: 100%; max-height: 100%; object-fit: contain; display: none; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                   </div>
-                  <div id="pdf-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #dc2626;">
-                    <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
-                    <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
-                    <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View PDF" to open in new tab</div>
+                ` : `
+                  <!-- PDF Viewer Container -->
+                  <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #fff;">
+                    <div id="pdf-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">
+                      <div style="font-size: 24px; margin-bottom: 12px;">📄</div>
+                      <div style="font-size: 16px; font-weight: 500;">Loading PDF...</div>
+                      <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Please wait</div>
+                    </div>
+                    <div id="pdf-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #dc2626;">
+                      <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
+                      <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
+                      <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View PDF" to open in new tab</div>
+                    </div>
+                    <iframe id="pdf-iframe" 
+                      src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
+                      style="width: 100%; height: 100%; border: none; display: none;">
+                    </iframe>
                   </div>
-                  <iframe id="pdf-iframe" 
-                    src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
-                    style="width: 100%; height: 100%; border: none; display: none;">
-                  </iframe>
-                </div>
+                `}
                 
                 <!-- Document Info Card -->
                 <div style="background: #f8f9fa; padding: 16px; border-top: 1px solid #e5e7eb;">
                   <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #374151;">Document Details</div>
                   <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;"><strong>File:</strong> ${docName}</div>
-                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;"><strong>Type:</strong> PDF Document</div>
-                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;"><strong>Status:</strong> <span id="pdf-status">Loading...</span></div>
+                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;"><strong>Type:</strong> ${fileType}</div>
+                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;"><strong>Status:</strong> <span id="document-status">Loading...</span></div>
                   
                   <!-- Quick Actions -->
                   <div style="display: flex; gap: 8px; margin-top: 12px; justify-content: center;">
@@ -732,7 +757,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
                       font-weight: 500;
                       transition: all 0.2s ease;
                     ">
-                      View PDF
+                      View ${isImage ? 'Image' : 'PDF'}
                     </button>
                     <button id="preview-quick-download-btn" data-doc-url="${docUrl}" data-doc-name="${docName}" style="
                       padding: 6px 12px; 
@@ -805,11 +830,46 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       
       rightPreviewPanel.innerHTML = previewContent;
       
+      // Add image loading handlers
+      const previewImage = rightPreviewPanel.querySelector('#preview-image');
+      const imageLoading = rightPreviewPanel.querySelector('#image-loading');
+      const imageError = rightPreviewPanel.querySelector('#image-error');
+      const documentStatus = rightPreviewPanel.querySelector('#document-status');
+      
+      if (previewImage) {
+        const handleImageLoad = () => {
+          console.log('[PREVIEW] Image loaded successfully');
+          if (imageLoading) imageLoading.style.display = 'none';
+          if (imageError) imageError.style.display = 'none';
+          if (previewImage) previewImage.style.display = 'block';
+          if (documentStatus) documentStatus.textContent = 'Ready to View';
+        };
+        
+        const handleImageError = () => {
+          console.log('[PREVIEW] Image failed to load');
+          if (imageLoading) imageLoading.style.display = 'none';
+          if (imageError) imageError.style.display = 'block';
+          if (previewImage) previewImage.style.display = 'none';
+          if (documentStatus) documentStatus.textContent = 'Failed to Load';
+        };
+        
+        // Set up event listeners
+        previewImage.addEventListener('load', handleImageLoad);
+        previewImage.addEventListener('error', handleImageError);
+        
+        // Timeout fallback
+        setTimeout(() => {
+          if (imageLoading && imageLoading.style.display !== 'none') {
+            console.log('[PREVIEW] Image loading timeout');
+            handleImageError();
+          }
+        }, 5000); // 5 second timeout
+      }
+      
       // Add PDF loading handlers
       const pdfIframe = rightPreviewPanel.querySelector('#pdf-iframe');
       const pdfLoading = rightPreviewPanel.querySelector('#pdf-loading');
       const pdfError = rightPreviewPanel.querySelector('#pdf-error');
-      const pdfStatus = rightPreviewPanel.querySelector('#pdf-status');
       
       if (pdfIframe) {
         const handlePdfLoad = () => {
@@ -817,7 +877,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           if (pdfLoading) pdfLoading.style.display = 'none';
           if (pdfError) pdfError.style.display = 'none';
           if (pdfIframe) pdfIframe.style.display = 'block';
-          if (pdfStatus) pdfStatus.textContent = 'Ready to View';
+          if (documentStatus) documentStatus.textContent = 'Ready to View';
         };
         
         const handlePdfError = () => {
@@ -825,7 +885,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           if (pdfLoading) pdfLoading.style.display = 'none';
           if (pdfError) pdfError.style.display = 'block';
           if (pdfIframe) pdfIframe.style.display = 'none';
-          if (pdfStatus) pdfStatus.textContent = 'Cannot Embed - Click "View PDF"';
+          if (documentStatus) documentStatus.textContent = 'Cannot Embed - Click "View PDF"';
         };
         
         // Set up event listeners
@@ -1208,11 +1268,14 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     
     // Function to customize existing jspreadsheet filter dropdowns
     function customizeFilterDropdowns() {
-      const existingDropdowns = document.querySelectorAll('.jdropdown-content, .jdropdown-picker, [class*="dropdown"]');
-      console.log('[FILTER] Found dropdowns to customize:', existingDropdowns.length);
+      // Don't automatically create dropdowns - only customize when they appear
+      console.log('[FILTER] Checking for existing filter dropdowns to customize');
+      
+      const existingDropdowns = document.querySelectorAll('.jdropdown-content:not(.jss_customized), .jdropdown-picker:not(.jss_customized)');
+      console.log('[FILTER] Found uncustomized dropdowns:', existingDropdowns.length);
       
       existingDropdowns.forEach(dropdown => {
-        // Check if this is a filter-related dropdown
+        // Check if this is a filter-related dropdown by looking for filter-specific content
         const isFilterDropdown = dropdown.closest('.jss_filter, .jexcel_filter') || 
                                 dropdown.querySelector('.jdropdown-option') ||
                                 dropdown.textContent.includes('Search') ||
@@ -1220,7 +1283,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
                                 dropdown.textContent.includes('Acme Corporation') ||
                                 dropdown.textContent.includes('Global Enterprises');
         
-        if (isFilterDropdown && !dropdown.classList.contains('jss_customized')) {
+        if (isFilterDropdown) {
           console.log('[FILTER] Customizing filter dropdown:', dropdown);
           console.log('[FILTER] Dropdown content:', dropdown.innerHTML);
           
@@ -1274,22 +1337,6 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       return null;
     }
     
-    // Also try to find dropdowns in the worksheet specifically
-    function customizeWorksheetDropdowns() {
-      const worksheet = spreadsheet.sheets ? spreadsheet.sheets[0] : spreadsheet;
-      if (worksheet && worksheet.element) {
-        const worksheetDropdowns = worksheet.element.querySelectorAll('.jdropdown-content, .jdropdown-picker, [class*="dropdown"]');
-        console.log('[FILTER] Found worksheet dropdowns:', worksheetDropdowns.length);
-        
-        worksheetDropdowns.forEach(dropdown => {
-          if (!dropdown.classList.contains('jss_customized')) {
-            console.log('[FILTER] Customizing worksheet dropdown:', dropdown);
-            customizeDropdownToTwoPane(dropdown);
-            dropdown.classList.add('jss_customized');
-          }
-        });
-      }
-    }
     
     // Function to transform a dropdown into two-pane design
     function customizeDropdownToTwoPane(dropdown, input = null) {
@@ -1414,21 +1461,8 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       }
     }
     
-    // Initial customization - try multiple times
-    customizeFilterDropdowns();
-    customizeWorksheetDropdowns();
-    
-    // Try again after a delay
-    setTimeout(() => {
-      customizeFilterDropdowns();
-      customizeWorksheetDropdowns();
-    }, 1000);
-    
-    // Try again after another delay
-    setTimeout(() => {
-      customizeFilterDropdowns();
-      customizeWorksheetDropdowns();
-    }, 3000);
+    // Don't automatically create dropdowns - only customize when they appear
+    console.log('[FILTER] Ready to customize filter dropdowns when they appear');
     
     // Set up mutation observer to catch dynamically created dropdowns
     const observer = new MutationObserver((mutations) => {
@@ -1441,7 +1475,6 @@ export async function buildSpreadsheet(container, data, opts = {}) {
                 console.log('[FILTER] New dropdown detected, customizing:', node);
                 setTimeout(() => {
                   customizeFilterDropdowns();
-                  customizeWorksheetDropdowns();
                 }, 100);
               }
             }
@@ -1463,7 +1496,6 @@ export async function buildSpreadsheet(container, data, opts = {}) {
         console.log('[FILTER] Filter input clicked, checking for dropdowns');
         setTimeout(() => {
           customizeFilterDropdowns();
-          customizeWorksheetDropdowns();
         }, 200);
       }
     });
@@ -1474,7 +1506,6 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       if (newDropdowns.length > 0) {
         console.log('[FILTER] Found new uncustomized dropdowns:', newDropdowns.length);
         customizeFilterDropdowns();
-        customizeWorksheetDropdowns();
       }
     }, 500);
     
@@ -1492,7 +1523,6 @@ export async function buildSpreadsheet(container, data, opts = {}) {
         setTimeout(() => {
           console.log('[FILTER] Customizing dropdown after openFilter');
           customizeFilterDropdowns();
-          customizeWorksheetDropdowns();
         }, 100);
         
         return result;
@@ -1736,7 +1766,7 @@ function transformDataForSpreadsheet(invoices) {
 
     // Document icon with click-to-open behavior (always render; disabled if missing identifiers)
     const hasDoc = !!(docThreadId && docName);
-    const hasSampleDoc = !!(docUrl && docUrl.includes('w3.org')); // Check if it's our sample document
+    const hasSampleDoc = !!(docUrl && (docUrl.includes('w3.org') || docUrl.includes('mozilla.github.io') || docUrl.includes('picsum.photos'))); // Check if it's our sample document
     const docIcon = `
       <span class="doc-preview-icon" 
             data-doc-url="${docUrl}"
@@ -2086,8 +2116,10 @@ function generateMockData() {
       document: {
         thread_id: 'thread_002',
         message_id: 'msg_002',
-        document_name: 'invoice_002.pdf',
+        document_name: 'invoice_002.jpg',
         content_hash: 'hash_002',
+        url: 'https://picsum.photos/800/600',
+        thumbnailUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjZTM0YTQwIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlNhbXBsZSBJbWFnZTwvdGV4dD4KPC9zdmc+Cg==',
         details: {
           invoiceNumber: 'INV-2024-002',
           entityName: 'Global Enterprises Ltd.',
@@ -2100,7 +2132,9 @@ function generateMockData() {
           dueDate: '2024-02-20',
           paymentTerms: 'Net 30',
           approvalStatus: 'APPROVED',
-          notes: 'Bulk office furniture purchase'
+          notes: 'Bulk office furniture purchase',
+          documentUrl: 'https://picsum.photos/800/600',
+          thumbnailUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjZTM0YTQwIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlNhbXBsZSBJbWFnZTwvdGV4dD4KPC9zdmc+Cg=='
         }
       },
       vendor: { name: 'Office Supplies Co.' },
@@ -2454,42 +2488,8 @@ function setupTwoPaneFilters(worksheet) {
   console.log('[FILTER] Setting up two-pane filters for worksheet');
   console.log('[FILTER] Worksheet element:', worksheet.element);
   
-  // Wait for jspreadsheet to create the filter row
-  setTimeout(() => {
-    console.log('[FILTER] Looking for filter row...');
-    
-    // Look for the filter row specifically
-    const filterRow = worksheet.element.querySelector('.jss_worksheet > thead > tr.jss_filter') ||
-                     worksheet.element.querySelector('tr.jss_filter') || 
-                     worksheet.element.querySelector('.jss_filter');
-    console.log('[FILTER] Filter row found:', !!filterRow);
-    
-    if (filterRow) {
-      console.log('[FILTER] Setting up custom filter panels on filter row');
-      setupFiltersOnRow(filterRow, worksheet);
-    } else {
-      console.log('[FILTER] No filter row found, looking for filter inputs in thead');
-      // Only look for inputs in thead (header area) to avoid data cell inputs
-      const filterInputs = worksheet.element.querySelectorAll('thead input[type="text"]');
-      console.log('[FILTER] Found filter inputs in thead:', filterInputs.length);
-      
-      filterInputs.forEach((input, index) => {
-        if (input && input.parentElement) {
-          // Check if this input is in a column that has filter enabled
-          const columnIndex = Array.from(input.closest('tr').children).indexOf(input.closest('td'));
-          const column = worksheet.options.columns[columnIndex];
-          
-          if (column && column.filter === true) {
-            console.log(`[FILTER] Setting up filter panel for input ${index} (column: ${column.title})`);
-            setupFilterPanel(input, index, worksheet);
-          } else {
-            console.log(`[FILTER] Skipping input ${index} - column does not have filter enabled`);
-          }
-        }
-      });
-    }
-    
-  }, 1500);
+  // Don't automatically create filter panels - only intercept when dropdowns appear
+  console.log('[FILTER] Ready to intercept filter dropdowns when they appear');
 }
 
 function setupFiltersOnRow(filterRow, worksheet) {

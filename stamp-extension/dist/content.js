@@ -73041,8 +73041,12 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           console.warn("[PREVIEW] No document URL found");
           return;
         }
+        const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp|tiff)$/i.test(docUrl);
+        const isPdf = /\.pdf$/i.test(docUrl);
+        const fileType = isImage ? "Image" : isPdf ? "PDF Document" : "Document";
         console.log("[PREVIEW] Document URL is:", docUrl);
         console.log("[PREVIEW] Document name is:", docName);
+        console.log("[PREVIEW] File type detected:", fileType);
         if (!rightPreviewPanel2) {
           rightPreviewPanel2 = document.createElement("div");
           rightPreviewPanel2.id = "stamp-right-preview-panel";
@@ -73098,30 +73102,49 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           <div style="flex: 1; display: flex; flex-direction: column; background: #f8f9fa; border-radius: 8px; overflow: hidden; margin-bottom: 20px; position: relative;">
             ${docUrl ? `
               <div style="flex: 1; min-height: 300px; position: relative; background: #f8f9fa; border-radius: 8px 8px 0 0; overflow: hidden;">
-                <!-- PDF Viewer Container -->
-                <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #fff;">
-                  <div id="pdf-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">
-                    <div style="font-size: 24px; margin-bottom: 12px;">\u{1F4C4}</div>
-                    <div style="font-size: 16px; font-weight: 500;">Loading PDF...</div>
-                    <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Please wait</div>
+                ${isImage ? `
+                  <!-- Image Viewer Container -->
+                  <div id="image-viewer-container" style="width: 100%; height: 100%; position: relative; background: #fff; display: flex; align-items: center; justify-content: center;">
+                    <div id="image-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">
+                      <div style="font-size: 24px; margin-bottom: 12px;">\u{1F5BC}\uFE0F</div>
+                      <div style="font-size: 16px; font-weight: 500;">Loading Image...</div>
+                      <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Please wait</div>
+                    </div>
+                    <div id="image-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #dc2626;">
+                      <div style="font-size: 24px; margin-bottom: 12px;">\u26A0\uFE0F</div>
+                      <div style="font-size: 16px; font-weight: 500;">Failed to load Image</div>
+                      <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View Image" to open in new tab</div>
+                    </div>
+                    <img id="preview-image" 
+                      src="${docUrl}" 
+                      style="max-width: 100%; max-height: 100%; object-fit: contain; display: none; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                   </div>
-                  <div id="pdf-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #dc2626;">
-                    <div style="font-size: 24px; margin-bottom: 12px;">\u26A0\uFE0F</div>
-                    <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
-                    <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View PDF" to open in new tab</div>
+                ` : `
+                  <!-- PDF Viewer Container -->
+                  <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #fff;">
+                    <div id="pdf-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">
+                      <div style="font-size: 24px; margin-bottom: 12px;">\u{1F4C4}</div>
+                      <div style="font-size: 16px; font-weight: 500;">Loading PDF...</div>
+                      <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Please wait</div>
+                    </div>
+                    <div id="pdf-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #dc2626;">
+                      <div style="font-size: 24px; margin-bottom: 12px;">\u26A0\uFE0F</div>
+                      <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
+                      <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View PDF" to open in new tab</div>
+                    </div>
+                    <iframe id="pdf-iframe" 
+                      src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
+                      style="width: 100%; height: 100%; border: none; display: none;">
+                    </iframe>
                   </div>
-                  <iframe id="pdf-iframe" 
-                    src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
-                    style="width: 100%; height: 100%; border: none; display: none;">
-                  </iframe>
-                </div>
+                `}
                 
                 <!-- Document Info Card -->
                 <div style="background: #f8f9fa; padding: 16px; border-top: 1px solid #e5e7eb;">
                   <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #374151;">Document Details</div>
                   <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;"><strong>File:</strong> ${docName}</div>
-                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;"><strong>Type:</strong> PDF Document</div>
-                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;"><strong>Status:</strong> <span id="pdf-status">Loading...</span></div>
+                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;"><strong>Type:</strong> ${fileType}</div>
+                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;"><strong>Status:</strong> <span id="document-status">Loading...</span></div>
                   
                   <!-- Quick Actions -->
                   <div style="display: flex; gap: 8px; margin-top: 12px; justify-content: center;">
@@ -73136,7 +73159,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
                       font-weight: 500;
                       transition: all 0.2s ease;
                     ">
-                      View PDF
+                      View ${isImage ? "Image" : "PDF"}
                     </button>
                     <button id="preview-quick-download-btn" data-doc-url="${docUrl}" data-doc-name="${docName}" style="
                       padding: 6px 12px; 
@@ -73207,24 +73230,51 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         </div>
       `;
         rightPreviewPanel2.innerHTML = previewContent;
+        const previewImage = rightPreviewPanel2.querySelector("#preview-image");
+        const imageLoading = rightPreviewPanel2.querySelector("#image-loading");
+        const imageError = rightPreviewPanel2.querySelector("#image-error");
+        const documentStatus = rightPreviewPanel2.querySelector("#document-status");
+        if (previewImage) {
+          const handleImageLoad = () => {
+            console.log("[PREVIEW] Image loaded successfully");
+            if (imageLoading) imageLoading.style.display = "none";
+            if (imageError) imageError.style.display = "none";
+            if (previewImage) previewImage.style.display = "block";
+            if (documentStatus) documentStatus.textContent = "Ready to View";
+          };
+          const handleImageError = () => {
+            console.log("[PREVIEW] Image failed to load");
+            if (imageLoading) imageLoading.style.display = "none";
+            if (imageError) imageError.style.display = "block";
+            if (previewImage) previewImage.style.display = "none";
+            if (documentStatus) documentStatus.textContent = "Failed to Load";
+          };
+          previewImage.addEventListener("load", handleImageLoad);
+          previewImage.addEventListener("error", handleImageError);
+          setTimeout(() => {
+            if (imageLoading && imageLoading.style.display !== "none") {
+              console.log("[PREVIEW] Image loading timeout");
+              handleImageError();
+            }
+          }, 5e3);
+        }
         const pdfIframe = rightPreviewPanel2.querySelector("#pdf-iframe");
         const pdfLoading = rightPreviewPanel2.querySelector("#pdf-loading");
         const pdfError = rightPreviewPanel2.querySelector("#pdf-error");
-        const pdfStatus = rightPreviewPanel2.querySelector("#pdf-status");
         if (pdfIframe) {
           const handlePdfLoad = () => {
             console.log("[PREVIEW] PDF loaded successfully");
             if (pdfLoading) pdfLoading.style.display = "none";
             if (pdfError) pdfError.style.display = "none";
             if (pdfIframe) pdfIframe.style.display = "block";
-            if (pdfStatus) pdfStatus.textContent = "Ready to View";
+            if (documentStatus) documentStatus.textContent = "Ready to View";
           };
           const handlePdfError = () => {
             console.log("[PREVIEW] PDF failed to load - likely due to CSP restrictions");
             if (pdfLoading) pdfLoading.style.display = "none";
             if (pdfError) pdfError.style.display = "block";
             if (pdfIframe) pdfIframe.style.display = "none";
-            if (pdfStatus) pdfStatus.textContent = 'Cannot Embed - Click "View PDF"';
+            if (documentStatus) documentStatus.textContent = 'Cannot Embed - Click "View PDF"';
           };
           pdfIframe.addEventListener("load", handlePdfLoad);
           pdfIframe.addEventListener("error", handlePdfError);
@@ -73938,7 +73988,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       const docUrl = details.documentUrl || details.document_url || invoice.document?.url || "";
       const thumbUrl = details.thumbnailUrl || details.thumbnail_url || invoice.document?.thumbnailUrl || invoice.document?.thumbnail_url || "";
       const hasDoc = !!(docThreadId && docName);
-      const hasSampleDoc = !!(docUrl && docUrl.includes("w3.org"));
+      const hasSampleDoc = !!(docUrl && (docUrl.includes("w3.org") || docUrl.includes("mozilla.github.io") || docUrl.includes("picsum.photos")));
       const docIcon = `
       <span class="doc-preview-icon" 
             data-doc-url="${docUrl}"
@@ -74126,8 +74176,10 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         document: {
           thread_id: "thread_002",
           message_id: "msg_002",
-          document_name: "invoice_002.pdf",
+          document_name: "invoice_002.jpg",
           content_hash: "hash_002",
+          url: "https://picsum.photos/800/600",
+          thumbnailUrl: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjZTM0YTQwIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlNhbXBsZSBJbWFnZTwvdGV4dD4KPC9zdmc+Cg==",
           details: {
             invoiceNumber: "INV-2024-002",
             entityName: "Global Enterprises Ltd.",
@@ -74140,7 +74192,9 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             dueDate: "2024-02-20",
             paymentTerms: "Net 30",
             approvalStatus: "APPROVED",
-            notes: "Bulk office furniture purchase"
+            notes: "Bulk office furniture purchase",
+            documentUrl: "https://picsum.photos/800/600",
+            thumbnailUrl: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjZTM0YTQwIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlNhbXBsZSBJbWFnZTwvdGV4dD4KPC9zdmc+Cg=="
           }
         },
         vendor: { name: "Office Supplies Co." },
