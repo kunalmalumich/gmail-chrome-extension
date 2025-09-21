@@ -1,5 +1,6 @@
 .DS_Store
 /node_modules
+**/node_modules
 /dist
 /coverage
 /examples/*/dist/
@@ -36,31 +37,8 @@ yarn-error.log
 # jspreadsheet-docs (cloned for reference only)
 jspreadsheet-docs/
 
-# Stamp extension specific exclusions
-stamp-extension/node_modules/
-stamp-extension/dist/
+# Additional build and temporary files
+iongmail-chrome-extension
 stamp-extension/dist2/
-stamp-extension/.env
-stamp-extension/*.log
-stamp-extension/temp_*
-stamp-extension/*.pem
-stamp-extension/google-logo.png
-
-# Build artifacts
-*.js.map
-*.css.map
-
-# OS generated files
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
-# IDE files
-.vscode/settings.json
-.idea/
-*.swp
-*.swo
-
-# Temporary files
+*.log
 *.tmp
-*.temp

@@ -1739,12 +1739,10 @@ class UIManager {
         this.floatingChatManager = new FloatingChatManager(this);
         console.log('[FLOATING CHAT] Manager initialized:', this.floatingChatManager);
       }).catch(error => {
-        console.warn('[FLOATING CHAT] Failed to load scripts, continuing without floating chat:', error);
-        // Continue without floating chat - it's not critical for the main functionality
+        console.error('[FLOATING CHAT] Failed to load scripts:', error);
       });
     } catch (error) {
-      console.warn('[FLOATING CHAT] Failed to initialize floating chat, continuing without it:', error);
-      // Continue without floating chat - it's not critical for the main functionality
+      console.error('[FLOATING CHAT] Failed to initialize floating chat:', error);
     }
   }
 
@@ -3507,7 +3505,7 @@ class UIManager {
 
 // --- MAIN EXECUTION ---
 
-InboxSDK.load(2, 'sdk_stamp-extension_0b8df882e1').then((sdk) => {
+InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
   console.log("Stamp Extension: InboxSDK loaded successfully.");
   
   // Initialize your core extension components
@@ -3643,13 +3641,6 @@ InboxSDK.load(2, 'sdk_stamp-extension_0b8df882e1').then((sdk) => {
         apiClient: apiClient // Pass API client for corrections batching
       });
       console.log('[AI LOADING] 🎯 Spreadsheet built successfully');
-      
-      // Make search controls available globally for debugging
-      if (spreadsheetResult && spreadsheetResult.searchControls) {
-        window.stampSearchControls = spreadsheetResult.searchControls;
-        console.log('[SEARCH] Search controls available globally as window.stampSearchControls');
-        console.log('[SEARCH] Available methods:', Object.keys(spreadsheetResult.searchControls));
-      }
       
       // Single cleanup handler using sendBeacon
       handleCleanup = () => {
