@@ -4,17 +4,14 @@
   "description": "Stamp helps you manage your entire AP workflow inside of Gmail.",
   "main": "background.js",
   "scripts": {
-    "build": "esbuild content.js --bundle --outfile=dist/content.js --sourcemap --define:CONFIG.API_ENDPOINT='\"https://86cb9e6d9329.ngrok-free.app/email-poller\"' --define:CONFIG.OAUTH_CLIENT_ID='\"\"' --define:CONFIG.GOOGLE_CLIENT_ID='\"\"'",
-    "watch": "esbuild content.js --bundle --outfile=dist/content.js --sourcemap --watch --define:CONFIG.API_ENDPOINT='\"https://86cb9e6d9329.ngrok-free.app/email-poller\"' --define:CONFIG.OAUTH_CLIENT_ID='\"\"' --define:CONFIG.GOOGLE_CLIENT_ID='\"\"'"
+    "install-deps": "npm install"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@inboxsdk/core": "file:../packages/core",
+    "@inboxsdk/core": "^2.2.7",
+    "esbuild": "^0.25.9",
     "jspreadsheet-ce": "^5.0.3",
     "jsuites": "^5.12.0"
-  },
-  "devDependencies": {
-    "esbuild": "^0.19.11"
   }
 }

@@ -1,20 +1,50 @@
+/*!
+ * InboxSDK
+ * https://www.inboxsdk.com/
+ *
+ * The use of InboxSDK is governed by the Terms of Services located at
+ * https://www.inboxsdk.com/terms
+
+
+ *  __    __            _     _          _                _                      ___                 _ _ ___
+ * / / /\ \ \__ _ _ __ | |_  | |_ ___   | |__   __ _  ___| | __   ___  _ __     / _ \_ __ ___   __ _(_) / _ \
+ * \ \/  \/ / _` | '_ \| __| | __/ _ \  | '_ \ / _` |/ __| |/ /  / _ \| '_ \   / /_\/ '_ ` _ \ / _` | | \// /
+ *  \  /\  / (_| | | | | |_  | || (_) | | | | | (_| | (__|   <  | (_) | | | | / /_\\| | | | | | (_| | | | \/
+ *   \/  \/ \__,_|_| |_|\__|  \__\___/  |_| |_|\__,_|\___|_|\_\  \___/|_| |_| \____/|_| |_| |_|\__,_|_|_| ()
+ *
+ * Like complex reverse engineering? Want to make Gmail and Inbox a hackable platform?
+ *
+ * Join us at: www.streak.com/careers?source=sdk
+ */
+
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ "./src/common/ajax.ts":
-/*!****************************!*\
-  !*** ./src/common/ajax.ts ***!
-  \****************************/
+/***/ 8587:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ ajax)
-/* harmony export */ });
-/* harmony import */ var querystring__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! querystring */ "./node_modules/querystring-es3/index.js");
-/* harmony import */ var pdelay__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! pdelay */ "./node_modules/pdelay/js/index.js");
-/* harmony import */ var _cachebust_url__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./cachebust-url */ "./src/common/cachebust-url.ts");
+
+// EXPORTS
+__webpack_require__.d(__webpack_exports__, {
+  A: () => (/* binding */ ajax)
+});
+
+// EXTERNAL MODULE: ./node_modules/querystring-es3/index.js
+var querystring_es3 = __webpack_require__(6448);
+// EXTERNAL MODULE: ./node_modules/pdelay/js/index.js
+var js = __webpack_require__(8498);
+;// CONCATENATED MODULE: ./src/common/cachebust-url.ts
+const r = /([?&])_=[^&]*/;
+let nonce = Date.now() + Math.floor(Math.random() * Math.pow(2, 32));
+function cachebustUrl(url) {
+  if (r.test(url)) {
+    return url.replace(r, '$1_=' + nonce++);
+  } else {
+    return url + (/\?/.test(url) ? '&' : '?') + '_=' + nonce++;
+  }
+}
+;// CONCATENATED MODULE: ./src/common/ajax.ts
 
 
 
@@ -39,7 +69,7 @@ function ajax(opts) {
     let url = opts.url;
     let stringData = null;
     if (opts.data) {
-      stringData = typeof opts.data === 'string' ? opts.data : querystring__WEBPACK_IMPORTED_MODULE_0__.stringify(opts.data);
+      stringData = typeof opts.data === 'string' ? opts.data : querystring_es3.stringify(opts.data);
       if (method === 'GET' || method === 'HEAD') {
         url += (/\?/.test(url) ? '&' : '?') + stringData;
         stringData = null;
@@ -56,7 +86,7 @@ function ajax(opts) {
       return;
     }
     if (opts.cachebust) {
-      url = (0,_cachebust_url__WEBPACK_IMPORTED_MODULE_1__["default"])(url);
+      url = cachebustUrl(url);
     }
     const XMLHttpRequest = opts.XMLHttpRequest || window.XMLHttpRequest;
     const xhr = new XMLHttpRequest();
@@ -109,25 +139,21 @@ function _retry(opts) {
 
   // 2000 4000 8000...
   const retryTimeout = Math.min(Math.pow(2, retryNum) * 1000, MAX_TIMEOUT);
-  return (0,pdelay__WEBPACK_IMPORTED_MODULE_2__["default"])(retryTimeout).then(() => ajax(Object.assign({}, opts, {
+  return (0,js/* default */.A)(retryTimeout).then(() => ajax(Object.assign({}, opts, {
     retryNum
   })));
 }
 
 /***/ }),
 
-/***/ "./src/common/assert.ts":
-/*!******************************!*\
-  !*** ./src/common/assert.ts ***!
-  \******************************/
+/***/ 1602:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   AssertionError: () => (/* binding */ AssertionError),
-/* harmony export */   assert: () => (/* binding */ assert)
+/* harmony export */   v: () => (/* binding */ assert)
 /* harmony export */ });
+/* unused harmony export AssertionError */
 class AssertionError extends Error {
   name = 'AssertionError';
   constructor(message) {
@@ -145,250 +171,17 @@ function assert(condition, message) {
 
 /***/ }),
 
-/***/ "./src/common/cachebust-url.ts":
-/*!*************************************!*\
-  !*** ./src/common/cachebust-url.ts ***!
-  \*************************************/
+/***/ 6305:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ cachebustUrl)
-/* harmony export */ });
-const r = /([?&])_=[^&]*/;
-let nonce = Date.now() + Math.floor(Math.random() * Math.pow(2, 32));
-function cachebustUrl(url) {
-  if (r.test(url)) {
-    return url.replace(r, '$1_=' + nonce++);
-  } else {
-    return url + (/\?/.test(url) ? '&' : '?') + '_=' + nonce++;
-  }
-}
 
-/***/ }),
+// EXPORTS
+__webpack_require__.d(__webpack_exports__, {
+  A: () => (/* binding */ htmlToText)
+});
 
-/***/ "./src/common/defer.ts":
-/*!*****************************!*\
-  !*** ./src/common/defer.ts ***!
-  \*****************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ defer)
-/* harmony export */ });
-// This is a drop-in replacement for RSVP.defer(). New code should avoid using
-// this, and should use the Promise constructor instead!
-
-function defer() {
-  let resolve = undefined;
-  let reject = undefined;
-  const promise = new Promise((_resolve, _reject) => {
-    resolve = _resolve;
-    reject = _reject;
-  });
-  return {
-    resolve,
-    reject,
-    promise
-  };
-}
-
-/***/ }),
-
-/***/ "./src/common/find-parent.ts":
-/*!***********************************!*\
-  !*** ./src/common/find-parent.ts ***!
-  \***********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ findParent)
-/* harmony export */ });
-/**
- * @deprecated Use @see Element.closest instead.
- */
-function findParent(el, cb) {
-  let candidate = el.parentElement;
-  while (candidate) {
-    if (cb(candidate)) {
-      return candidate;
-    }
-    candidate = candidate.parentElement;
-  }
-  return null;
-}
-
-/***/ }),
-
-/***/ "./src/common/html-to-text.ts":
-/*!************************************!*\
-  !*** ./src/common/html-to-text.ts ***!
-  \************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ htmlToText)
-/* harmony export */ });
-/* harmony import */ var _removeHtmlTags__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./removeHtmlTags */ "./src/common/removeHtmlTags.ts");
-
-
-/**
- * Converts HTML to unformatted plain text.
- * Works by stripping all HTML tags and converting entities to symbols.
- * Safe to use on arbitrary input.
- *
- * Converts text like `String with <b>html</b> &amp; entities &lt;&gt;` to
- * `String with html & entities <>`.
- *
- * This is *not* for creating "safe HTML" from user input to assign to
- * an element's innerHTML. The result of this function should not be treated
- * as HTML.
- */
-function htmlToText(html) {
-  const div = document.createElement('div');
-  div.innerHTML = _removeHtmlTags__WEBPACK_IMPORTED_MODULE_0__.removeHtmlTagsPolicy.createHTML(html);
-  return div.textContent;
-}
-
-/***/ }),
-
-/***/ "./src/common/isNotNil.ts":
-/*!********************************!*\
-  !*** ./src/common/isNotNil.ts ***!
-  \********************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ isNotNil)
-/* harmony export */ });
-// Type predicate to avoid opting out of strict type checking in filter operations.
-// Adapted from https://stackoverflow.com/a/46700791
-function isNotNil(value) {
-  return value != null;
-}
-
-/***/ }),
-
-/***/ "./src/common/quoted-split.ts":
-/*!************************************!*\
-  !*** ./src/common/quoted-split.ts ***!
-  \************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ quotedSplit)
-/* harmony export */ });
-// Splits a string on spaces, but ignores spaces inside quotes.
-
-function quotedSplit(s) {
-  let split = [];
-  let lastEnd = 0;
-  const quoteRe = /"[^"]*"/g;
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const match = quoteRe.exec(s);
-    split = split.concat((match ? s.substring(lastEnd, match.index) : s.substring(lastEnd)).split(/ +/).filter(Boolean));
-    if (!match) break;
-    lastEnd = match.index + match[0].length;
-    split.push(match[0]);
-  }
-  return split;
-}
-
-/***/ }),
-
-/***/ "./src/common/rate-limit-queuer.ts":
-/*!*****************************************!*\
-  !*** ./src/common/rate-limit-queuer.ts ***!
-  \*****************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ rateLimitQueuer)
-/* harmony export */ });
-// Returns a wrapped version of the function which queues up callTimestamps to the
-// function if it is called more than count times within period amount of time.
-function rateLimitQueuer(fn, period, count) {
-  let callTimestamps = [];
-  const queue = [];
-  let runningQueue = false;
-  function runJob() {
-    const job = queue.shift();
-    job();
-    if (queue.length) {
-      runQueue();
-    } else {
-      runningQueue = false;
-    }
-  }
-  function runQueue() {
-    runningQueue = true;
-    const timeToWait = getTimeToUnqueueItem();
-    if (timeToWait > 0) {
-      setTimeout(runJob, timeToWait);
-    } else {
-      runJob();
-    }
-  }
-  function getTimeToUnqueueItem() {
-    const now = Date.now();
-    const periodAgo = now - period;
-    callTimestamps = callTimestamps.filter(time => time > periodAgo);
-    if (callTimestamps.length >= count) {
-      return callTimestamps[0] - periodAgo;
-    }
-    return -1;
-  }
-  return function attempt() {
-    for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
-      args[_key] = arguments[_key];
-    }
-    let job;
-    const promise = new Promise((resolve, reject) => {
-      job = () => {
-        callTimestamps.push(Date.now());
-        try {
-          resolve(fn.apply(this, args));
-        } catch (err) {
-          reject(err);
-        }
-      };
-    });
-    if (!job) throw new Error('Should not happen');
-    queue.push(job);
-    if (!runningQueue) {
-      runQueue();
-    }
-    return promise;
-  };
-}
-
-/***/ }),
-
-/***/ "./src/common/removeHtmlTags.ts":
-/*!**************************************!*\
-  !*** ./src/common/removeHtmlTags.ts ***!
-  \**************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   removeHtmlTagsPolicy: () => (/* binding */ removeHtmlTagsPolicy)
-/* harmony export */ });
+;// CONCATENATED MODULE: ./src/common/removeHtmlTags.ts
 /**
  * This function removes all HTML tags from a string.
  * The resulting string may still contain HTML entities and not be suitable to display as plain text.
@@ -416,44 +209,43 @@ const removeHtmlTagsPolicy = globalThis.trustedTypes?.createPolicy('inboxSdk__re
     return removeHtmlTags(string);
   }
 };
+;// CONCATENATED MODULE: ./src/common/html-to-text.ts
+
+
+/**
+ * Converts HTML to unformatted plain text.
+ * Works by stripping all HTML tags and converting entities to symbols.
+ * Safe to use on arbitrary input.
+ *
+ * Converts text like `String with <b>html</b> &amp; entities &lt;&gt;` to
+ * `String with html & entities <>`.
+ *
+ * This is *not* for creating "safe HTML" from user input to assign to
+ * an element's innerHTML. The result of this function should not be treated
+ * as HTML.
+ */
+function htmlToText(html) {
+  const div = document.createElement('div');
+  div.innerHTML = removeHtmlTagsPolicy.createHTML(html);
+  return div.textContent;
+}
 
 /***/ }),
 
-/***/ "./src/injected-js/gmail/constants.ts":
-/*!********************************************!*\
-  !*** ./src/injected-js/gmail/constants.ts ***!
-  \********************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   DRAFT_SAVING_ACTIONS: () => (/* binding */ DRAFT_SAVING_ACTIONS),
-/* harmony export */   SEND_ACTIONS: () => (/* binding */ SEND_ACTIONS)
-/* harmony export */ });
-const SEND_ACTIONS = ['^pfg'];
-const DRAFT_SAVING_ACTIONS = ['^r', '^r_bt'];
-
-/***/ }),
-
-/***/ "./src/injected-js/gmail/modify-suggestions.ts":
-/*!*****************************************************!*\
-  !*** ./src/injected-js/gmail/modify-suggestions.ts ***!
-  \*****************************************************/
+/***/ 8700:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */   A: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var lodash_escape__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lodash/escape */ "./node_modules/lodash/escape.js");
+/* harmony import */ var lodash_escape__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3131);
 /* harmony import */ var lodash_escape__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(lodash_escape__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var auto_html__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! auto-html */ "./node_modules/auto-html/js/index.js");
+/* harmony import */ var auto_html__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(1812);
 /* harmony import */ var auto_html__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(auto_html__WEBPACK_IMPORTED_MODULE_3__);
-/* harmony import */ var ud__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ud */ "./node_modules/ud/js/index.js");
-/* harmony import */ var _common_html_to_text__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../common/html-to-text */ "./src/common/html-to-text.ts");
-/* harmony import */ var _platform_implementation_js_dom_driver_gmail_gmail_response_processor__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../platform-implementation-js/dom-driver/gmail/gmail-response-processor */ "./src/platform-implementation-js/dom-driver/gmail/gmail-response-processor.ts");
+/* harmony import */ var ud__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(7332);
+/* harmony import */ var _common_html_to_text__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(6305);
+/* harmony import */ var _platform_implementation_js_dom_driver_gmail_gmail_response_processor__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(1433);
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 
@@ -495,7 +287,7 @@ function modifySuggestions(responseText, modifications) {
   const {
     value: parsed,
     options
-  } = _platform_implementation_js_dom_driver_gmail_gmail_response_processor__WEBPACK_IMPORTED_MODULE_2__.deserialize(responseText);
+  } = _platform_implementation_js_dom_driver_gmail_gmail_response_processor__WEBPACK_IMPORTED_MODULE_2__/* .deserialize */ .iu(responseText);
   const query = parsed[0][1];
   for (const modification of modifications) {
     let name, nameHTML;
@@ -504,7 +296,7 @@ function modifySuggestions(responseText, modifications) {
       nameHTML = lodash_escape__WEBPACK_IMPORTED_MODULE_0___default()(name);
     } else if (typeof modification.nameHTML === 'string') {
       nameHTML = modification.nameHTML;
-      name = (0,_common_html_to_text__WEBPACK_IMPORTED_MODULE_1__["default"])(nameHTML);
+      name = (0,_common_html_to_text__WEBPACK_IMPORTED_MODULE_1__/* ["default"] */ .A)(nameHTML);
     }
     if (name == null || nameHTML == null) {
       throw new Error('name or nameHTML must be provided');
@@ -515,7 +307,7 @@ function modifySuggestions(responseText, modifications) {
       descriptionHTML = lodash_escape__WEBPACK_IMPORTED_MODULE_0___default()(description);
     } else if (typeof modification.descriptionHTML === 'string') {
       descriptionHTML = modification.descriptionHTML;
-      description = (0,_common_html_to_text__WEBPACK_IMPORTED_MODULE_1__["default"])(descriptionHTML);
+      description = (0,_common_html_to_text__WEBPACK_IMPORTED_MODULE_1__/* ["default"] */ .A)(descriptionHTML);
     }
     const data = {
       id: modification.id,
@@ -553,48 +345,76 @@ function modifySuggestions(responseText, modifications) {
       parsed[0][3] = [newItem];
     }
   }
-  return _platform_implementation_js_dom_driver_gmail_gmail_response_processor__WEBPACK_IMPORTED_MODULE_2__.serialize(parsed, options);
+  return _platform_implementation_js_dom_driver_gmail_gmail_response_processor__WEBPACK_IMPORTED_MODULE_2__/* .serialize */ .lK(parsed, options);
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ((0,ud__WEBPACK_IMPORTED_MODULE_4__.defn)(module, modifySuggestions));
 
 /***/ }),
 
-/***/ "./src/injected-js/gmail/setup-gmail-interceptor.ts":
-/*!**********************************************************!*\
-  !*** ./src/injected-js/gmail/setup-gmail-interceptor.ts ***!
-  \**********************************************************/
+/***/ 5691:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ setupGmailInterceptor),
-/* harmony export */   setupGmailInterceptorOnFrames: () => (/* binding */ setupGmailInterceptorOnFrames)
-/* harmony export */ });
-/* harmony import */ var lodash_clone__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lodash/clone */ "./node_modules/lodash/clone.js");
-/* harmony import */ var lodash_clone__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(lodash_clone__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var lodash_flatten__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! lodash/flatten */ "./node_modules/lodash/flatten.js");
-/* harmony import */ var lodash_flatten__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(lodash_flatten__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var lodash_find__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! lodash/find */ "./node_modules/lodash/find.js");
-/* harmony import */ var lodash_find__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(lodash_find__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var lodash_intersection__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! lodash/intersection */ "./node_modules/lodash/intersection.js");
-/* harmony import */ var lodash_intersection__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(lodash_intersection__WEBPACK_IMPORTED_MODULE_3__);
-/* harmony import */ var lodash_includes__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! lodash/includes */ "./node_modules/lodash/includes.js");
-/* harmony import */ var lodash_includes__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(lodash_includes__WEBPACK_IMPORTED_MODULE_4__);
-/* harmony import */ var bignumber_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! bignumber.js */ "./node_modules/bignumber.js/bignumber.js");
-/* harmony import */ var bignumber_js__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(bignumber_js__WEBPACK_IMPORTED_MODULE_5__);
-/* harmony import */ var kefir__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! kefir */ "./node_modules/kefir/dist/kefir.esm.js");
-/* harmony import */ var _injected_logger__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../injected-logger */ "./src/injected-js/injected-logger.ts");
-/* harmony import */ var _xhr_proxy_factory__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../xhr-proxy-factory */ "./src/injected-js/xhr-proxy-factory.ts");
-/* harmony import */ var querystring__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! querystring */ "./node_modules/querystring-es3/index.js");
-/* harmony import */ var _thread_identifier__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ./thread-identifier */ "./src/injected-js/gmail/thread-identifier/index.ts");
-/* harmony import */ var _message_metadata_holder__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../message-metadata-holder */ "./src/injected-js/message-metadata-holder.ts");
-/* harmony import */ var _platform_implementation_js_dom_driver_gmail_gmail_response_processor__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../../platform-implementation-js/dom-driver/gmail/gmail-response-processor */ "./src/platform-implementation-js/dom-driver/gmail/gmail-response-processor.ts");
-/* harmony import */ var _platform_implementation_js_dom_driver_gmail_gmail_sync_response_processor__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ../../platform-implementation-js/dom-driver/gmail/gmail-sync-response-processor */ "./src/platform-implementation-js/dom-driver/gmail/gmail-sync-response-processor.ts");
-/* harmony import */ var _common_quoted_split__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ../../common/quoted-split */ "./src/common/quoted-split.ts");
-/* harmony import */ var _common_defer__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ../../common/defer */ "./src/common/defer.ts");
-/* harmony import */ var _modify_suggestions__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ./modify-suggestions */ "./src/injected-js/gmail/modify-suggestions.ts");
-/* harmony import */ var _sync_compose_processor__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(/*! ./sync-compose-processor */ "./src/injected-js/gmail/sync-compose-processor.ts");
+
+// EXPORTS
+__webpack_require__.d(__webpack_exports__, {
+  A: () => (/* binding */ setupGmailInterceptor)
+});
+
+// UNUSED EXPORTS: setupGmailInterceptorOnFrames
+
+// EXTERNAL MODULE: ./node_modules/lodash/clone.js
+var clone = __webpack_require__(63);
+var clone_default = /*#__PURE__*/__webpack_require__.n(clone);
+// EXTERNAL MODULE: ./node_modules/lodash/flatten.js
+var flatten = __webpack_require__(4176);
+var flatten_default = /*#__PURE__*/__webpack_require__.n(flatten);
+// EXTERNAL MODULE: ./node_modules/lodash/find.js
+var find = __webpack_require__(4455);
+var find_default = /*#__PURE__*/__webpack_require__.n(find);
+// EXTERNAL MODULE: ./node_modules/lodash/intersection.js
+var intersection = __webpack_require__(4225);
+var intersection_default = /*#__PURE__*/__webpack_require__.n(intersection);
+// EXTERNAL MODULE: ./node_modules/lodash/includes.js
+var includes = __webpack_require__(5193);
+var includes_default = /*#__PURE__*/__webpack_require__.n(includes);
+// EXTERNAL MODULE: ./node_modules/bignumber.js/bignumber.js
+var bignumber = __webpack_require__(2180);
+var bignumber_default = /*#__PURE__*/__webpack_require__.n(bignumber);
+// EXTERNAL MODULE: ./node_modules/kefir/dist/kefir.esm.js
+var kefir_esm = __webpack_require__(7249);
+// EXTERNAL MODULE: ./src/injected-js/injected-logger.ts
+var injected_logger = __webpack_require__(4530);
+// EXTERNAL MODULE: ./node_modules/lodash/has.js
+var has = __webpack_require__(5930);
+var has_default = /*#__PURE__*/__webpack_require__.n(has);
+// EXTERNAL MODULE: ./node_modules/lodash/noop.js
+var noop = __webpack_require__(1700);
+var noop_default = /*#__PURE__*/__webpack_require__.n(noop);
+// EXTERNAL MODULE: ./node_modules/lodash/each.js
+var each = __webpack_require__(5757);
+var each_default = /*#__PURE__*/__webpack_require__.n(each);
+// EXTERNAL MODULE: ./node_modules/lodash/filter.js
+var filter = __webpack_require__(9214);
+var filter_default = /*#__PURE__*/__webpack_require__.n(filter);
+// EXTERNAL MODULE: ./node_modules/lodash/once.js
+var once = __webpack_require__(8921);
+var once_default = /*#__PURE__*/__webpack_require__.n(once);
+// EXTERNAL MODULE: ./src/common/assert.ts
+var assert = __webpack_require__(1602);
+// EXTERNAL MODULE: ./node_modules/events/events.js
+var events = __webpack_require__(4785);
+var events_default = /*#__PURE__*/__webpack_require__.n(events);
+// EXTERNAL MODULE: ./node_modules/querystring-es3/index.js
+var querystring_es3 = __webpack_require__(6448);
+;// CONCATENATED MODULE: ./src/common/isNotNil.ts
+// Type predicate to avoid opting out of strict type checking in filter operations.
+// Adapted from https://stackoverflow.com/a/46700791
+function isNotNil(value) {
+  return value != null;
+}
+;// CONCATENATED MODULE: ./src/injected-js/xhr-proxy-factory.ts
+/* eslint-disable prefer-rest-params */
 
 
 
@@ -605,1036 +425,1274 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+const WARNING_TIMEOUT = 60 * 1000;
 
+/**
+ * Object with information about the connection in progress. Its fields are
+ * populated as the connection goes on. The object is passed as the first
+ * argument to all of the wrappers. The object is mutable so the wrappers can
+ * add properties to it.
+ *
+ * @typedef {Object} XHRProxyConnectionDetails
+ * @property {string} method
+ * @property {string} url
+ * @property {Object} params - parameters decoded from the URL
+ * @property {Object} headers - request headers set on the XHR
+ * @property {string} responseType
+ * @property {string} originalSendBody - data passed to send method
+ * @property {number} status - HTTP response status
+ * @property {string} [originalResponseText] - Is not set if responseType is set
+ *  to a value besides 'text'.
+ * @property {string} [modifiedResponseText]
+ */
 
+/**
+ * Thing
+ *
+ * @callback XHRProxyWrapperCallback
+ * @param {XHRProxyConnectionDetails} connection
+ */
 
+/**
+ * Wrapper object contains optional callbacks that get run for completed
+ * requests, and a required isRelevantTo method that filters what types of
+ * requests the methods should be called for. All methods are passed an object
+ * with details about the connection as the first argument. Some methods are
+ * called with a relevant second argument (which is also present within the
+ * connection argument).
+ *
+ * @typedef {Object} XHRProxyWrapper
+ * @property {XHRProxyWrapperCallback} isRelevantTo - returns true if wrapper should be used
+ *  for request.
+ * @property {XHRProxyWrapperCallback} [originalSendBodyLogger] - called with value passed to
+ *  send.
+ * @property {XHRProxyWrapperCallback} [requestChanger] - Allows the protocol, URL, and body
+ *  to be changed together before the connection is opened and sent.
+ * @property {XHRProxyWrapperCallback} [originalResponseTextLogger] - called with the responseText as
+ *  given by the server. Is not called if responseType is set to a value besides 'text'.
+ * @property {XHRProxyWrapperCallback} [responseTextChanger] - called with the responseText as given
+ *  by the server and returns new responseText value. Is not called if responseType
+ * is set to a value besides 'text'.
+ * @property {XHRProxyWrapperCallback} [finalResponseTextLogger] - called with the responseText as
+ *  delivered to application code. Is not called if responseType is set to a value besides 'text'.
+ * @property {XHRProxyWrapperCallback} [afterListeners] - called after all event listeners
+ *  for readystatechange have run
+ */
 
+/**
+ * Creates a drop-in replacement for the XMLHttpRequest constructor that can
+ * have wrappers which may log or modify server responses. See
+ * test/xhrproxy.js for usage examples and tests.
+ * @function XHRProxyFactory
+ * @param {function} XHR - original XMLHttpRequest constructor to wrap
+ * @param {XHRProxyWrapper[]} wrappers - mutable array
+ * @param {Object} [opts] - Can specify a logError function
+ * @returns {function} wrapped XMLHttpRequest-like constructor
+ */
 
-
-
-
-function logErrorExceptEventListeners(err, details) {
-  // Don't log Gmail's errors
-  if (details !== 'XMLHttpRequest event listener error') {
-    _injected_logger__WEBPACK_IMPORTED_MODULE_7__.error(err, details);
-  } else {
+function XHRProxyFactory(XHR, wrappers, opts) {
+  const logError = opts && opts.logError || function (error) {
     setTimeout(function () {
       // let window.onerror log this
-      throw err;
+      throw error;
     }, 1);
+  };
+  function transformEvent(oldTarget, newTarget, event) {
+    const newEvent = {};
+    Object.keys(event).concat(['bubbles', 'cancelBubble', 'cancelable', 'defaultPrevented', 'preventDefault', 'stopPropagation', 'stopImmediatePropagation', 'lengthComputable', 'loaded', 'total', 'type', 'currentTarget', 'target', 'srcElement', 'NONE', 'CAPTURING_PHASE', 'AT_TARGET', 'BUBBLING_PHASE', 'eventPhase']).filter(name => name in event).forEach(name => {
+      const value = event[name];
+      if (value === oldTarget) {
+        newEvent[name] = newTarget;
+      } else if (typeof value === 'function') {
+        newEvent[name] = value.bind(event);
+      } else {
+        newEvent[name] = value;
+      }
+    });
+    return newEvent;
   }
-}
-function setupGmailInterceptor() {
-  let jsFrame = null;
-  const js_frame_element = top.document.getElementById('js_frame');
-  if (js_frame_element) {
-    jsFrame = js_frame_element.contentDocument.defaultView;
-  } else {
-    _injected_logger__WEBPACK_IMPORTED_MODULE_7__.eventSdkPassive('noJSFrameElementFound');
+  function wrapEventListener(oldTarget, newTarget, listener) {
+    return function (event) {
+      return listener.call(newTarget, transformEvent(oldTarget, newTarget, event));
+    };
   }
-  setupGmailInterceptorOnFrames(window, jsFrame);
-}
+  function findApplicableWrappers(wrappers, connection) {
+    return filter_default()(wrappers, function (wrapper) {
+      try {
+        return wrapper.isRelevantTo(connection);
+      } catch (e) {
+        logError(e);
+      }
+    });
+  }
+  function XHRProxy() {
+    this._wrappers = wrappers;
+    this._listeners = {};
+    this._boundListeners = {};
+    this._events = new (events_default())(); // used for internal stuff, not user-visible events
 
-// Split into a separate step to make it easy for tests to use.
-function setupGmailInterceptorOnFrames(mainFrame, jsFrame) {
-  const main_wrappers = [],
-    js_frame_wrappers = [];
-  {
-    const main_originalXHR = mainFrame.XMLHttpRequest;
-    mainFrame.XMLHttpRequest = (0,_xhr_proxy_factory__WEBPACK_IMPORTED_MODULE_8__["default"])(main_originalXHR, main_wrappers, {
-      logError: logErrorExceptEventListeners
-    });
-  }
-  if (jsFrame) {
-    const js_frame_originalXHR = jsFrame.XMLHttpRequest;
-    jsFrame.XMLHttpRequest = (0,_xhr_proxy_factory__WEBPACK_IMPORTED_MODULE_8__["default"])(js_frame_originalXHR, js_frame_wrappers, {
-      logError: logErrorExceptEventListeners
-    });
-  }
-  _thread_identifier__WEBPACK_IMPORTED_MODULE_10__.setup();
-  _message_metadata_holder__WEBPACK_IMPORTED_MODULE_11__.setup();
-  //email sending modifier/notifier
-  {
-    const modifiers = {};
-    kefir__WEBPACK_IMPORTED_MODULE_6__["default"].fromEvents(document, 'inboxSDKregisterComposeRequestModifier').onValue(_ref => {
-      let {
-        detail
-      } = _ref;
-      const keyId = detail.composeid || detail.draftID;
-      if (!modifiers[keyId]) {
-        modifiers[keyId] = [];
-      }
-      modifiers[keyId].push(detail.modifierId);
-    });
-    kefir__WEBPACK_IMPORTED_MODULE_6__["default"].fromEvents(document, 'inboxSDKunregisterComposeRequestModifier').onValue(_ref2 => {
-      let {
-        detail
-      } = _ref2;
-      const {
-        keyId,
-        modifierId
-      } = detail;
-      modifiers[keyId] = modifiers[keyId].filter(item => item !== modifierId);
-      if (modifiers[keyId].length === 0) {
-        delete modifiers[keyId];
-      }
-    });
-    js_frame_wrappers.push({
-      isRelevantTo: function (connection) {
-        return connection.params.act === 'sm';
-      },
-      originalSendBodyLogger: function (connection, body) {
-        triggerEvent({
-          type: 'emailSending',
-          body: body
-        });
-      },
-      requestChanger: async function (connection, request) {
-        let composeParams = querystring__WEBPACK_IMPORTED_MODULE_9__.parse(request.body);
-        const composeid = composeParams.composeid;
-        const composeModifierIds = modifiers[composeParams.composeid];
-        if (!composeModifierIds || composeModifierIds.length === 0) {
-          return request;
-        }
-        for (let ii = 0; ii < composeModifierIds.length; ii++) {
-          const modifierId = composeModifierIds[ii];
-          const modificationPromise = kefir__WEBPACK_IMPORTED_MODULE_6__["default"].fromEvents(document, 'inboxSDKcomposeRequestModified').filter(_ref3 => {
-            let {
-              detail
-            } = _ref3;
-            return detail.composeid === composeid && detail.modifierId === modifierId;
-          }).take(1).map(_ref4 => {
-            let {
-              detail
-            } = _ref4;
-            return detail.composeParams;
-          }).toPromise(
-
-            /* Promise */);
-          triggerEvent({
-            type: 'inboxSDKmodifyComposeRequest',
-            composeid,
-            modifierId,
-            composeParams: {
-              body: composeParams.body,
-              isPlainText: composeParams.ishtml !== '1'
-            }
-          });
-          const newComposeParams = await modificationPromise;
-          composeParams = Object.assign({}, composeParams, newComposeParams);
-        }
-        return Object.assign({}, request, {
-          body: stringifyComposeParams(composeParams)
-        });
-      },
-      afterListeners: function (connection) {
-        if (connection.status === 200) {
-          triggerEvent({
-            type: 'emailSent',
-            responseText: connection.originalResponseText,
-            originalSendBody: connection.originalSendBody
-          });
-          if (connection.originalSendBody) {
-            const composeParams = querystring__WEBPACK_IMPORTED_MODULE_9__.parse(connection.originalSendBody);
-            delete modifiers[composeParams.composeid];
-          }
+    this.responseText = '';
+    this._openState = false;
+    if (XHR.bind && XHR.bind.apply) {
+      // call constructor with variable number of arguments
+      this._realxhr = new (XHR.bind.apply(XHR, [null].concat(arguments)))();
+    } else {
+      // Safari's XMLHttpRequest lacks a bind method, but its constructor
+      // doesn't support extra arguments anyway, so don't bother logging an
+      // error here.
+      this._realxhr = new XHR();
+    }
+    const self = this;
+    const triggerEventListeners = (name, event) => {
+      if (this['on' + name]) {
+        try {
+          wrapEventListener(this._realxhr, this, this['on' + name]).call(this, event);
+        } catch (e) {
+          logError(e, 'XMLHttpRequest event listener error');
         }
       }
-    });
-    js_frame_wrappers.push({
-      isRelevantTo: function (connection) {
-        return connection.params.act === 'sd';
-      },
-      originalSendBodyLogger: function (connection, body) {
-        triggerEvent({
-          type: 'emailDraftSaveSending',
-          body: body
-        });
-      },
-      afterListeners: function (connection) {
-        if (connection.status === 200) {
-          triggerEvent({
-            type: 'emailDraftReceived',
-            responseText: connection.originalResponseText,
-            originalSendBody: connection.originalSendBody,
-            connectionDetails: {
-              method: connection.method,
-              url: connection.url,
-              params: connection.params,
-              responseType: connection.responseType
-            }
-          });
+      each_default()(this._boundListeners[name], boundListener => {
+        try {
+          boundListener(event);
+        } catch (e) {
+          logError(e, 'XMLHttpRequest event listener error');
         }
-      }
-    });
-    {
-      // Sync API-based compose sending intercept
-      const currentSendConnectionIDs = new WeakMap();
-      const currentDraftSaveConnectionIDs = new WeakMap();
-      const currentFirstDraftSaveConnectionIDs = new WeakMap();
-      main_wrappers.push({
-        isRelevantTo(connection) {
-          return /sync(?:\/u\/\d+)?\/i\/s/.test(connection.url);
-        },
-        originalSendBodyLogger(connection) {
-          if (connection.originalSendBody) {
-            const composeRequestDetails = (0,_sync_compose_processor__WEBPACK_IMPORTED_MODULE_17__.parseComposeRequestBody)(connection.originalSendBody);
-            if (!composeRequestDetails) {
-              return;
-            }
-            const {
-              draftID
-            } = composeRequestDetails;
-            switch (composeRequestDetails.type) {
-              case 'FIRST_DRAFT_SAVE':
-                currentFirstDraftSaveConnectionIDs.set(connection, draftID);
-                break;
-              case 'DRAFT_SAVE':
-                currentDraftSaveConnectionIDs.set(connection, draftID);
-                break;
-              case 'SEND':
-                currentSendConnectionIDs.set(connection, draftID);
-                triggerEvent({
-                  type: 'emailSending',
-                  draftID
-                });
-                break;
-            }
-          }
-        },
-        requestChanger: async function (connection, request) {
-          const composeRequestDetails = (0,_sync_compose_processor__WEBPACK_IMPORTED_MODULE_17__.parseComposeRequestBody)(request.body);
-          if (!composeRequestDetails || composeRequestDetails.type !== 'SEND') return request;
-          const {
-            draftID
-          } = composeRequestDetails;
-          const composeModifierIds = modifiers[draftID];
-          if (!composeModifierIds || composeModifierIds.length === 0) return request;
-          let newEmailBody = composeRequestDetails.body;
-          for (let ii = 0; ii < composeModifierIds.length; ii++) {
-            const modifierId = composeModifierIds[ii];
-            const modificationPromise = kefir__WEBPACK_IMPORTED_MODULE_6__["default"].fromEvents(document, 'inboxSDKcomposeRequestModified').filter(_ref5 => {
-              let {
-                detail
-              } = _ref5;
-              return detail.draftID === draftID && detail.modifierId === modifierId;
-            }).take(1).map(_ref6 => {
-              let {
-                detail
-              } = _ref6;
-              return detail.composeParams;
-            }).toPromise(
-
-              /* Promise */);
-            triggerEvent({
-              type: 'inboxSDKmodifyComposeRequest',
-              draftID,
-              modifierId,
-              composeParams: {
-                body: newEmailBody,
-                isPlainText: false
-              }
-            });
-            const newComposeParams = await modificationPromise;
-            newEmailBody = newComposeParams.body;
-          }
-          return Object.assign({}, request, {
-            body: (0,_sync_compose_processor__WEBPACK_IMPORTED_MODULE_17__.replaceBodyContentInComposeSendRequestBody)(request.body, newEmailBody)
-          });
-        },
-        afterListeners(connection) {
-          if (currentSendConnectionIDs.has(connection) || currentDraftSaveConnectionIDs.has(connection) || currentFirstDraftSaveConnectionIDs.has(connection)) {
-            const sendFailed = () => {
-              triggerEvent({
-                type: 'emailSendFailed',
-                draftID
-              });
-              currentSendConnectionIDs.delete(connection);
-            };
-            const draftID = currentSendConnectionIDs.get(connection) || currentDraftSaveConnectionIDs.get(connection) || currentFirstDraftSaveConnectionIDs.get(connection);
-            if (connection.status !== 200 || !connection.originalResponseText) {
-              sendFailed();
-              return;
-            }
+      });
+    };
+    const runRscListeners = event => {
+      triggerEventListeners('readystatechange', event);
+    };
+    this._fakeRscEvent = function () {
+      runRscListeners(Object.freeze({
+        bubbles: false,
+        cancelBubble: false,
+        cancelable: false,
+        defaultPrevented: false,
+        preventDefault: (noop_default()),
+        stopPropagation: (noop_default()),
+        stopImmediatePropagation: (noop_default()),
+        type: 'readystatechange',
+        currentTarget: this,
+        target: this,
+        srcElement: this,
+        NONE: 0,
+        CAPTURING_PHASE: 1,
+        AT_TARGET: 2,
+        BUBBLING_PHASE: 3,
+        eventPhase: 0
+      }));
+    };
+    const deliverFinalRsc = event => {
+      this.readyState = 4;
+      // Remember the status now before any event handlers are called, just in
+      // case one aborts the request.
+      var wasSuccess = this.status == 200;
+      var progressEvent = Object.assign({}, transformEvent(this._realxhr, this, event), {
+        lengthComputable: false,
+        loaded: 0,
+        total: 0
+      });
+      var supportsResponseText = !this._realxhr.responseType || this._realxhr.responseType == 'text';
+      if (supportsResponseText) {
+        each_default()(this._activeWrappers, wrapper => {
+          if (wrapper.finalResponseTextLogger) {
             try {
-              const responsesParsed = (0,_sync_compose_processor__WEBPACK_IMPORTED_MODULE_17__.parseComposeResponseBody)(connection.originalResponseText);
-              for (const responseParsed of responsesParsed) {
-                // If we're sending a draft, we only care about the response related to the draft we're sending.
-                if (draftID && !responseParsed.messageId.endsWith(draftID)) {
-                  continue;
-                }
-                if (responseParsed.type === 'FIRST_DRAFT_SAVE' || responseParsed.type === 'DRAFT_SAVE') {
-                  triggerEvent({
-                    draftID: draftID,
-                    type: 'emailDraftReceived',
-                    rfcID: responseParsed.rfcID,
-                    threadID: responseParsed.threadId,
-                    messageID: responseParsed.messageId,
-                    oldMessageID: responseParsed.oldMessageId,
-                    oldThreadID: responseParsed.oldThreadId
-                  });
-                  currentSendConnectionIDs.delete(connection);
-                  currentDraftSaveConnectionIDs.delete(connection);
-                  currentFirstDraftSaveConnectionIDs.delete(connection);
-                  return;
-                } else if (responseParsed.type === 'SEND') {
-                  triggerEvent({
-                    draftID: draftID,
-                    type: 'emailSent',
-                    rfcID: responseParsed.rfcID,
-                    threadID: responseParsed.threadId,
-                    messageID: responseParsed.messageId,
-                    oldMessageID: responseParsed.oldMessageId,
-                    oldThreadID: responseParsed.oldThreadId
-                  });
-                  currentSendConnectionIDs.delete(connection);
-                  currentDraftSaveConnectionIDs.delete(connection);
-                  currentFirstDraftSaveConnectionIDs.delete(connection);
-                  return;
-                }
-              }
-            } catch (err) {
-              _injected_logger__WEBPACK_IMPORTED_MODULE_7__.eventSdkPassive('connection.requestResponseParsingFailed', {
-                responseParseError: err
-              });
-            }
-            const originalResponse = JSON.parse(connection.originalResponseText);
-
-            // TODO this function silently fails way too easily. Need to add better logging for it!
-            if (currentFirstDraftSaveConnectionIDs.has(connection)) {
-              const wrapper = originalResponse[2] && originalResponse[2][6] && originalResponse[2][6][0] && originalResponse[2][6][0][1];
-              if (wrapper) {
-                const threadUpdate = wrapper[3] && wrapper[3][7] && wrapper[3][7][1];
-                const messageUpdate = threadUpdate && threadUpdate[5] && threadUpdate[5][0];
-                if (threadUpdate && messageUpdate) {
-                  triggerEvent({
-                    draftID: draftID,
-                    type: 'emailDraftReceived',
-                    rfcID: messageUpdate[14],
-                    threadID: threadUpdate[4].split('|')[0],
-                    messageID: messageUpdate[1],
-                    oldMessageID: messageUpdate[56],
-                    oldThreadID: threadUpdate[20]
-                  });
-                } else {
-                  _injected_logger__WEBPACK_IMPORTED_MODULE_7__.error(new Error('Could not parse draft save'));
-                }
-              } else {
-                // pre-2019-05-29 handling
-                _injected_logger__WEBPACK_IMPORTED_MODULE_7__.eventSdkPassive('old compose draft id handling hit');
-                const oldWrapper = originalResponse[2] && originalResponse[2][6] && originalResponse[2][6][1] && originalResponse[2][6][1][1];
-                if (oldWrapper) {
-                  const saveUpdate = oldWrapper[3] && oldWrapper[3][1] && oldWrapper[3][1][1];
-                  if (saveUpdate) {
-                    triggerEvent({
-                      draftID: draftID,
-                      type: 'emailDraftReceived',
-                      rfcID: saveUpdate[14],
-                      messageID: saveUpdate[1],
-                      oldMessageID: saveUpdate[48] ? new (bignumber_js__WEBPACK_IMPORTED_MODULE_5___default())(saveUpdate[48]).toString(16) : saveUpdate[56],
-                      syncThreadID: oldWrapper[1]
-                    });
-                  }
-                }
-              }
-            } else {
-              const updateList = originalResponse[2]?.[6];
-              if (!updateList) {
-                sendFailed();
-                return;
-              }
-              const sendUpdateMatch = updateList.find(update => update[1]?.[3]?.[7]?.[1]?.[5]?.[0]?.[14] && update[1][3][7][1][5].find(message => lodash_includes__WEBPACK_IMPORTED_MODULE_4___default()(message[1], draftID)));
-              if (!sendUpdateMatch) {
-                if (currentSendConnectionIDs.has(connection)) {
-                  const minimalSendUpdates = updateList.filter(update => update[1]?.[3]?.[5]?.[3]);
-                  if (minimalSendUpdates.length > 0) {
-                    const threadID = minimalSendUpdates[0][1][1] ? minimalSendUpdates[0][1][1].replace(/\|.*$/, '') : undefined;
-                    triggerEvent({
-                      draftID,
-                      type: 'emailSent',
-                      threadID,
-                      //new compose
-                      messageID: minimalSendUpdates[0][1][3]?.[5]?.[5]?.[0] ||
-                      //replies
-                      minimalSendUpdates[0][1][3][5][3]?.[0]
-                    });
-                  } else {
-                    sendFailed();
-                  }
-                } else {
-                  sendFailed();
-                }
-                return;
-              }
-              const sendUpdateWrapper = sendUpdateMatch[1]?.[3]?.[7]?.[1];
-              const sendUpdate = sendUpdateWrapper[5].find(message => message[1].includes(draftID));
-              if (!sendUpdate) {
-                sendFailed();
-                return;
-              }
-              const isEmailSentResponse = currentSendConnectionIDs.has(connection);
-              if (!Array.isArray(sendUpdate[11])) {
-                _injected_logger__WEBPACK_IMPORTED_MODULE_7__.error(new Error('sendUpdate[11] was not an array'));
-              } else {
-                if (isEmailSentResponse) {
-                  if (sendUpdate[11].indexOf('^r') >= 0) {
-                    _injected_logger__WEBPACK_IMPORTED_MODULE_7__.error(new Error('sendUpdate[11] unexpectedly contained "^r"'));
-                  }
-                }
-              }
-              if (isEmailSentResponse) {
-                if (sendUpdate[22] !== undefined && sendUpdate[22] !== 3) {
-                  _injected_logger__WEBPACK_IMPORTED_MODULE_7__.error(new Error('sendUpdate[22] was not expected value'), {
-                    value: sendUpdate[22]
-                  });
-                }
-              }
-              const threadID = sendUpdateWrapper[4] ? sendUpdateWrapper[4].replace(/\|.*$/, '') : undefined;
-              triggerEvent({
-                draftID: draftID,
-                type: isEmailSentResponse ? 'emailSent' : 'emailDraftReceived',
-                rfcID: sendUpdate[14],
-                messageID: sendUpdate[1],
-                oldMessageID: sendUpdate[48] ? new (bignumber_js__WEBPACK_IMPORTED_MODULE_5___default())(sendUpdate[48]).toString(16) : sendUpdate[56],
-                threadID,
-                // It seems Gmail is A/B testing including gmailThreadID in response[20] and not including
-                // the encoded version of it in response[18], so pull it from [20] if [18] is not set.
-                oldThreadID: sendUpdateWrapper[18] != null ? new (bignumber_js__WEBPACK_IMPORTED_MODULE_5___default())(sendUpdateWrapper[18]).toString(16) : sendUpdateWrapper[20]
-              });
-            }
-            currentSendConnectionIDs.delete(connection);
-            currentDraftSaveConnectionIDs.delete(connection);
-            currentFirstDraftSaveConnectionIDs.delete(connection);
-          }
-        }
-      });
-    }
-  }
-
-  // intercept and process thread responses
-  {
-    js_frame_wrappers.push({
-      isRelevantTo(connection) {
-        return !!connection.params.search && connection.params.view === 'tl';
-      },
-      async responseTextChanger(connection, responseText) {
-        // Presence of a responseTextChanger blocks Gmail from getting the partial
-        // values as this loads. We want our originalResponseTextLogger to run
-        // before Gmail has seen any of the response.
-        return responseText;
-      },
-      originalResponseTextLogger(connection) {
-        if (connection.status === 200) {
-          const responseText = connection.originalResponseText;
-          _thread_identifier__WEBPACK_IMPORTED_MODULE_10__.processThreadListResponse(responseText);
-        }
-      }
-    });
-  }
-  // intercept and process conversation view responses to get message metadata
-  {
-    // do this for gmail v1
-    {
-      js_frame_wrappers.push({
-        isRelevantTo(connection) {
-          return connection.params.view === 'cv';
-        },
-        originalResponseTextLogger(connection) {
-          if (connection.status === 200) {
-            const groupedMessages = _platform_implementation_js_dom_driver_gmail_gmail_response_processor__WEBPACK_IMPORTED_MODULE_12__.extractMessages(connection.originalResponseText);
-            _message_metadata_holder__WEBPACK_IMPORTED_MODULE_11__.add(groupedMessages);
-          }
-        }
-      });
-    }
-    // sync API based
-    {
-      // search response
-      main_wrappers.push({
-        isRelevantTo: function (connection) {
-          return /sync(?:\/u\/\d+)?\/i\/bv/.test(connection.url);
-        },
-        originalResponseTextLogger(connection) {
-          if (connection.status === 200) {
-            const threads = _platform_implementation_js_dom_driver_gmail_gmail_sync_response_processor__WEBPACK_IMPORTED_MODULE_13__.extractThreadsFromSearchResponse(connection.originalResponseText);
-            _message_metadata_holder__WEBPACK_IMPORTED_MODULE_11__.add(threads.map(syncThread => ({
-              threadID: syncThread.syncThreadID,
-              messages: syncThread.extraMetaData.syncMessageData.map(syncMessage => ({
-                date: syncMessage.date,
-                recipients: syncMessage.recipients
-              }))
-            })));
-          }
-        }
-      });
-      // thread response
-      main_wrappers.push({
-        isRelevantTo: function (connection) {
-          return /sync(?:\/u\/\d+)?\/i\/fd/.test(connection.url);
-        },
-        originalResponseTextLogger(connection) {
-          if (connection.status === 200) {
-            const threads = _platform_implementation_js_dom_driver_gmail_gmail_sync_response_processor__WEBPACK_IMPORTED_MODULE_13__.extractThreadsFromThreadResponse(connection.originalResponseText);
-            _message_metadata_holder__WEBPACK_IMPORTED_MODULE_11__.add(threads.map(syncThread => ({
-              threadID: syncThread.syncThreadID,
-              messages: syncThread.extraMetaData.syncMessageData.map(syncMessage => ({
-                date: syncMessage.date,
-                recipients: syncMessage.recipients
-              }))
-            })));
-          }
-        }
-      });
-    }
-  }
-  // Search suggestions modifier
-  // The content scripts tell us when they're interested in adding
-  // modifications to future suggestion results. When we see a search
-  // suggestions request come through, we signal the query string to the content
-  // scripts, wait for the same number of responses as the number of registered
-  // suggestion modifiers, and then meld them into the query response.
-  {
-    const providers = Object.create(null);
-    let currentQuery;
-    let suggestionModifications;
-    let currentQueryDefer;
-    document.addEventListener('inboxSDKregisterSuggestionsModifier', function (_ref7) {
-      let {
-        detail
-      } = _ref7;
-      providers[detail.providerID] = {
-        position: Object.keys(providers).length
-      };
-    });
-    document.addEventListener('inboxSDKprovideSuggestions', function (_ref8) {
-      let {
-        detail
-      } = _ref8;
-      if (detail.query === currentQuery) {
-        const provider = providers[detail.providerID];
-        if (!provider) {
-          throw new Error('provider does not exist for providerID');
-        }
-        if (suggestionModifications == null) {
-          throw new Error('tried to modified a null suggestionModifications');
-        }
-        suggestionModifications[provider.position] = detail.suggestions;
-        if (suggestionModifications.filter(Boolean).length === Object.keys(providers).length) {
-          if (currentQueryDefer == null) {
-            throw new Error('tried to resolve a null currentQueryDefer');
-          }
-          currentQueryDefer.resolve(lodash_flatten__WEBPACK_IMPORTED_MODULE_1___default()(suggestionModifications));
-          currentQueryDefer = currentQuery = suggestionModifications = null;
-        }
-      }
-    });
-    main_wrappers.push({
-      isRelevantTo(connection) {
-        return Object.keys(providers).length > 0 && !!connection.url.match(/^\/cloudsearch\/request\?/) && connection.params.client == 'gmail' && connection.params.gs_ri == 'gmail';
-      },
-      originalSendBodyLogger(connection, body) {
-        const parsedBody = querystring__WEBPACK_IMPORTED_MODULE_9__.parse(body);
-        if (!parsedBody.request) {
-          return;
-        }
-        const query = JSON.parse(parsedBody.request)[2];
-        if (!query) {
-          return;
-        }
-        currentQuery = query;
-        if (currentQueryDefer) currentQueryDefer.resolve();
-        currentQueryDefer = connection._defer = (0,_common_defer__WEBPACK_IMPORTED_MODULE_15__["default"])();
-        suggestionModifications = [];
-        triggerEvent({
-          type: 'suggestionsRequest',
-          query: currentQuery
-        });
-      },
-      async responseTextChanger(connection, responseText) {
-        if (connection._defer && connection.status === 200) {
-          const modifications = await connection._defer.promise;
-          if (modifications) {
-            let modified;
-            try {
-              modified = (0,_modify_suggestions__WEBPACK_IMPORTED_MODULE_16__["default"])(responseText, modifications);
+              wrapper.finalResponseTextLogger(this._connection, this.responseText);
             } catch (e) {
-              _injected_logger__WEBPACK_IMPORTED_MODULE_7__.eventSdkPassive('suggestionsModified.error', {
-                query: currentQuery,
-                originalResponseText: responseText,
-                error: e instanceof Error && e.message
-              }, true);
-              throw e;
+              logError(e);
             }
-            return modified;
+          }
+        });
+      }
+      runRscListeners(event);
+      if (wasSuccess) {
+        triggerEventListeners('load', progressEvent);
+      } else {
+        triggerEventListeners('error', progressEvent);
+      }
+      triggerEventListeners('loadend', progressEvent);
+      each_default()(this._activeWrappers, wrapper => {
+        if (wrapper.afterListeners) {
+          try {
+            wrapper.afterListeners(this._connection);
+          } catch (e) {
+            logError(e);
           }
         }
-        return responseText;
+      });
+    };
+    this._realxhr.addEventListener('readystatechange', event => {
+      if (!this._connection) {
+        return;
       }
-    });
-  }
-  {
-    // TODO: simplify this code
-    // the triggerEvent call should happen in the requestChanger callback
-    // and a lot of these state variables can be stored in the closure
-    // Search query replacer.
-    // The content script tells us search terms to watch for. Whenever we see a
-    // search query containing the term, we delay it being sent out, trigger an
-    // event containing the full query, and wait for a response event from the
-    // content script that contains a new query to substitute in.
-    const customSearchTerms = [];
-    let queryReplacement;
-    document.addEventListener('inboxSDKcreateCustomSearchTerm', function (event) {
-      customSearchTerms.push(event.detail.term);
-    });
-    document.addEventListener('inboxSDKsearchReplacementReady', function (event) {
-      if (queryReplacement.query === event.detail.query) {
-        queryReplacement.newQuery.resolve(event.detail.newQuery);
+      if (this._realxhr.readyState >= 2) {
+        this._connection.status = this._realxhr.status;
       }
-    });
+      const supportsResponseText = !this._realxhr.responseType || this._realxhr.responseType == 'text';
 
-    // classic Gmail API intercept
-    js_frame_wrappers.push({
-      isRelevantTo: function (connection) {
-        let customSearchTerm;
-        const params = connection.params;
-        if (connection.method === 'POST' && params.search && params.view === 'tl' && connection.url.match(/^\?/) && params.q && (customSearchTerm = lodash_intersection__WEBPACK_IMPORTED_MODULE_3___default()(customSearchTerms, (0,_common_quoted_split__WEBPACK_IMPORTED_MODULE_14__["default"])(params.q))[0])) {
-          if (queryReplacement && queryReplacement.query === params.q && queryReplacement.start != params.start) {
-            // If this is the same query that was made last, but just for a
-            // different page, then re-use the replacement query we got last time.
-            // Don't wait on the extension to come up with it again (and risk it
-            // giving an inconsistent answer between pages).
-            connection._queryReplacement = queryReplacement;
-            // Mark the old queryReplacement with this page now so we can tell on
-            // a later request whether the page was changed or the list refresh
-            // button was hit.
-            queryReplacement.start = params.start;
-          } else {
-            if (queryReplacement) {
-              // Resolve the old one with something because no one else is going
-              // to after it's replaced in a moment.
-              queryReplacement.newQuery.resolve(queryReplacement.query);
-            }
-            queryReplacement = connection._queryReplacement = {
-              term: customSearchTerm,
-              query: params.q,
-              start: params.start,
-              newQuery: (0,_common_defer__WEBPACK_IMPORTED_MODULE_15__["default"])()
-            };
-            triggerEvent({
-              type: 'searchQueryForReplacement',
-              term: customSearchTerm,
-              query: params.q
-            });
-          }
-          return true;
-        }
-        return false;
-      },
-      requestChanger: function (connection, request) {
-        return connection._queryReplacement.newQuery.promise.then(function (newQuery) {
-          const newParams = lodash_clone__WEBPACK_IMPORTED_MODULE_0___default()(connection.params);
-          newParams.q = newQuery;
-          return {
-            method: request.method,
-            url: '?' + (0,querystring__WEBPACK_IMPORTED_MODULE_9__.stringify)(newParams),
-            body: request.body
-          };
-        });
-      }
-    });
-
-    // newer, sync API based request intercept
-    main_wrappers.push({
-      isRelevantTo: function (connection) {
-        return connection.method === 'POST' && /sync(?:\/u\/\d+)?\/i\/bv/.test(connection.url);
-      },
-      requestChanger: function (connection, request) {
-        let customSearchTerm;
-        const body = JSON.parse(request.body);
-        let newFormat = false;
-        let payload, searchString, pageOffset;
-        if (Array.isArray(body)) {
-          newFormat = true;
-          payload = body[0];
-          searchString = payload[3];
-          pageOffset = payload[9];
-        } else {
-          payload = body[1];
-          searchString = payload[4];
-          pageOffset = payload[10];
-        }
-        const isSyncAPISearchWithCustomTerm = payload[newFormat ? 0 : 1] === 79 && typeof searchString === 'string' && (customSearchTerm = lodash_intersection__WEBPACK_IMPORTED_MODULE_3___default()(customSearchTerms, (0,_common_quoted_split__WEBPACK_IMPORTED_MODULE_14__["default"])(searchString))[0]);
-        if (!isSyncAPISearchWithCustomTerm) return Promise.resolve(request);
-        if (queryReplacement && queryReplacement.query === searchString && queryReplacement.start != pageOffset) {
-          // If this is the same query that was made last, but just for a
-          // different page, then re-use the replacement query we got last time.
-          // Don't wait on the extension to come up with it again (and risk it
-          // giving an inconsistent answer between pages).
-          connection._queryReplacement = queryReplacement;
-          // Mark the old queryReplacement with this page now so we can tell on
-          // a later request whether the page was changed or the list refresh
-          // button was hit.
-          queryReplacement.start = pageOffset;
-        } else {
-          if (queryReplacement) {
-            // Resolve the old one with something because no one else is going
-            // to after it's replaced in a moment.
-            queryReplacement.newQuery.resolve(queryReplacement.query);
-          }
-          queryReplacement = connection._queryReplacement = {
-            term: customSearchTerm,
-            query: searchString,
-            start: pageOffset,
-            newQuery: (0,_common_defer__WEBPACK_IMPORTED_MODULE_15__["default"])()
-          };
-          triggerEvent({
-            type: 'searchQueryForReplacement',
-            term: customSearchTerm,
-            query: searchString
+      // Process the response text.
+      if (this._realxhr.readyState == 4) {
+        if (supportsResponseText) {
+          Object.defineProperty(this._connection, 'originalResponseText', {
+            enumerable: true,
+            writable: false,
+            configurable: false,
+            value: self._realxhr.responseText
           });
-        }
-        return connection._queryReplacement.newQuery.promise.then(function (newQuery) {
-          if (newFormat) {
-            body[0][3] = newQuery;
-          } else {
-            body[1][4] = newQuery;
-          }
-          return {
-            method: request.method,
-            url: request.url,
-            body: JSON.stringify(body)
-          };
-        });
-      }
-    });
-  }
-  {
-    // Search results replacer.
-    // The content script tells us a search query to watch for. Whenever we see
-    // the search query, trigger an event containing the query, trigger an
-    // event containing the response, and then wait for a response event from
-    // the content script that contains new results to substitute in.
-    const customSearchQueries = [];
-    let customListJob;
-    document.addEventListener('inboxSDKcustomListRegisterQuery', event => {
-      customSearchQueries.push(event.detail.query);
-    });
-    document.addEventListener('inboxSDKcustomListNewQuery', event => {
-      if (customListJob.query === event.detail.query && customListJob.start === event.detail.start) {
-        const {
-          newQuery,
-          newStart
-        } = event.detail;
-        customListJob.newRequestParams.resolve({
-          query: newQuery,
-          start: newStart
-        });
-      }
-    });
-    document.addEventListener('inboxSDKcustomListResults', event => {
-      if (customListJob.query === event.detail.query) {
-        customListJob.newResults.resolve(event.detail.newResults);
-      }
-    });
-    js_frame_wrappers.push({
-      isRelevantTo: function (connection) {
-        const params = connection.params;
-        if (connection.method === 'POST' && params.search && params.view === 'tl' && connection.url.match(/^\?/) && params.q && !params.act && lodash_find__WEBPACK_IMPORTED_MODULE_2___default()(customSearchQueries, x => x === params.q)) {
-          if (customListJob) {
-            // Resolve the old one with something because no one else is going
-            // to after it's replaced in a moment.
-            customListJob.newRequestParams.resolve({
-              query: customListJob.query,
-              start: customListJob.start
-            });
-            customListJob.newResults.resolve(null);
-          }
-          customListJob = connection._customListJob = {
-            query: params.q,
-            start: +params.start,
-            newRequestParams: (0,_common_defer__WEBPACK_IMPORTED_MODULE_15__["default"])(),
-            newResults: (0,_common_defer__WEBPACK_IMPORTED_MODULE_15__["default"])()
-          };
-          triggerEvent({
-            type: 'searchForReplacement',
-            query: customListJob.query,
-            start: customListJob.start
-          });
-          return true;
-        }
-        return false;
-      },
-      requestChanger: function (connection, request) {
-        return connection._customListJob.newRequestParams.promise.then(_ref9 => {
-          let {
-            query,
-            start
-          } = _ref9;
-          const newParams = lodash_clone__WEBPACK_IMPORTED_MODULE_0___default()(connection.params);
-          newParams.q = query;
-          newParams.start = start;
-          return {
-            method: request.method,
-            url: '?' + (0,querystring__WEBPACK_IMPORTED_MODULE_9__.stringify)(newParams),
-            body: request.body
-          };
-        });
-      },
-      responseTextChanger: function (connection, response) {
-        triggerEvent({
-          type: 'searchResultsResponse',
-          query: connection._customListJob.query,
-          start: connection._customListJob.start,
-          response
-        });
-        return connection._customListJob.newResults.promise.then(newResults => newResults === null ? response : newResults);
-      }
-    });
-    // Sync API-based custom thread list interception
-    main_wrappers.push({
-      isRelevantTo: function (connection) {
-        if (/sync(?:\/u\/\d+)?\/i\/bv/.test(connection.url)) {
-          if (customListJob) {
-            // Resolve the old one with something because no one else is going
-            // to after it's replaced in a moment.
-            customListJob.newRequestParams.resolve({
-              query: customListJob.query,
-              start: customListJob.start
-            });
-            customListJob.newResults.resolve(null);
-          }
-          return true;
-        }
-        return false;
-      },
-      requestChanger: async function (connection, request) {
-        if (request.body) {
-          const parsedBody = JSON.parse(request.body);
-          const newFormat = Array.isArray(parsedBody);
-          // we are a search!
-          const searchQuery = (newFormat ? parsedBody && parsedBody[0] && parsedBody[0][3] : parsedBody && parsedBody[1] && parsedBody[1][4]) || '';
-          if (lodash_find__WEBPACK_IMPORTED_MODULE_2___default()(customSearchQueries, x => x === searchQuery)) {
-            customListJob = connection._customListJob = {
-              query: searchQuery,
-              start: newFormat ? parsedBody[0][9] : parsedBody[1][10],
-              newRequestParams: (0,_common_defer__WEBPACK_IMPORTED_MODULE_15__["default"])(),
-              newResults: (0,_common_defer__WEBPACK_IMPORTED_MODULE_15__["default"])()
-            };
-            triggerEvent({
-              type: 'searchForReplacement',
-              query: customListJob.query,
-              start: customListJob.start
-            });
-            return connection._customListJob.newRequestParams.promise.then(_ref10 => {
-              let {
-                query,
-                start
-              } = _ref10;
-              if (newFormat) {
-                parsedBody[0][3] = query;
-                parsedBody[0][9] = start;
-              } else {
-                parsedBody[1][4] = query;
-                parsedBody[1][10] = start;
+          each_default()(this._activeWrappers, wrapper => {
+            if (wrapper.originalResponseTextLogger) {
+              try {
+                wrapper.originalResponseTextLogger(this._connection, this._connection.originalResponseText);
+              } catch (e) {
+                logError(e);
               }
-              return {
-                method: request.method,
-                url: request.url,
-                body: JSON.stringify(parsedBody)
-              };
-            });
-          }
-        }
-        return request;
-      },
-      responseTextChanger: async function (connection, response) {
-        if (connection._customListJob) {
-          triggerEvent({
-            type: 'searchResultsResponse',
-            query: connection._customListJob.query,
-            start: connection._customListJob.start,
-            response
+            }
           });
-          return connection._customListJob.newResults.promise.then(newResults => newResults === null ? response : newResults);
+          const finish = once_default()(deliverFinalRsc.bind(null, event));
+          if (this._connection.async) {
+            // If the XHR object is re-used for another connection, then we need
+            // to make sure that our upcoming async calls here do nothing.
+            // Remember the current connection object, and do nothing in our async
+            // calls if it no longer matches.
+            const startConnection = this._connection;
+            (async () => {
+              let modifiedResponseText = startConnection.originalResponseText;
+              startConnection.modifiedResponseText = modifiedResponseText;
+              for (const responseTextChanger of this._responseTextChangers) {
+                const longRunWarningTimer = setTimeout(() => {
+                  console.warn('responseTextChanger is taking too long', responseTextChanger, startConnection);
+                }, WARNING_TIMEOUT);
+                try {
+                  modifiedResponseText = await responseTextChanger(startConnection, modifiedResponseText);
+                } finally {
+                  clearTimeout(longRunWarningTimer);
+                }
+                if (typeof modifiedResponseText !== 'string') {
+                  throw new Error('responseTextChanger returned non-string value ' + modifiedResponseText);
+                }
+                startConnection.modifiedResponseText = modifiedResponseText;
+                if (startConnection !== this._connection) break;
+              }
+              return modifiedResponseText;
+            })().then(modifiedResponseText => {
+              if (startConnection === self._connection) {
+                this.responseText = modifiedResponseText;
+                finish();
+              }
+            }, err => {
+              logError(err);
+              if (startConnection === this._connection) {
+                this.responseText = this._realxhr.responseText;
+                finish();
+              }
+            }).catch(logError);
+            return;
+          } else {
+            self.responseText = self._realxhr.responseText;
+          }
         } else {
-          return response;
+          self.responseText = '';
         }
+        deliverFinalRsc(event);
+      } else {
+        if (self._realxhr.readyState == 1 && self.readyState == 1) {
+          // Delayed open+send just happened. We already delivered an event
+          // for this, so drop this event.
+          return;
+        } else if (self._realxhr.readyState >= 3 && supportsResponseText) {
+          if (self._responseTextChangers.length) {
+            // If we're going to transform the final response, then we don't
+            // want to expose any partial untransformed responses and we don't
+            // want to bother trying to transform partial responses. Only show
+            // an empty string as the loaded response until the connection is
+            // done.
+            self.responseText = '';
+          } else {
+            self.responseText = self._realxhr.responseText;
+          }
+        } else {
+          self.responseText = '';
+        }
+        self.readyState = self._realxhr.readyState;
+        runRscListeners(event);
       }
-    });
-  }
-  // sync token savers
-  {
-    const saveBTAIHeader = header => {
-      document.head.setAttribute('data-inboxsdk-btai-header', header);
-      triggerEvent({
-        type: 'btaiHeaderReceived'
+    }, false);
+    ['dispatchEvent', 'getAllResponseHeaders', 'getResponseHeader', 'overrideMimeType', 'responseType', 'responseXML', 'responseURL', 'status', 'statusText', 'timeout', 'ontimeout', 'onloadstart', 'onprogress', 'onabort', 'upload', 'withCredentials'].forEach(function (prop) {
+      Object.defineProperty(self, prop, {
+        enumerable: true,
+        configurable: false,
+        get: function () {
+          // If we give the original native methods directly, they'll be called
+          // with `this` as the XHRProxy object, which they aren't made for.
+          if (typeof self._realxhr[prop] == 'function') {
+            return self._realxhr[prop].bind(self._realxhr);
+          }
+          return self._realxhr[prop];
+        },
+        set: function (v) {
+          if (typeof v == 'function') {
+            v = wrapEventListener(this._realxhr, this, v);
+          }
+          self._realxhr[prop] = v;
+        }
       });
-    };
-    main_wrappers.push({
-      isRelevantTo(connection) {
-        return /sync(?:\/u\/\d+)?\//.test(connection.url) && !document.head.hasAttribute('data-inboxsdk-btai-header');
-      },
-      originalSendBodyLogger(connection) {
-        if (connection.headers['X-Gmail-BTAI']) {
-          saveBTAIHeader(connection.headers['X-Gmail-BTAI']);
+    });
+    Object.defineProperty(self, 'response', {
+      enumerable: true,
+      configurable: false,
+      get: function () {
+        if (!this._realxhr.responseType || this._realxhr.responseType == 'text') {
+          return this.responseText;
+        } else {
+          // We're not trying to transform non-text responses currently.
+          return this._realxhr.response;
         }
       }
     });
-    const saveXsrfTokenHeader = header => {
-      document.head.setAttribute('data-inboxsdk-xsrf-token', header);
-      triggerEvent({
-        type: 'xsrfTokenHeaderReceived'
-      });
-    };
-    main_wrappers.push({
-      isRelevantTo(connection) {
-        return /sync(?:\/u\/\d+)?\//.test(connection.url) && !document.head.hasAttribute('data-inboxsdk-xsrf-token');
-      },
-      originalSendBodyLogger(connection) {
-        if (connection.headers['X-Framework-Xsrf-Token']) {
-          saveXsrfTokenHeader(connection.headers['X-Framework-Xsrf-Token']);
-        }
-      }
-    });
+    self.readyState = self._realxhr.readyState;
   }
-
-  // Google API request header values
-  {
-    // harcoding a value observed across multiple accounts to start with.
-    // Will be updated when we see a request, in case Gmail has changed it.
-    let googleApiKey = 'AIzaSyBm7aDMG9actsWSlx-MvrYsepwdnLgz69I';
-    document.addEventListener('inboxSDKgetGoogleRequestHeaders', () => {
-      const authorizationHeader = window.gapi.auth.getAuthHeaderValueForFirstParty([]);
-      const headers = {
-        authorization: authorizationHeader,
-        'x-goog-api-key': googleApiKey
-      };
-      document.head.setAttribute('data-inboxsdk-google-headers', JSON.stringify(headers));
-    });
-    main_wrappers.push({
-      isRelevantTo(connection) {
-        // check for absolute URLs going to a google domain
-        if (connection.url.startsWith('https://')) {
-          const url = new URL(connection.url);
-          return url.hostname.endsWith('.google.com');
-        }
-        return false;
-      },
-      originalSendBodyLogger(connection) {
-        if (connection.headers['X-Goog-Api-Key']) {
-          googleApiKey = connection.headers['X-Goog-Api-Key'];
-        }
+  XHRProxy.prototype.abort = function () {
+    // Important: If the request has already been sent, the XHR will change
+    // its readyState to 4 after abort. However, we sometimes asynchronously
+    // delay send calls. If the application has already called send but we
+    // haven't sent off the real call yet, then we need to hurry up and send
+    // something before the abort so that the readyState change happens.
+    if (this._clientStartedSend && !this._realStartedSend) {
+      if (this.readyState != 0 && this._realxhr.readyState == 0) {
+        this._realxhr.open(this._connection.method, this._connection.url);
       }
-    });
-  }
-}
-function triggerEvent(detail) {
-  document.dispatchEvent(new CustomEvent('inboxSDKajaxIntercept', {
-    bubbles: true,
-    cancelable: false,
-    detail
-  }));
-}
-function stringifyComposeParams(inComposeParams) {
-  const composeParams = lodash_clone__WEBPACK_IMPORTED_MODULE_0___default()(inComposeParams);
-  const string = `=${stringifyComposeRecipientParam(composeParams.to, 'to')}&=${stringifyComposeRecipientParam(composeParams.cc, 'cc')}&=${stringifyComposeRecipientParam(composeParams.bcc, 'bcc')}`;
-  delete composeParams.to;
-  delete composeParams.bcc;
-  delete composeParams.cc;
-  return string + '&' + querystring__WEBPACK_IMPORTED_MODULE_9__.stringify(composeParams);
-}
-function stringifyComposeRecipientParam(value, paramType) {
-  let string = '';
-  if (Array.isArray(value)) {
-    for (let ii = 0; ii < value.length; ii++) {
-      string += `&${paramType}=${encodeURIComponent(value[ii])}`;
+      this._realStartedSend = true;
+      this._realxhr.send();
     }
-  } else {
-    string += `&${paramType}=${encodeURIComponent(value)}`;
-  }
-  return string;
-}
-
-/***/ }),
-
-/***/ "./src/injected-js/gmail/setup-gmonkey-handler.ts":
-/*!********************************************************!*\
-  !*** ./src/injected-js/gmail/setup-gmonkey-handler.ts ***!
-  \********************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ setupGmonkeyHandler)
-/* harmony export */ });
-function setupGmonkeyHandler() {
-  const gmonkeyPromise = setupGmonkey();
-  document.addEventListener('inboxSDKtellMeIsConversationViewDisabled', function () {
-    gmonkeyPromise.then(gmonkey => {
-      const answer = gmonkey.isConversationViewDisabled();
-      const event = document.createEvent('CustomEvent');
-      event.initCustomEvent('inboxSDKgmonkeyResponse', false, false, answer);
-      document.dispatchEvent(event);
-    });
-  });
-  document.addEventListener('inboxSDKtellMeCurrentThreadId', function (event) {
-    let threadId;
-    if (event.detail.isPreviewedThread) {
-      const rows = Array.from(document.querySelectorAll('[gh=tl] tr.aps'));
-      if (rows.length > 0) {
-        const elementWithId = rows.map(row => row.querySelector('[data-thread-id]')).filter(Boolean)[0];
-        if (elementWithId) {
-          threadId = elementWithId.getAttribute('data-thread-id');
-        } else {
-          threadId = rows[0].getAttribute('data-inboxsdk-threadid');
+    this._realxhr.abort();
+  };
+  XHRProxy.prototype.setRequestHeader = function (name, value) {
+    var self = this;
+    if (this.readyState != 1) {
+      console.warn('setRequestHeader improperly called at readyState ' + this.readyState);
+    }
+    if (!this._openState) {
+      throw new Error('Can only set headers after open and before send');
+    }
+    this._connection.headers[name] = value;
+    if (this._connection.async && this._requestChangers.length) {
+      this._events.once('realOpen', function () {
+        self._realxhr.setRequestHeader(name, value);
+      });
+    } else {
+      this._realxhr.setRequestHeader(name, value);
+    }
+  };
+  XHRProxy.prototype.addEventListener = function (name, listener) {
+    if (!this._listeners[name]) {
+      this._listeners[name] = [];
+      this._boundListeners[name] = [];
+    }
+    if (!includes_default()(this._listeners[name], listener)) {
+      var boundListener = wrapEventListener(this._realxhr, this, listener);
+      this._listeners[name].push(listener);
+      this._boundListeners[name].push(boundListener);
+      if (!includes_default()(['readystatechange', 'load', 'error', 'loadend'], name)) {
+        // certain listeners are called manually so that the final
+        // call (when readyState==4) can be delayed.
+        this._realxhr.addEventListener(name, boundListener, false);
+      }
+    }
+  };
+  XHRProxy.prototype.removeEventListener = function (name, listener) {
+    if (!this._listeners[name]) {
+      return;
+    }
+    var i = this._listeners[name].indexOf(listener);
+    if (i == -1) {
+      return;
+    }
+    this._listeners[name].splice(i, 1);
+    var boundListener = this._boundListeners[name].splice(i, 1)[0];
+    if (name != 'readystatechange') {
+      this._realxhr.removeEventListener(name, boundListener, false);
+    }
+  };
+  XHRProxy.prototype.open = function (method, url, async) {
+    // Work around MailTrack issue
+    if (!(this instanceof XHRProxy)) {
+      return XHR.prototype.open.apply(this, arguments);
+    }
+    var self = this;
+    this._connection = {
+      method: method,
+      url: url,
+      params: (0,querystring_es3.parse)(url.split('?')[1] || ''),
+      headers: {},
+      async: arguments.length < 3 || !!async
+    };
+    this._clientStartedSend = false;
+    this._realStartedSend = false;
+    this._activeWrappers = findApplicableWrappers(this._wrappers, this._connection);
+    this._responseTextChangers = this._activeWrappers.map(wrapper => {
+      return wrapper.responseTextChanger && wrapper.responseTextChanger.bind(wrapper);
+    }).filter(isNotNil);
+    this.responseText = '';
+    this._openState = true;
+    function finish(method, url) {
+      return self._realxhr.open(method, url, self._connection.async);
+    }
+    if (this._connection.async) {
+      this._requestChangers = this._activeWrappers.map(wrapper => {
+        return wrapper.requestChanger && wrapper.requestChanger.bind(wrapper);
+      }).filter(isNotNil);
+      if (this._requestChangers.length) {
+        if (this.readyState != 1) {
+          this.readyState = 1;
+          this._fakeRscEvent();
         }
+      } else {
+        finish(method, url);
       }
     } else {
-      threadId = window.gmonkey?.v2?.getCurrentThread?.()?.getThreadId();
+      finish(method, url);
     }
-    if (threadId) {
-      // hash is included in the sync id route url, so we also need to take it out
-      threadId = threadId.replace('#', '');
-      event.target.setAttribute('data-inboxsdk-currentthreadid', threadId);
+  };
+  XHRProxy.prototype.send = function (body) {
+    var self = this;
+    this._clientStartedSend = true;
+    this._openState = false;
+    Object.defineProperty(this._connection, 'originalSendBody', {
+      enumerable: true,
+      writable: false,
+      configurable: false,
+      value: body
+    });
+    this._connection.responseType = this._realxhr.responseType || 'text';
+    each_default()(self._activeWrappers, function (wrapper) {
+      if (wrapper.originalSendBodyLogger) {
+        try {
+          wrapper.originalSendBodyLogger(self._connection, body);
+        } catch (e) {
+          logError(e);
+        }
+      }
+    });
+    function finish(body) {
+      self._realStartedSend = true;
+      self._realxhr.send(body);
+    }
+    if (this._connection.async && this._requestChangers.length) {
+      // If the XHR object is re-used for another connection, then we need
+      // to make sure that our upcoming async calls here do nothing.
+      // Remember the current connection object, and do nothing in our async
+      // calls if it no longer matches. Also check for aborts.
+      const startConnection = this._connection;
+      const request = {
+        method: this._connection.method,
+        url: this._connection.url,
+        body: body
+      };
+      (async () => {
+        let modifiedRequest = request;
+        for (const requestChanger of this._requestChangers) {
+          const longRunWarningTimer = setTimeout(() => {
+            console.warn('requestChanger is taking too long', requestChanger, startConnection);
+          }, WARNING_TIMEOUT);
+          try {
+            modifiedRequest = await requestChanger(this._connection, Object.freeze(modifiedRequest));
+          } finally {
+            clearTimeout(longRunWarningTimer);
+          }
+          (0,assert/* assert */.v)(has_default()(modifiedRequest, 'method'), 'modifiedRequest has method');
+          (0,assert/* assert */.v)(has_default()(modifiedRequest, 'url'), 'modifiedRequest has url');
+          (0,assert/* assert */.v)(has_default()(modifiedRequest, 'body'), 'modifiedRequest has body');
+          if (startConnection !== this._connection || this._realStartedSend) break;
+        }
+        return modifiedRequest;
+      })().catch(err => {
+        logError(err);
+        return request;
+      }).then(modifiedRequest => {
+        if (startConnection === this._connection && !this._realStartedSend) {
+          this._realxhr.open(modifiedRequest.method, modifiedRequest.url);
+          this._events.emit('realOpen');
+          finish(modifiedRequest.body);
+        }
+      });
+    } else {
+      finish(body);
+    }
+  };
+  [XHRProxy, XHRProxy.prototype].forEach(function (obj) {
+    Object.assign(obj, {
+      UNSENT: 0,
+      OPENED: 1,
+      HEADERS_RECEIVED: 2,
+      LOADING: 3,
+      DONE: 4
+    });
+  });
+  return XHRProxy;
+}
+// EXTERNAL MODULE: ./src/platform-implementation-js/dom-driver/gmail/gmail-response-processor.ts
+var gmail_response_processor = __webpack_require__(1433);
+;// CONCATENATED MODULE: ./src/injected-js/gmail/thread-identifier/thread-row-parser.ts
+
+
+
+
+/**
+ * Ads in the Promotions tab aren't included with other thread row data.
+ */
+const ThreadRowAd = Symbol(`ThreadRowAd`);
+function extractMetadataFromThreadRow(threadRow) {
+  var timeSpan, subjectSpan, peopleDiv;
+  (0,assert/* assert */.v)(threadRow.hasAttribute('id'), 'check element is main thread row');
+  var errors = [];
+  var threadRowIsVertical = intersection_default()(Array.from(threadRow.classList), ['zA', 'apv']).length === 2;
+  const isThreadRowAd = threadRow.querySelector('.am0,.bvA');
+  if (isThreadRowAd) {
+    return ThreadRowAd;
+  } else if (threadRowIsVertical) {
+    var threadRow2 = threadRow.nextElementSibling;
+    if (!threadRow2) {
+      errors.push('failed to find threadRow2');
+    } else {
+      var threadRow3 = threadRow2.nextElementSibling;
+      if (!threadRow3 || !threadRow3.classList.contains('apw')) {
+        threadRow3 = null;
+      }
+      timeSpan = threadRow.querySelector('td.apt > div.apm > span[title]');
+      subjectSpan = threadRow2.querySelector('td div.xS div.xT div.y6 > span');
+      peopleDiv = threadRow.querySelector('td.apy > div.yW, td.apx > div.yW');
+    }
+  } else {
+    timeSpan = threadRow.querySelector('td.xW > span[title]');
+    var subjectAreaDiv = threadRow.querySelector('td.a4W div[role=link] div.y6');
+    if (subjectAreaDiv && subjectAreaDiv.children.length >= 1) {
+      subjectSpan = subjectAreaDiv.children[0]; // body snippet is not always present.
+      //var bodySnippetSpan = subjectAreaDiv.children[1];
+    }
+
+    peopleDiv = threadRow.querySelector('td.yX > div.yW');
+  }
+  if (!timeSpan) {
+    errors.push('failed to find timeSpan');
+  }
+  if (!subjectSpan) {
+    errors.push('failed to find subjectSpan');
+  }
+  if (!peopleDiv) {
+    errors.push('failed to find peopleDiv');
+  }
+  if (errors.length) {
+    injected_logger.error(new Error('Errors in thread row parsing'), {
+      errors
+    });
+  }
+  return {
+    timeString: timeSpan ? timeSpan.getAttribute('title') || '' : '',
+    subject: subjectSpan ? subjectSpan.textContent : '',
+    peopleHtml: peopleDiv ? (0,gmail_response_processor/* cleanupPeopleLine */.On)(peopleDiv.innerHTML) : ''
+  };
+}
+// EXTERNAL MODULE: ./node_modules/lodash/constant.js
+var constant = __webpack_require__(7660);
+var constant_default = /*#__PURE__*/__webpack_require__.n(constant);
+;// CONCATENATED MODULE: ./src/injected-js/gmail/thread-identifier/click-and-get-popup-url.ts
+
+
+
+const ignoreErrors = constant_default()(true);
+function getIfOwn(object, prop) {
+  if (Object.prototype.hasOwnProperty.call(object, prop)) {
+    return object[prop];
+  }
+  return null;
+} // Simulates a control+meta click on an element, intercepts the call to
+// window.open, and returns the attempted popup's URL.
+
+function clickAndGetPopupUrl(element) {
+  const event = document.createEvent('MouseEvents');
+  const options = {
+    bubbles: true,
+    cancelable: true,
+    button: 0,
+    pointerX: 0,
+    pointerY: 0,
+    ctrlKey: true,
+    altKey: false,
+    shiftKey: false,
+    metaKey: true
+  };
+  event.initMouseEvent('click', options.bubbles, options.cancelable, document.defaultView, options.button, options.pointerX, options.pointerY, options.pointerX, options.pointerY, options.ctrlKey, options.altKey, options.shiftKey, options.metaKey, options.button, null);
+  let url;
+  const oldWindowOpen = window.open,
+    oldWindowOnerror = window.onerror,
+    oldFocus = getIfOwn(window.HTMLElement.prototype, 'focus'),
+    oldBlur = getIfOwn(window.HTMLElement.prototype, 'blur');
+  try {
+    window.HTMLElement.prototype.focus = (noop_default());
+    window.HTMLElement.prototype.blur = (noop_default());
+    window.onerror = ignoreErrors;
+    const newOpen = function (_url, _title, _options) {
+      url = _url;
+      // Gmail checks the returned object for these two values specifically.
+      const newWin = {
+        closed: false,
+        focus: (noop_default())
+      };
+      setTimeout(function () {
+        newWin.closed = true;
+      }, 5);
+      return newWin;
+    };
+    window.open = newOpen;
+
+    // If another extension created a setter on window.open, then setting it
+    // could have failed. Log to see if this is a thing that ever happens, and
+    // avoid letting windows be opened.
+    if (window.open !== newOpen) {
+      injected_logger.error(new Error('Failed to override window.open'));
+      return null;
+    }
+    element.dispatchEvent(event);
+  } finally {
+    if (oldFocus) {
+      window.HTMLElement.prototype.focus = oldFocus;
+    } else {
+      delete window.HTMLElement.prototype.focus;
+    }
+    if (oldBlur) {
+      window.HTMLElement.prototype.blur = oldBlur;
+    } else {
+      delete window.HTMLElement.prototype.blur;
+    }
+    window.onerror = oldWindowOnerror;
+    window.open = oldWindowOpen;
+  }
+  return url;
+}
+;// CONCATENATED MODULE: ./src/common/find-parent.ts
+/**
+ * @deprecated Use @see Element.closest instead.
+ */
+function findParent(el, cb) {
+  let candidate = el.parentElement;
+  while (candidate) {
+    if (cb(candidate)) {
+      return candidate;
+    }
+    candidate = candidate.parentElement;
+  }
+  return null;
+}
+;// CONCATENATED MODULE: ./src/platform-implementation-js/lib/dom/custom-events.ts
+var CustomDomEvent = {
+  tellMeThisThreadIdByDatabase: "inboxSDKtellMeThisThreadIdByDatabase",
+  tellMeThisThreadIdByClick: "inboxSDKtellMeThisThreadIdByClick"
+};
+;// CONCATENATED MODULE: ./src/injected-js/gmail/thread-identifier/index.ts
+
+
+
+
+
+
+
+
+function setup() {
+  try {
+    processPreloadedThreads();
+  } catch (err) {
+    injected_logger.error(err, 'Failed to process preloaded thread identifiers');
+  }
+  document.addEventListener(CustomDomEvent.tellMeThisThreadIdByDatabase, function (event) {
+    try {
+      if (!(event.target instanceof HTMLElement)) {
+        throw new Error('event.target is not an HTMLElement');
+      }
+      const threadId = getGmailThreadIdForThreadRowByDatabase(event.target);
+      if (threadId) {
+        event.target.setAttribute('data-inboxsdk-threadid', threadId);
+      }
+    } catch (err) {
+      injected_logger.error(err, 'Error in inboxSDKtellMeThisThreadIdByDatabase');
+    }
+  });
+  document.addEventListener(CustomDomEvent.tellMeThisThreadIdByClick, function (event) {
+    try {
+      if (!(event.target instanceof HTMLElement)) {
+        throw new Error('event.target is not an HTMLElement');
+      }
+      const threadId = getGmailThreadIdForThreadRowByClick(event.target);
+      if (threadId) {
+        event.target.setAttribute('data-inboxsdk-threadid', threadId);
+      }
+    } catch (err) {
+      injected_logger.error(err, 'Error in inboxSDKtellMeThisThreadIdByClick');
     }
   });
 }
-function setupGmonkey() {
-  return new Promise(resolve => {
-    function check() {
-      if (!window.gmonkey) {
-        setTimeout(check, 500);
+function processThreadListResponse(threadListResponse) {
+  processThreads(gmail_response_processor/* extractThreads */.rq(threadListResponse));
+}
+function processThreads(threads) {
+  threads.forEach(storeThreadMetadata);
+}
+const AMBIGUOUS = {
+  name: 'AMBIGUOUS'
+};
+const threadIdsByKey = new Map();
+function storeThreadMetadata(threadMetadata) {
+  var key = threadMetadataKey(threadMetadata);
+  if (threadIdsByKey.has(key)) {
+    if (threadIdsByKey.get(key) !== threadMetadata.gmailThreadId) {
+      threadIdsByKey.set(key, AMBIGUOUS);
+    }
+  } else {
+    threadIdsByKey.set(key, threadMetadata.gmailThreadId);
+  }
+}
+function threadMetadataKey(threadRowMetadata) {
+  return threadRowMetadata.subject.trim() + ':' + threadRowMetadata.timeString.trim() + ':' + threadRowMetadata.peopleHtml.trim();
+}
+function processPreloadedThreads() {
+  const preloadScript = find_default()(document.querySelectorAll('script:not([src])'), script => script.text && script.text.slice(0, 500).indexOf('var VIEW_DATA=[[') > -1);
+  if (!preloadScript) {
+    // preloadScript is not available in gmail v2, so let's stop logging an error
+    return;
+  } else {
+    const firstBracket = preloadScript.text.indexOf('[');
+    const lastBracket = preloadScript.text.lastIndexOf(']');
+    const viewDataString = preloadScript.text.slice(firstBracket, lastBracket + 1);
+    processThreads(gmail_response_processor/* extractThreadsFromDeserialized */.eF([gmail_response_processor/* deserializeArray */.XX(viewDataString)]));
+  }
+}
+function getThreadIdFromUrl(url) {
+  var tid = (0,querystring_es3.parse)(url).th;
+  if (!tid) {
+    // drafts in sync world can have weird urls that kind of
+    // look like old style urls, and get handled properly here
+    var urlHashMatch = url.match(/#(.*)/);
+    if (urlHashMatch) {
+      // drafts have the hash in them without the th=
+      url = decodeURIComponent(decodeURIComponent(urlHashMatch[1]));
+      tid = (0,querystring_es3.parse)(url).th;
+    }
+  }
+
+  // if we're in sync world and it's a
+  // draft then a hash can come through in the beginning
+  return tid.replace('#', '');
+}
+function getGmailThreadIdForThreadRowByDatabase(threadRow) {
+  const domRowMetadata = extractMetadataFromThreadRow(threadRow);
+  if (domRowMetadata === ThreadRowAd) {
+    // TODO do we want to do anything here?
+    return;
+  }
+  const key = threadMetadataKey(domRowMetadata);
+  const value = threadIdsByKey.get(key);
+  if (typeof value === 'string') {
+    return value;
+  }
+}
+function getGmailThreadIdForThreadRowByClick(threadRow) {
+  // Simulate a ctrl-click on the thread row to get the thread id, then
+  // simulate a ctrl-click on the previously selected thread row (or the
+  // first thread row) to put the cursor back where it was.
+  extractMetadataFromThreadRow(threadRow);
+  const parent = findParent(threadRow, el => el.nodeName === 'DIV' && el.getAttribute('role') === 'main');
+  if (!parent) {
+    throw new Error("Can't operate on disconnected thread row");
+  }
+  const currentRowSelection = parent.querySelector('td.PE') || parent.querySelector('tr');
+  const url = clickAndGetPopupUrl(threadRow);
+  const threadId = url && getThreadIdFromUrl(url);
+  if (currentRowSelection) {
+    clickAndGetPopupUrl(currentRowSelection);
+  }
+  return threadId;
+}
+// EXTERNAL MODULE: ./node_modules/lodash/startsWith.js
+var startsWith = __webpack_require__(7013);
+var startsWith_default = /*#__PURE__*/__webpack_require__.n(startsWith);
+// EXTERNAL MODULE: ./src/platform-implementation-js/driver-common/gmailAjax.ts + 2 modules
+var gmailAjax = __webpack_require__(5609);
+;// CONCATENATED MODULE: ./src/platform-implementation-js/dom-driver/gmail/gmail-sync-response-processor.ts
+
+
+function extractThreadsFromSearchResponse(response) {
+  const parsedResponse = JSON.parse(response);
+  if (Array.isArray(parsedResponse)) {
+    try {
+      return extractThreadsFromSearchResponse_20220909(parsedResponse);
+    } catch (err) {
+      return [];
+    }
+  }
+  const threadDescriptors = parsedResponse && parsedResponse[3];
+  if (!threadDescriptors) return [];
+  return threadDescriptors.map((descriptorWrapper, index) => {
+    const descriptor = descriptorWrapper[1];
+    if (!descriptor) return null;
+    return {
+      subject: descriptor[1],
+      snippet: descriptor[2],
+      syncThreadID: descriptor[4],
+      // It seems Gmail is A/B testing including gmailThreadID in descriptor[20] and not including
+      // the encoded version of it in descriptor[18], so pull it from [20] if [18] is not set.
+      oldGmailThreadID: descriptor[18] != null ? new (bignumber_default())(descriptor[18]).toString(16) : descriptor[20],
+      rawResponse: descriptorWrapper,
+      extraMetaData: {
+        snippet: parsedResponse[15] && parsedResponse[15][1] && parsedResponse[15][1][index] || '',
+        syncMessageData: descriptor[5].map(md => ({
+          syncMessageID: md[1],
+          oldMessageID: md[56],
+          date: +md[7]
+        }))
+      }
+    };
+  }).filter(isNotNil);
+}
+function extractThreadsFromSearchResponse_20220909(parsedResponse) {
+  const threadDescriptors = parsedResponse && parsedResponse[2];
+  if (!threadDescriptors) return [];
+  return threadDescriptors.map((descriptorWrapper, index) => {
+    const descriptor = descriptorWrapper[0];
+    if (!descriptor) return null;
+    return {
+      subject: descriptor[0],
+      snippet: descriptor[1],
+      syncThreadID: descriptor[3],
+      // It seems Gmail is A/B testing including gmailThreadID in descriptor[20] and not including
+      // the encoded version of it in descriptor[18], so pull it from [20] if [18] is not set.
+      oldGmailThreadID: descriptor[17] != null ? new (bignumber_default())(descriptor[17]).toString(16) : descriptor[19],
+      rawResponse: descriptorWrapper,
+      extraMetaData: {
+        snippet: parsedResponse[14] && parsedResponse[14][0] && parsedResponse[14][0][index] || '',
+        syncMessageData: descriptor[4].map(md => ({
+          syncMessageID: md[0],
+          oldMessageID: md[55],
+          date: +md[6]
+        }))
+      }
+    };
+  }).filter(isNotNil);
+}
+function extractThreadsFromThreadResponse(response) {
+  const parsedResponse = JSON.parse(response);
+  if (Array.isArray(parsedResponse)) {
+    return extractThreadsFromThreadResponse_20220909(parsedResponse);
+  }
+  const threadDescriptors = parsedResponse && parsedResponse[2];
+  if (!threadDescriptors) throw new Error('Failed to process thread response');
+  return threadDescriptors.map(descriptorWrapper => {
+    if (typeof descriptorWrapper[1] === 'string' && Array.isArray(descriptorWrapper[3]) && !(descriptorWrapper[2] && descriptorWrapper[2][1] && descriptorWrapper[2][1][14] && Array.isArray(descriptorWrapper[2][2]))) {
+      return {
+        syncThreadID: descriptorWrapper[1],
+        oldGmailThreadID: descriptorWrapper[2] && descriptorWrapper[2][1] && descriptorWrapper[2][1][16] || undefined,
+        extraMetaData: {
+          snippet: descriptorWrapper[2] && descriptorWrapper[2][1] && descriptorWrapper[2][1][3] || undefined,
+          syncMessageData: (descriptorWrapper[3] || []).filter(md => Boolean(md[2])).map(md => ({
+            syncMessageID: md[1],
+            date: +md[2][17],
+            recipients: getRecipientsFromMessageDescriptor(md)
+          }))
+        }
+      };
+    } else {
+      const threadDescriptor = descriptorWrapper[2] && descriptorWrapper[2][1];
+      if (!threadDescriptor) return null;
+      let syncMessageData;
+      const fullMessageDescriptors = Array.isArray(descriptorWrapper[3]) && descriptorWrapper[3];
+      if (fullMessageDescriptors) {
+        syncMessageData = fullMessageDescriptors.map(md => ({
+          syncMessageID: md[1],
+          date: +md[2][17],
+          recipients: getRecipientsFromMessageDescriptor(md)
+        }));
       } else {
-        window.gmonkey.load('2.0', resolve);
+        const messageDescriptors = descriptorWrapper[2] && descriptorWrapper[2][2];
+        syncMessageData = messageDescriptors.map(md => ({
+          syncMessageId: md[1],
+          date: +md[16]
+        }));
+      }
+      return {
+        subject: threadDescriptor[2],
+        snippet: threadDescriptor[3],
+        syncThreadID: threadDescriptor[1],
+        oldGmailThreadID: new (bignumber_default())(threadDescriptor[14]).toString(16),
+        rawResponse: descriptorWrapper,
+        extraMetaData: {
+          syncMessageData,
+          snippet: ''
+        }
+      };
+    }
+  }).filter(isNotNil);
+}
+function extractThreadsFromThreadResponse_20220909(parsedResponse) {
+  const threadDescriptors = parsedResponse && parsedResponse[1];
+  if (!threadDescriptors) throw new Error('Failed to process thread response');
+  return threadDescriptors.map(descriptorWrapper => {
+    if (typeof descriptorWrapper[0] === 'string' && Array.isArray(descriptorWrapper[2]) && !(descriptorWrapper[1] && descriptorWrapper[1][0] && descriptorWrapper[1][0][13] && Array.isArray(descriptorWrapper[1][1]))) {
+      return {
+        syncThreadID: descriptorWrapper[0],
+        oldGmailThreadID: descriptorWrapper[1] && descriptorWrapper[1][0] && descriptorWrapper[1][0][15] || undefined,
+        extraMetaData: {
+          snippet: descriptorWrapper[1] && descriptorWrapper[1][0] && descriptorWrapper[1][0][2] || undefined,
+          syncMessageData: (descriptorWrapper[2] || []).filter(md => Boolean(md[1])).map(md => ({
+            syncMessageID: md[0],
+            date: +md[1][16],
+            recipients: getRecipientsFromMessageDescriptor_20220909(md)
+          }))
+        }
+      };
+    } else {
+      const threadDescriptor = descriptorWrapper[1] && descriptorWrapper[1][0];
+      if (!threadDescriptor) return null;
+      let syncMessageData;
+      const fullMessageDescriptors = Array.isArray(descriptorWrapper[2]) && descriptorWrapper[2];
+      if (fullMessageDescriptors) {
+        syncMessageData = fullMessageDescriptors.map(md => ({
+          syncMessageID: md[0],
+          date: +md[1][16],
+          recipients: getRecipientsFromMessageDescriptor_20220909(md)
+        }));
+      } else {
+        const messageDescriptors = descriptorWrapper[1] && descriptorWrapper[1][1];
+        syncMessageData = messageDescriptors.map(md => ({
+          syncMessageId: md[0],
+          date: +md[15]
+        }));
+      }
+      return {
+        subject: threadDescriptor[1],
+        snippet: threadDescriptor[2],
+        syncThreadID: threadDescriptor[0],
+        oldGmailThreadID: new (bignumber_default())(threadDescriptor[13]).toString(16),
+        rawResponse: descriptorWrapper,
+        extraMetaData: {
+          syncMessageData,
+          snippet: ''
+        }
+      };
+    }
+  }).filter(isNotNil);
+}
+function getRecipientsFromMessageDescriptor(messageDescriptor) {
+  if (!messageDescriptor[2]) return;
+  const to = messageDescriptor[2][1] || [];
+  const cc = messageDescriptor[2][2] || [];
+  const bcc = messageDescriptor[2][3] || [];
+  return to.concat(cc).concat(bcc).map(recipientDescriptor => ({
+    emailAddress: recipientDescriptor[2],
+    name: recipientDescriptor[3]
+  }));
+}
+function getRecipientsFromMessageDescriptor_20220909(messageDescriptor) {
+  if (!messageDescriptor[1]) return;
+  const to = messageDescriptor[1][0] || [];
+  const cc = messageDescriptor[1][1] || [];
+  const bcc = messageDescriptor[1][2] || [];
+  return to.concat(cc).concat(bcc).map(recipientDescriptor => ({
+    emailAddress: recipientDescriptor[1],
+    name: recipientDescriptor[2]
+  }));
+}
+function replaceThreadsInSearchResponse(response, replacementThreads, _unused // TODO why is this unused?
+) {
+  const parsedResponse = JSON.parse(response);
+  if (Array.isArray(parsedResponse)) {
+    try {
+      return replaceThreadsInSearchResponse_20220909(parsedResponse, replacementThreads, _unused);
+    } catch (err) {
+      console.error('Caught err in replaceThreadsInSearchResponse', err);
+      return response;
+    }
+  }
+  if (parsedResponse[3] || replacementThreads.length) {
+    parsedResponse[3] = replacementThreads.map((_ref, index) => {
+      let {
+        rawResponse
+      } = _ref;
+      return {
+        ...rawResponse,
+        '2': index
+      };
+    });
+  }
+  if (parsedResponse[15] || replacementThreads.length) {
+    parsedResponse[15] = {
+      ...parsedResponse[15],
+      '1': replacementThreads.map(_ref2 => {
+        let {
+          extraMetaData
+        } = _ref2;
+        return extraMetaData.snippet;
+      }),
+      '2': replacementThreads.map(_ref3 => {
+        let {
+          extraMetaData
+        } = _ref3;
+        return extraMetaData.syncMessageData.map(_ref4 => {
+          let {
+            syncMessageID
+          } = _ref4;
+          return syncMessageID;
+        });
+      })
+    };
+  }
+  return JSON.stringify(parsedResponse);
+}
+function replaceThreadsInSearchResponse_20220909(parsedResponse, replacementThreads, _unused // TODO why is this unused?
+) {
+  if (parsedResponse[2] || replacementThreads.length) {
+    parsedResponse[2] = replacementThreads.map((_ref5, index) => {
+      let {
+        rawResponse
+      } = _ref5;
+      const res = [...rawResponse];
+      res[1] = index;
+      return res;
+    });
+  }
+  if (parsedResponse[14] || replacementThreads.length) {
+    parsedResponse[14] = [...parsedResponse[14]];
+    parsedResponse[14][0] = replacementThreads.map(_ref6 => {
+      let {
+        extraMetaData
+      } = _ref6;
+      return extraMetaData.snippet;
+    });
+    if (Array.isArray(parsedResponse[14][1]) && parsedResponse[14][1].length > 0 && Array.isArray(parsedResponse[14][1][0][0])) {
+      // 2023-04-19 gmail change
+      parsedResponse[14][1] = replacementThreads.map(_ref7 => {
+        let {
+          extraMetaData
+        } = _ref7;
+        return [[extraMetaData.syncMessageData[0].syncMessageID]];
+      });
+    } else {
+      parsedResponse[14][1] = replacementThreads.map(_ref8 => {
+        let {
+          extraMetaData
+        } = _ref8;
+        return extraMetaData.syncMessageData.map(_ref9 => {
+          let {
+            syncMessageID
+          } = _ref9;
+          return syncMessageID;
+        });
+      });
+    }
+  }
+  return JSON.stringify(parsedResponse);
+}
+// EXTERNAL MODULE: ./src/platform-implementation-js/driver-common/getAccountUrlPart.ts
+var getAccountUrlPart = __webpack_require__(8105);
+;// CONCATENATED MODULE: ./src/platform-implementation-js/dom-driver/gmail/gmail-driver/getSyncThreadFromSyncThreadId.ts
+
+
+
+async function getThreadFromSyncThreadId(driver, syncThreadId) {
+  const [btaiHeader, xsrfToken] = await Promise.all([driver.getPageCommunicator().getBtaiHeader(), driver.getPageCommunicator().getXsrfToken()]);
+  return getThreadFromSyncThreadIdUsingHeaders(syncThreadId, btaiHeader, xsrfToken);
+}
+async function getThreadFromSyncThreadIdUsingHeaders(syncThreadId, btaiHeader, xsrfToken) {
+  let responseText = null;
+  try {
+    const {
+      text
+    } = await (0,gmailAjax/* default */.A)({
+      method: 'POST',
+      url: `https://mail.google.com/sync${(0,getAccountUrlPart/* default */.A)()}/i/fd`,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Framework-Xsrf-Token': xsrfToken,
+        'X-Gmail-BTAI': btaiHeader,
+        'X-Google-BTD': '1'
+      },
+      data: JSON.stringify({
+        '1': [{
+          '1': syncThreadId,
+          '2': 1
+        }]
+      })
+    });
+    responseText = text;
+  } catch (err) {
+    // try sending request with new format 2022_09_09
+    const {
+      text
+    } = await (0,gmailAjax/* default */.A)({
+      method: 'POST',
+      url: `https://mail.google.com/sync${(0,getAccountUrlPart/* default */.A)()}/i/fd?rt=r&pt=ji`,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Framework-Xsrf-Token': xsrfToken,
+        'X-Gmail-BTAI': btaiHeader,
+        'X-Google-BTD': '1'
+      },
+      data: JSON.stringify([[[syncThreadId, 1]], 2])
+    });
+    responseText = text;
+  }
+  const threadDescriptors = extractThreadsFromThreadResponse(responseText);
+  if (threadDescriptors.length > 0) {
+    const thread = threadDescriptors[0];
+    if (thread.oldGmailThreadID) {
+      return thread;
+    }
+  }
+  return null;
+}
+// EXTERNAL MODULE: ./src/platform-implementation-js/driver-common/requestGmailThread.ts
+var requestGmailThread = __webpack_require__(5355);
+;// CONCATENATED MODULE: ./src/injected-js/message-metadata-holder.ts
+
+
+
+
+
+const threadIdToMessages = new Map();
+function message_metadata_holder_setup() {
+  document.addEventListener('inboxSDKtellMeThisMessageDate', function (event) {
+    exposeMetadata(event, 'data-inboxsdk-sortdate', m => m.date);
+  });
+  document.addEventListener('inboxSDKtellMeThisMessageRecipients', function (event) {
+    exposeMetadata(event, 'data-inboxsdk-recipients', m => {
+      if (m.recipients) return m.recipients;else return null;
+    });
+  });
+}
+function exposeMetadata(event, attribute, processor) {
+  const {
+    target,
+    detail: {
+      threadId,
+      ikValue,
+      btaiHeader,
+      xsrfToken
+    }
+  } = event;
+  (async () => {
+    const messageIndex = Array.from(target.parentElement.children).filter(el => !el.classList.contains('inboxsdk__custom_message_view')).indexOf(target);
+    if (messageIndex < 0) {
+      throw new Error('Should not happen');
+    }
+    let message = getMessage(threadId, messageIndex);
+    if (message == null || !message.recipients) {
+      try {
+        await addDataForThread(threadId, ikValue, btaiHeader, xsrfToken);
+      } catch (err) {
+        injected_logger.error(err);
+      }
+      message = getMessage(threadId, messageIndex);
+      if (message == null) {
+        throw new Error('Failed to find message date after re-requesting thread');
       }
     }
-    check();
+    target.setAttribute(attribute, JSON.stringify(processor(message)));
+  })().catch(err => {
+    target.setAttribute(attribute, 'error');
+    injected_logger.error(err);
   });
 }
+function getMessage(threadId, messageIndex) {
+  const messages = threadIdToMessages.get(threadId);
+  if (messages) {
+    const message = messages[messageIndex];
+    if (message) {
+      return message;
+    }
+  }
+}
+function add(groupedMessages) {
+  groupedMessages.forEach(group => {
+    threadIdToMessages.set(group.threadID, group.messages);
+  });
+}
+const activeThreadRequestPromises = new Map();
+function addDataForThread(threadId, ikValue, btaiHeader, xsrfToken) {
+  const existingRequestPromise = activeThreadRequestPromises.get(threadId);
+  if (existingRequestPromise) {
+    return existingRequestPromise;
+  }
+  const newPromise = (async () => {
+    try {
+      if (startsWith_default()(threadId, 'thread')) {
+        // new data layer
+        if (!btaiHeader || !xsrfToken) {
+          throw new Error('Need btaiHeader and xsrfToken when in new data layer');
+        }
+        const syncThread = await getThreadFromSyncThreadIdUsingHeaders(threadId, btaiHeader, xsrfToken);
+        if (syncThread) {
+          add([{
+            threadID: syncThread.syncThreadID,
+            messages: syncThread.extraMetaData.syncMessageData.map(syncMessage => ({
+              date: syncMessage.date,
+              recipients: syncMessage.recipients
+            }))
+          }]);
+        }
+      } else {
+        // legacy gmail
+        const text = await (0,requestGmailThread/* default */.A)(ikValue, threadId);
+        add((0,gmail_response_processor/* extractMessages */.St)(text));
+      }
+    } catch (err) {
+      injected_logger.error(err);
+    } finally {
+      activeThreadRequestPromises.delete(threadId);
+    }
+  })();
+  activeThreadRequestPromises.set(threadId, newPromise);
+  return newPromise;
+}
+;// CONCATENATED MODULE: ./src/common/quoted-split.ts
+// Splits a string on spaces, but ignores spaces inside quotes.
 
-/***/ }),
+function quotedSplit(s) {
+  let split = [];
+  let lastEnd = 0;
+  const quoteRe = /"[^"]*"/g;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const match = quoteRe.exec(s);
+    split = split.concat((match ? s.substring(lastEnd, match.index) : s.substring(lastEnd)).split(/ +/).filter(Boolean));
+    if (!match) break;
+    lastEnd = match.index + match[0].length;
+    split.push(match[0]);
+  }
+  return split;
+}
+;// CONCATENATED MODULE: ./src/common/defer.ts
+// This is a drop-in replacement for RSVP.defer(). New code should avoid using
+// this, and should use the Promise constructor instead!
 
-/***/ "./src/injected-js/gmail/sync-compose-processor-20220909.ts":
-/*!******************************************************************!*\
-  !*** ./src/injected-js/gmail/sync-compose-processor-20220909.ts ***!
-  \******************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   actionsToComposeRequestType: () => (/* binding */ actionsToComposeRequestType),
-/* harmony export */   parseComposeRequestBody_2022_09_09: () => (/* binding */ parseComposeRequestBody_2022_09_09),
-/* harmony export */   parseComposeResponseBody_2022_09_09: () => (/* binding */ parseComposeResponseBody_2022_09_09),
-/* harmony export */   replaceBodyContentInComposeSendRequestBody_2022_09_09: () => (/* binding */ replaceBodyContentInComposeSendRequestBody_2022_09_09)
-/* harmony export */ });
-/* harmony import */ var lodash_sortBy__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lodash/sortBy */ "./node_modules/lodash/sortBy.js");
-/* harmony import */ var lodash_sortBy__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(lodash_sortBy__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var lodash_intersection__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! lodash/intersection */ "./node_modules/lodash/intersection.js");
-/* harmony import */ var lodash_intersection__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(lodash_intersection__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var _common_isNotNil__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../common/isNotNil */ "./src/common/isNotNil.ts");
-/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./constants */ "./src/injected-js/gmail/constants.ts");
+function defer() {
+  let resolve = undefined;
+  let reject = undefined;
+  const promise = new Promise((_resolve, _reject) => {
+    resolve = _resolve;
+    reject = _reject;
+  });
+  return {
+    resolve,
+    reject,
+    promise
+  };
+}
+// EXTERNAL MODULE: ./src/injected-js/gmail/modify-suggestions.ts
+var modify_suggestions = __webpack_require__(8700);
+// EXTERNAL MODULE: ./node_modules/lodash/sortBy.js
+var sortBy = __webpack_require__(3281);
+var sortBy_default = /*#__PURE__*/__webpack_require__.n(sortBy);
+;// CONCATENATED MODULE: ./src/injected-js/gmail/constants.ts
+const SEND_ACTIONS = ['^pfg'];
+const DRAFT_SAVING_ACTIONS = ['^r', '^r_bt'];
+;// CONCATENATED MODULE: ./src/injected-js/gmail/sync-compose-processor-20220909.ts
 
 
 
@@ -1662,8 +1720,8 @@ function parseCreateUpdateSendDraftRequestBody(request) {
     // cannot parse
     return null;
   }
-  const parsedMessages = updateList.map(parseRequestThread).filter(_common_isNotNil__WEBPACK_IMPORTED_MODULE_2__["default"]);
-  const sorted = lodash_sortBy__WEBPACK_IMPORTED_MODULE_0___default()(parsedMessages, m => ACTION_TYPE_PRIORITY_RANK.indexOf(m.type));
+  const parsedMessages = updateList.map(parseRequestThread).filter(isNotNil);
+  const sorted = sortBy_default()(parsedMessages, m => ACTION_TYPE_PRIORITY_RANK.indexOf(m.type));
   return sorted[0] || null;
 }
 
@@ -1680,7 +1738,7 @@ function parseCreateUpdateSendDraftResponseBody(response) {
     // cannot parse
     return [];
   }
-  return updateList.map(parseResponseThread).filter(_common_isNotNil__WEBPACK_IMPORTED_MODULE_2__["default"]).flatMap(parsedThread => {
+  return updateList.map(parseResponseThread).filter(isNotNil).flatMap(parsedThread => {
     const {
       threadId,
       oldThreadId,
@@ -1714,7 +1772,7 @@ function parseCreateUpdateSendDraftResponseBody(response) {
         type: actionType
       };
     });
-  }).filter(_common_isNotNil__WEBPACK_IMPORTED_MODULE_2__["default"]);
+  }).filter(isNotNil);
 }
 function replaceBodyContentInSendRequestBody(request, newBodyHtmlContent) {
   // since draftID is not passed from outside,
@@ -1903,7 +1961,7 @@ function parseResponseThread(threadWrapper) {
       return null;
     }
     return parseResponseMsg(msg);
-  }).filter(_common_isNotNil__WEBPACK_IMPORTED_MODULE_2__["default"]) : [];
+  }).filter(isNotNil) : [];
   return {
     threadId,
     oldThreadId,
@@ -1937,105 +1995,15 @@ function parseResponseMsg(msg) {
   };
 }
 function actionsToComposeRequestType(actions) {
-  if (lodash_intersection__WEBPACK_IMPORTED_MODULE_1___default()(actions, _constants__WEBPACK_IMPORTED_MODULE_3__.DRAFT_SAVING_ACTIONS).length === _constants__WEBPACK_IMPORTED_MODULE_3__.DRAFT_SAVING_ACTIONS.length) {
+  if (intersection_default()(actions, DRAFT_SAVING_ACTIONS).length === DRAFT_SAVING_ACTIONS.length) {
     return 'DRAFT_SAVE';
   }
-  if (lodash_intersection__WEBPACK_IMPORTED_MODULE_1___default()(actions, _constants__WEBPACK_IMPORTED_MODULE_3__.SEND_ACTIONS).length === _constants__WEBPACK_IMPORTED_MODULE_3__.SEND_ACTIONS.length) {
+  if (intersection_default()(actions, SEND_ACTIONS).length === SEND_ACTIONS.length) {
     return 'SEND';
   }
   return null;
 }
-
-/***/ }),
-
-/***/ "./src/injected-js/gmail/sync-compose-processor.ts":
-/*!*********************************************************!*\
-  !*** ./src/injected-js/gmail/sync-compose-processor.ts ***!
-  \*********************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   parseComposeRequestBody: () => (/* binding */ parseComposeRequestBody),
-/* harmony export */   parseComposeResponseBody: () => (/* binding */ parseComposeResponseBody),
-/* harmony export */   replaceBodyContentInComposeSendRequestBody: () => (/* binding */ replaceBodyContentInComposeSendRequestBody)
-/* harmony export */ });
-/* harmony import */ var _sync_compose_processor_20220909__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./sync-compose-processor-20220909 */ "./src/injected-js/gmail/sync-compose-processor-20220909.ts");
-/* harmony import */ var _sync_compose_request_processor__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./sync-compose-request-processor */ "./src/injected-js/gmail/sync-compose-request-processor.ts");
-/* harmony import */ var _injected_logger__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../injected-logger */ "./src/injected-js/injected-logger.ts");
-
-
-
-function parseComposeRequestBody(request) {
-  const requestParsed = JSON.parse(request);
-  try {
-    if (Array.isArray(requestParsed)) {
-      const parsed = (0,_sync_compose_processor_20220909__WEBPACK_IMPORTED_MODULE_0__.parseComposeRequestBody_2022_09_09)(requestParsed);
-      if (parsed) {
-        return {
-          type: parsed.type,
-          to: parsed.to,
-          cc: parsed.cc,
-          bcc: parsed.bcc,
-          draftID: parsed.messageId.replace('msg-a:', ''),
-          subject: parsed.subject,
-          body: parsed.body
-        };
-      }
-      return null;
-    }
-  } catch (err) {
-    _injected_logger__WEBPACK_IMPORTED_MODULE_2__.eventSdkPassive('connection.requestResponseParsingFailed', {
-      requestParseError: err
-    });
-  }
-  return (0,_sync_compose_request_processor__WEBPACK_IMPORTED_MODULE_1__.getDetailsOfComposeRequest)(requestParsed);
-}
-function parseComposeResponseBody(response) {
-  const responseParsed = JSON.parse(response);
-  if (Array.isArray(responseParsed)) {
-    return (0,_sync_compose_processor_20220909__WEBPACK_IMPORTED_MODULE_0__.parseComposeResponseBody_2022_09_09)(responseParsed);
-  }
-  return [];
-}
-function replaceBodyContentInComposeSendRequestBody(request, newBodyHtmlContent) {
-  const requestParsed = JSON.parse(request);
-  try {
-    if (Array.isArray(requestParsed)) {
-      const replacedRequestObj = (0,_sync_compose_processor_20220909__WEBPACK_IMPORTED_MODULE_0__.replaceBodyContentInComposeSendRequestBody_2022_09_09)(requestParsed, newBodyHtmlContent);
-      if (replacedRequestObj) {
-        return JSON.stringify(replacedRequestObj);
-      }
-
-      // if couldn't parse and replace body content, return original object
-      return request;
-    }
-  } catch (err) {
-    _injected_logger__WEBPACK_IMPORTED_MODULE_2__.eventSdkPassive('connection.requestResponseParsingFailed', {
-      replaceBodyFailed: err
-    });
-  }
-  return (0,_sync_compose_request_processor__WEBPACK_IMPORTED_MODULE_1__.replaceEmailBodyForSendRequest)(request, newBodyHtmlContent);
-}
-
-/***/ }),
-
-/***/ "./src/injected-js/gmail/sync-compose-request-processor.ts":
-/*!*****************************************************************!*\
-  !*** ./src/injected-js/gmail/sync-compose-request-processor.ts ***!
-  \*****************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   getDetailsOfComposeRequest: () => (/* binding */ getDetailsOfComposeRequest),
-/* harmony export */   replaceEmailBodyForSendRequest: () => (/* binding */ replaceEmailBodyForSendRequest)
-/* harmony export */ });
-/* harmony import */ var lodash_intersection__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lodash/intersection */ "./node_modules/lodash/intersection.js");
-/* harmony import */ var lodash_intersection__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(lodash_intersection__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./constants */ "./src/injected-js/gmail/constants.ts");
+;// CONCATENATED MODULE: ./src/injected-js/gmail/sync-compose-request-processor.ts
 
 
 function getDetailsOfComposeRequest(parsed) {
@@ -2048,7 +2016,7 @@ function getDetailsOfComposeRequest(parsed) {
   if (messageUpdates.length) {
     const sendUpdateMatch = messageUpdates.find(update => {
       const updateWrapper = update[2] && update[2][2] && (update[2][2][14] || update[2][2][2]);
-      return updateWrapper[1][11] && lodash_intersection__WEBPACK_IMPORTED_MODULE_0___default()(updateWrapper[1][11], _constants__WEBPACK_IMPORTED_MODULE_1__.SEND_ACTIONS).length === _constants__WEBPACK_IMPORTED_MODULE_1__.SEND_ACTIONS.length;
+      return updateWrapper[1][11] && intersection_default()(updateWrapper[1][11], SEND_ACTIONS).length === SEND_ACTIONS.length;
     });
     if (sendUpdateMatch) {
       const sendUpdateWrapper = sendUpdateMatch[2] && sendUpdateMatch[2][2] && (sendUpdateMatch[2][2][14] || sendUpdateMatch[2][2][2]);
@@ -2080,14 +2048,14 @@ function getComposeRequestFromUpdate(update, type) {
   return {
     body,
     type,
-    to: parseContacts(update[3]),
-    cc: parseContacts(update[4]),
-    bcc: parseContacts(update[5]),
+    to: sync_compose_request_processor_parseContacts(update[3]),
+    cc: sync_compose_request_processor_parseContacts(update[4]),
+    bcc: sync_compose_request_processor_parseContacts(update[5]),
     draftID: update[1].replace('msg-a:', ''),
     subject: update[8]
   };
 }
-function parseContacts(contacts) {
+function sync_compose_request_processor_parseContacts(contacts) {
   if (!Array.isArray(contacts)) {
     // exit cuz cannot parse
     return null;
@@ -2109,7 +2077,7 @@ function replaceEmailBodyForSendRequest(request, newBody) {
   if (!messageUpdates.length) return request;
   const sendUpdateMatch = messageUpdates.find(update => {
     const updateWrapper = update[2] && update[2][2] && (update[2][2][14] || update[2][2][2]);
-    return updateWrapper[1][11] && lodash_intersection__WEBPACK_IMPORTED_MODULE_0___default()(updateWrapper[1][11], _constants__WEBPACK_IMPORTED_MODULE_1__.SEND_ACTIONS).length === _constants__WEBPACK_IMPORTED_MODULE_1__.SEND_ACTIONS.length;
+    return updateWrapper[1][11] && intersection_default()(updateWrapper[1][11], SEND_ACTIONS).length === SEND_ACTIONS.length;
   });
   if (!sendUpdateMatch) return request;
   const sendUpdateWrapper = sendUpdateMatch[2] && sendUpdateMatch[2][2] && (sendUpdateMatch[2][2][14] || sendUpdateMatch[2][2][2]);
@@ -2117,330 +2085,1079 @@ function replaceEmailBodyForSendRequest(request, newBody) {
   sendUpdate[9][2][0][2] = newBody;
   return JSON.stringify(parsed);
 }
-
-/***/ }),
-
-/***/ "./src/injected-js/gmail/thread-identifier/click-and-get-popup-url.ts":
-/*!****************************************************************************!*\
-  !*** ./src/injected-js/gmail/thread-identifier/click-and-get-popup-url.ts ***!
-  \****************************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ clickAndGetPopupUrl)
-/* harmony export */ });
-/* harmony import */ var lodash_constant__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lodash/constant */ "./node_modules/lodash/constant.js");
-/* harmony import */ var lodash_constant__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(lodash_constant__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var lodash_noop__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! lodash/noop */ "./node_modules/lodash/noop.js");
-/* harmony import */ var lodash_noop__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(lodash_noop__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var _injected_logger__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../injected-logger */ "./src/injected-js/injected-logger.ts");
+;// CONCATENATED MODULE: ./src/injected-js/gmail/sync-compose-processor.ts
 
 
 
-const ignoreErrors = lodash_constant__WEBPACK_IMPORTED_MODULE_0___default()(true);
-function getIfOwn(object, prop) {
-  if (Object.prototype.hasOwnProperty.call(object, prop)) {
-    return object[prop];
-  }
-  return null;
-} // Simulates a control+meta click on an element, intercepts the call to
-// window.open, and returns the attempted popup's URL.
-
-function clickAndGetPopupUrl(element) {
-  const event = document.createEvent('MouseEvents');
-  const options = {
-    bubbles: true,
-    cancelable: true,
-    button: 0,
-    pointerX: 0,
-    pointerY: 0,
-    ctrlKey: true,
-    altKey: false,
-    shiftKey: false,
-    metaKey: true
-  };
-  event.initMouseEvent('click', options.bubbles, options.cancelable, document.defaultView, options.button, options.pointerX, options.pointerY, options.pointerX, options.pointerY, options.ctrlKey, options.altKey, options.shiftKey, options.metaKey, options.button, null);
-  let url;
-  const oldWindowOpen = window.open,
-    oldWindowOnerror = window.onerror,
-    oldFocus = getIfOwn(window.HTMLElement.prototype, 'focus'),
-    oldBlur = getIfOwn(window.HTMLElement.prototype, 'blur');
+function parseComposeRequestBody(request) {
+  const requestParsed = JSON.parse(request);
   try {
-    window.HTMLElement.prototype.focus = (lodash_noop__WEBPACK_IMPORTED_MODULE_1___default());
-    window.HTMLElement.prototype.blur = (lodash_noop__WEBPACK_IMPORTED_MODULE_1___default());
-    window.onerror = ignoreErrors;
-    const newOpen = function (_url, _title, _options) {
-      url = _url;
-      // Gmail checks the returned object for these two values specifically.
-      const newWin = {
-        closed: false,
-        focus: (lodash_noop__WEBPACK_IMPORTED_MODULE_1___default())
-      };
-      setTimeout(function () {
-        newWin.closed = true;
-      }, 5);
-      return newWin;
-    };
-    window.open = newOpen;
-
-    // If another extension created a setter on window.open, then setting it
-    // could have failed. Log to see if this is a thing that ever happens, and
-    // avoid letting windows be opened.
-    if (window.open !== newOpen) {
-      _injected_logger__WEBPACK_IMPORTED_MODULE_2__.error(new Error('Failed to override window.open'));
+    if (Array.isArray(requestParsed)) {
+      const parsed = parseComposeRequestBody_2022_09_09(requestParsed);
+      if (parsed) {
+        return {
+          type: parsed.type,
+          to: parsed.to,
+          cc: parsed.cc,
+          bcc: parsed.bcc,
+          draftID: parsed.messageId.replace('msg-a:', ''),
+          subject: parsed.subject,
+          body: parsed.body
+        };
+      }
       return null;
     }
-    element.dispatchEvent(event);
-  } finally {
-    if (oldFocus) {
-      window.HTMLElement.prototype.focus = oldFocus;
-    } else {
-      delete window.HTMLElement.prototype.focus;
-    }
-    if (oldBlur) {
-      window.HTMLElement.prototype.blur = oldBlur;
-    } else {
-      delete window.HTMLElement.prototype.blur;
-    }
-    window.onerror = oldWindowOnerror;
-    window.open = oldWindowOpen;
-  }
-  return url;
-}
-
-/***/ }),
-
-/***/ "./src/injected-js/gmail/thread-identifier/index.ts":
-/*!**********************************************************!*\
-  !*** ./src/injected-js/gmail/thread-identifier/index.ts ***!
-  \**********************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   processThreadListResponse: () => (/* binding */ processThreadListResponse),
-/* harmony export */   setup: () => (/* binding */ setup)
-/* harmony export */ });
-/* harmony import */ var lodash_find__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lodash/find */ "./node_modules/lodash/find.js");
-/* harmony import */ var lodash_find__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(lodash_find__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _platform_implementation_js_dom_driver_gmail_gmail_response_processor__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../platform-implementation-js/dom-driver/gmail/gmail-response-processor */ "./src/platform-implementation-js/dom-driver/gmail/gmail-response-processor.ts");
-/* harmony import */ var querystring__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! querystring */ "./node_modules/querystring-es3/index.js");
-/* harmony import */ var _injected_logger__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../injected-logger */ "./src/injected-js/injected-logger.ts");
-/* harmony import */ var _thread_row_parser__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./thread-row-parser */ "./src/injected-js/gmail/thread-identifier/thread-row-parser.ts");
-/* harmony import */ var _click_and_get_popup_url__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./click-and-get-popup-url */ "./src/injected-js/gmail/thread-identifier/click-and-get-popup-url.ts");
-/* harmony import */ var _common_find_parent__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../../../common/find-parent */ "./src/common/find-parent.ts");
-/* harmony import */ var _platform_implementation_js_lib_dom_custom_events__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../../../platform-implementation-js/lib/dom/custom-events */ "./src/platform-implementation-js/lib/dom/custom-events.ts");
-
-
-
-
-
-
-
-
-function setup() {
-  try {
-    processPreloadedThreads();
   } catch (err) {
-    _injected_logger__WEBPACK_IMPORTED_MODULE_3__.error(err, 'Failed to process preloaded thread identifiers');
-  }
-  document.addEventListener(_platform_implementation_js_lib_dom_custom_events__WEBPACK_IMPORTED_MODULE_7__.CustomDomEvent.tellMeThisThreadIdByDatabase, function (event) {
-    try {
-      if (!(event.target instanceof HTMLElement)) {
-        throw new Error('event.target is not an HTMLElement');
-      }
-      const threadId = getGmailThreadIdForThreadRowByDatabase(event.target);
-      if (threadId) {
-        event.target.setAttribute('data-inboxsdk-threadid', threadId);
-      }
-    } catch (err) {
-      _injected_logger__WEBPACK_IMPORTED_MODULE_3__.error(err, 'Error in inboxSDKtellMeThisThreadIdByDatabase');
-    }
-  });
-  document.addEventListener(_platform_implementation_js_lib_dom_custom_events__WEBPACK_IMPORTED_MODULE_7__.CustomDomEvent.tellMeThisThreadIdByClick, function (event) {
-    try {
-      if (!(event.target instanceof HTMLElement)) {
-        throw new Error('event.target is not an HTMLElement');
-      }
-      const threadId = getGmailThreadIdForThreadRowByClick(event.target);
-      if (threadId) {
-        event.target.setAttribute('data-inboxsdk-threadid', threadId);
-      }
-    } catch (err) {
-      _injected_logger__WEBPACK_IMPORTED_MODULE_3__.error(err, 'Error in inboxSDKtellMeThisThreadIdByClick');
-    }
-  });
-}
-function processThreadListResponse(threadListResponse) {
-  processThreads(_platform_implementation_js_dom_driver_gmail_gmail_response_processor__WEBPACK_IMPORTED_MODULE_1__.extractThreads(threadListResponse));
-}
-function processThreads(threads) {
-  threads.forEach(storeThreadMetadata);
-}
-const AMBIGUOUS = {
-  name: 'AMBIGUOUS'
-};
-const threadIdsByKey = new Map();
-function storeThreadMetadata(threadMetadata) {
-  var key = threadMetadataKey(threadMetadata);
-  if (threadIdsByKey.has(key)) {
-    if (threadIdsByKey.get(key) !== threadMetadata.gmailThreadId) {
-      threadIdsByKey.set(key, AMBIGUOUS);
-    }
-  } else {
-    threadIdsByKey.set(key, threadMetadata.gmailThreadId);
-  }
-}
-function threadMetadataKey(threadRowMetadata) {
-  return threadRowMetadata.subject.trim() + ':' + threadRowMetadata.timeString.trim() + ':' + threadRowMetadata.peopleHtml.trim();
-}
-function processPreloadedThreads() {
-  const preloadScript = lodash_find__WEBPACK_IMPORTED_MODULE_0___default()(document.querySelectorAll('script:not([src])'), script => script.text && script.text.slice(0, 500).indexOf('var VIEW_DATA=[[') > -1);
-  if (!preloadScript) {
-    // preloadScript is not available in gmail v2, so let's stop logging an error
-    return;
-  } else {
-    const firstBracket = preloadScript.text.indexOf('[');
-    const lastBracket = preloadScript.text.lastIndexOf(']');
-    const viewDataString = preloadScript.text.slice(firstBracket, lastBracket + 1);
-    processThreads(_platform_implementation_js_dom_driver_gmail_gmail_response_processor__WEBPACK_IMPORTED_MODULE_1__.extractThreadsFromDeserialized([_platform_implementation_js_dom_driver_gmail_gmail_response_processor__WEBPACK_IMPORTED_MODULE_1__.deserializeArray(viewDataString)]));
-  }
-}
-function getThreadIdFromUrl(url) {
-  var tid = (0,querystring__WEBPACK_IMPORTED_MODULE_2__.parse)(url).th;
-  if (!tid) {
-    // drafts in sync world can have weird urls that kind of
-    // look like old style urls, and get handled properly here
-    var urlHashMatch = url.match(/#(.*)/);
-    if (urlHashMatch) {
-      // drafts have the hash in them without the th=
-      url = decodeURIComponent(decodeURIComponent(urlHashMatch[1]));
-      tid = (0,querystring__WEBPACK_IMPORTED_MODULE_2__.parse)(url).th;
-    }
-  }
-
-  // if we're in sync world and it's a
-  // draft then a hash can come through in the beginning
-  return tid.replace('#', '');
-}
-function getGmailThreadIdForThreadRowByDatabase(threadRow) {
-  const domRowMetadata = _thread_row_parser__WEBPACK_IMPORTED_MODULE_4__.extractMetadataFromThreadRow(threadRow);
-  if (domRowMetadata === _thread_row_parser__WEBPACK_IMPORTED_MODULE_4__.ThreadRowAd) {
-    // TODO do we want to do anything here?
-    return;
-  }
-  const key = threadMetadataKey(domRowMetadata);
-  const value = threadIdsByKey.get(key);
-  if (typeof value === 'string') {
-    return value;
-  }
-}
-function getGmailThreadIdForThreadRowByClick(threadRow) {
-  // Simulate a ctrl-click on the thread row to get the thread id, then
-  // simulate a ctrl-click on the previously selected thread row (or the
-  // first thread row) to put the cursor back where it was.
-  _thread_row_parser__WEBPACK_IMPORTED_MODULE_4__.extractMetadataFromThreadRow(threadRow);
-  const parent = (0,_common_find_parent__WEBPACK_IMPORTED_MODULE_6__["default"])(threadRow, el => el.nodeName === 'DIV' && el.getAttribute('role') === 'main');
-  if (!parent) {
-    throw new Error("Can't operate on disconnected thread row");
-  }
-  const currentRowSelection = parent.querySelector('td.PE') || parent.querySelector('tr');
-  const url = (0,_click_and_get_popup_url__WEBPACK_IMPORTED_MODULE_5__["default"])(threadRow);
-  const threadId = url && getThreadIdFromUrl(url);
-  if (currentRowSelection) {
-    (0,_click_and_get_popup_url__WEBPACK_IMPORTED_MODULE_5__["default"])(currentRowSelection);
-  }
-  return threadId;
-}
-
-/***/ }),
-
-/***/ "./src/injected-js/gmail/thread-identifier/thread-row-parser.ts":
-/*!**********************************************************************!*\
-  !*** ./src/injected-js/gmail/thread-identifier/thread-row-parser.ts ***!
-  \**********************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   ThreadRowAd: () => (/* binding */ ThreadRowAd),
-/* harmony export */   extractMetadataFromThreadRow: () => (/* binding */ extractMetadataFromThreadRow)
-/* harmony export */ });
-/* harmony import */ var lodash_intersection__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lodash/intersection */ "./node_modules/lodash/intersection.js");
-/* harmony import */ var lodash_intersection__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(lodash_intersection__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _injected_logger__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../injected-logger */ "./src/injected-js/injected-logger.ts");
-/* harmony import */ var _platform_implementation_js_dom_driver_gmail_gmail_response_processor__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../platform-implementation-js/dom-driver/gmail/gmail-response-processor */ "./src/platform-implementation-js/dom-driver/gmail/gmail-response-processor.ts");
-/* harmony import */ var _common_assert__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../common/assert */ "./src/common/assert.ts");
-
-
-
-
-/**
- * Ads in the Promotions tab aren't included with other thread row data.
- */
-const ThreadRowAd = Symbol(`ThreadRowAd`);
-function extractMetadataFromThreadRow(threadRow) {
-  var timeSpan, subjectSpan, peopleDiv;
-  (0,_common_assert__WEBPACK_IMPORTED_MODULE_3__.assert)(threadRow.hasAttribute('id'), 'check element is main thread row');
-  var errors = [];
-  var threadRowIsVertical = lodash_intersection__WEBPACK_IMPORTED_MODULE_0___default()(Array.from(threadRow.classList), ['zA', 'apv']).length === 2;
-  const isThreadRowAd = threadRow.querySelector('.am0,.bvA');
-  if (isThreadRowAd) {
-    return ThreadRowAd;
-  } else if (threadRowIsVertical) {
-    var threadRow2 = threadRow.nextElementSibling;
-    if (!threadRow2) {
-      errors.push('failed to find threadRow2');
-    } else {
-      var threadRow3 = threadRow2.nextElementSibling;
-      if (!threadRow3 || !threadRow3.classList.contains('apw')) {
-        threadRow3 = null;
-      }
-      timeSpan = threadRow.querySelector('td.apt > div.apm > span[title]');
-      subjectSpan = threadRow2.querySelector('td div.xS div.xT div.y6 > span');
-      peopleDiv = threadRow.querySelector('td.apy > div.yW, td.apx > div.yW');
-    }
-  } else {
-    timeSpan = threadRow.querySelector('td.xW > span[title]');
-    var subjectAreaDiv = threadRow.querySelector('td.a4W div[role=link] div.y6');
-    if (subjectAreaDiv && subjectAreaDiv.children.length >= 1) {
-      subjectSpan = subjectAreaDiv.children[0]; // body snippet is not always present.
-      //var bodySnippetSpan = subjectAreaDiv.children[1];
-    }
-
-    peopleDiv = threadRow.querySelector('td.yX > div.yW');
-  }
-  if (!timeSpan) {
-    errors.push('failed to find timeSpan');
-  }
-  if (!subjectSpan) {
-    errors.push('failed to find subjectSpan');
-  }
-  if (!peopleDiv) {
-    errors.push('failed to find peopleDiv');
-  }
-  if (errors.length) {
-    _injected_logger__WEBPACK_IMPORTED_MODULE_1__.error(new Error('Errors in thread row parsing'), {
-      errors
+    injected_logger.eventSdkPassive('connection.requestResponseParsingFailed', {
+      requestParseError: err
     });
   }
-  return {
-    timeString: timeSpan ? timeSpan.getAttribute('title') || '' : '',
-    subject: subjectSpan ? subjectSpan.textContent : '',
-    peopleHtml: peopleDiv ? (0,_platform_implementation_js_dom_driver_gmail_gmail_response_processor__WEBPACK_IMPORTED_MODULE_2__.cleanupPeopleLine)(peopleDiv.innerHTML) : ''
-  };
+  return getDetailsOfComposeRequest(requestParsed);
+}
+function parseComposeResponseBody(response) {
+  const responseParsed = JSON.parse(response);
+  if (Array.isArray(responseParsed)) {
+    return parseComposeResponseBody_2022_09_09(responseParsed);
+  }
+  return [];
+}
+function replaceBodyContentInComposeSendRequestBody(request, newBodyHtmlContent) {
+  const requestParsed = JSON.parse(request);
+  try {
+    if (Array.isArray(requestParsed)) {
+      const replacedRequestObj = replaceBodyContentInComposeSendRequestBody_2022_09_09(requestParsed, newBodyHtmlContent);
+      if (replacedRequestObj) {
+        return JSON.stringify(replacedRequestObj);
+      }
+
+      // if couldn't parse and replace body content, return original object
+      return request;
+    }
+  } catch (err) {
+    injected_logger.eventSdkPassive('connection.requestResponseParsingFailed', {
+      replaceBodyFailed: err
+    });
+  }
+  return replaceEmailBodyForSendRequest(request, newBodyHtmlContent);
+}
+;// CONCATENATED MODULE: ./src/injected-js/gmail/setup-gmail-interceptor.ts
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function logErrorExceptEventListeners(err, details) {
+  // Don't log Gmail's errors
+  if (details !== 'XMLHttpRequest event listener error') {
+    injected_logger.error(err, details);
+  } else {
+    setTimeout(function () {
+      // let window.onerror log this
+      throw err;
+    }, 1);
+  }
+}
+function setupGmailInterceptor() {
+  let jsFrame = null;
+  const js_frame_element = top.document.getElementById('js_frame');
+  if (js_frame_element) {
+    jsFrame = js_frame_element.contentDocument.defaultView;
+  } else {
+    injected_logger.eventSdkPassive('noJSFrameElementFound');
+  }
+  setupGmailInterceptorOnFrames(window, jsFrame);
+}
+
+// Split into a separate step to make it easy for tests to use.
+function setupGmailInterceptorOnFrames(mainFrame, jsFrame) {
+  const main_wrappers = [],
+    js_frame_wrappers = [];
+  {
+    const main_originalXHR = mainFrame.XMLHttpRequest;
+    mainFrame.XMLHttpRequest = XHRProxyFactory(main_originalXHR, main_wrappers, {
+      logError: logErrorExceptEventListeners
+    });
+  }
+  if (jsFrame) {
+    const js_frame_originalXHR = jsFrame.XMLHttpRequest;
+    jsFrame.XMLHttpRequest = XHRProxyFactory(js_frame_originalXHR, js_frame_wrappers, {
+      logError: logErrorExceptEventListeners
+    });
+  }
+  setup();
+  message_metadata_holder_setup();
+  //email sending modifier/notifier
+  {
+    const modifiers = {};
+    kefir_esm["default"].fromEvents(document, 'inboxSDKregisterComposeRequestModifier').onValue(_ref => {
+      let {
+        detail
+      } = _ref;
+      const keyId = detail.composeid || detail.draftID;
+      if (!modifiers[keyId]) {
+        modifiers[keyId] = [];
+      }
+      modifiers[keyId].push(detail.modifierId);
+    });
+    kefir_esm["default"].fromEvents(document, 'inboxSDKunregisterComposeRequestModifier').onValue(_ref2 => {
+      let {
+        detail
+      } = _ref2;
+      const {
+        keyId,
+        modifierId
+      } = detail;
+      modifiers[keyId] = modifiers[keyId].filter(item => item !== modifierId);
+      if (modifiers[keyId].length === 0) {
+        delete modifiers[keyId];
+      }
+    });
+    js_frame_wrappers.push({
+      isRelevantTo: function (connection) {
+        return connection.params.act === 'sm';
+      },
+      originalSendBodyLogger: function (connection, body) {
+        triggerEvent({
+          type: 'emailSending',
+          body: body
+        });
+      },
+      requestChanger: async function (connection, request) {
+        let composeParams = querystring_es3.parse(request.body);
+        const composeid = composeParams.composeid;
+        const composeModifierIds = modifiers[composeParams.composeid];
+        if (!composeModifierIds || composeModifierIds.length === 0) {
+          return request;
+        }
+        for (let ii = 0; ii < composeModifierIds.length; ii++) {
+          const modifierId = composeModifierIds[ii];
+          const modificationPromise = kefir_esm["default"].fromEvents(document, 'inboxSDKcomposeRequestModified').filter(_ref3 => {
+            let {
+              detail
+            } = _ref3;
+            return detail.composeid === composeid && detail.modifierId === modifierId;
+          }).take(1).map(_ref4 => {
+            let {
+              detail
+            } = _ref4;
+            return detail.composeParams;
+          }).toPromise(
+
+            /* Promise */);
+          triggerEvent({
+            type: 'inboxSDKmodifyComposeRequest',
+            composeid,
+            modifierId,
+            composeParams: {
+              body: composeParams.body,
+              isPlainText: composeParams.ishtml !== '1'
+            }
+          });
+          const newComposeParams = await modificationPromise;
+          composeParams = Object.assign({}, composeParams, newComposeParams);
+        }
+        return Object.assign({}, request, {
+          body: stringifyComposeParams(composeParams)
+        });
+      },
+      afterListeners: function (connection) {
+        if (connection.status === 200) {
+          triggerEvent({
+            type: 'emailSent',
+            responseText: connection.originalResponseText,
+            originalSendBody: connection.originalSendBody
+          });
+          if (connection.originalSendBody) {
+            const composeParams = querystring_es3.parse(connection.originalSendBody);
+            delete modifiers[composeParams.composeid];
+          }
+        }
+      }
+    });
+    js_frame_wrappers.push({
+      isRelevantTo: function (connection) {
+        return connection.params.act === 'sd';
+      },
+      originalSendBodyLogger: function (connection, body) {
+        triggerEvent({
+          type: 'emailDraftSaveSending',
+          body: body
+        });
+      },
+      afterListeners: function (connection) {
+        if (connection.status === 200) {
+          triggerEvent({
+            type: 'emailDraftReceived',
+            responseText: connection.originalResponseText,
+            originalSendBody: connection.originalSendBody,
+            connectionDetails: {
+              method: connection.method,
+              url: connection.url,
+              params: connection.params,
+              responseType: connection.responseType
+            }
+          });
+        }
+      }
+    });
+    {
+      // Sync API-based compose sending intercept
+      const currentSendConnectionIDs = new WeakMap();
+      const currentDraftSaveConnectionIDs = new WeakMap();
+      const currentFirstDraftSaveConnectionIDs = new WeakMap();
+      main_wrappers.push({
+        isRelevantTo(connection) {
+          return /sync(?:\/u\/\d+)?\/i\/s/.test(connection.url);
+        },
+        originalSendBodyLogger(connection) {
+          if (connection.originalSendBody) {
+            const composeRequestDetails = parseComposeRequestBody(connection.originalSendBody);
+            if (!composeRequestDetails) {
+              return;
+            }
+            const {
+              draftID
+            } = composeRequestDetails;
+            switch (composeRequestDetails.type) {
+              case 'FIRST_DRAFT_SAVE':
+                currentFirstDraftSaveConnectionIDs.set(connection, draftID);
+                break;
+              case 'DRAFT_SAVE':
+                currentDraftSaveConnectionIDs.set(connection, draftID);
+                break;
+              case 'SEND':
+                currentSendConnectionIDs.set(connection, draftID);
+                triggerEvent({
+                  type: 'emailSending',
+                  draftID
+                });
+                break;
+            }
+          }
+        },
+        requestChanger: async function (connection, request) {
+          const composeRequestDetails = parseComposeRequestBody(request.body);
+          if (!composeRequestDetails || composeRequestDetails.type !== 'SEND') return request;
+          const {
+            draftID
+          } = composeRequestDetails;
+          const composeModifierIds = modifiers[draftID];
+          if (!composeModifierIds || composeModifierIds.length === 0) return request;
+          let newEmailBody = composeRequestDetails.body;
+          for (let ii = 0; ii < composeModifierIds.length; ii++) {
+            const modifierId = composeModifierIds[ii];
+            const modificationPromise = kefir_esm["default"].fromEvents(document, 'inboxSDKcomposeRequestModified').filter(_ref5 => {
+              let {
+                detail
+              } = _ref5;
+              return detail.draftID === draftID && detail.modifierId === modifierId;
+            }).take(1).map(_ref6 => {
+              let {
+                detail
+              } = _ref6;
+              return detail.composeParams;
+            }).toPromise(
+
+              /* Promise */);
+            triggerEvent({
+              type: 'inboxSDKmodifyComposeRequest',
+              draftID,
+              modifierId,
+              composeParams: {
+                body: newEmailBody,
+                isPlainText: false
+              }
+            });
+            const newComposeParams = await modificationPromise;
+            newEmailBody = newComposeParams.body;
+          }
+          return Object.assign({}, request, {
+            body: replaceBodyContentInComposeSendRequestBody(request.body, newEmailBody)
+          });
+        },
+        afterListeners(connection) {
+          if (currentSendConnectionIDs.has(connection) || currentDraftSaveConnectionIDs.has(connection) || currentFirstDraftSaveConnectionIDs.has(connection)) {
+            const sendFailed = () => {
+              triggerEvent({
+                type: 'emailSendFailed',
+                draftID
+              });
+              currentSendConnectionIDs.delete(connection);
+            };
+            const draftID = currentSendConnectionIDs.get(connection) || currentDraftSaveConnectionIDs.get(connection) || currentFirstDraftSaveConnectionIDs.get(connection);
+            if (connection.status !== 200 || !connection.originalResponseText) {
+              sendFailed();
+              return;
+            }
+            try {
+              const responsesParsed = parseComposeResponseBody(connection.originalResponseText);
+              for (const responseParsed of responsesParsed) {
+                // If we're sending a draft, we only care about the response related to the draft we're sending.
+                if (draftID && !responseParsed.messageId.endsWith(draftID)) {
+                  continue;
+                }
+                if (responseParsed.type === 'FIRST_DRAFT_SAVE' || responseParsed.type === 'DRAFT_SAVE') {
+                  triggerEvent({
+                    draftID: draftID,
+                    type: 'emailDraftReceived',
+                    rfcID: responseParsed.rfcID,
+                    threadID: responseParsed.threadId,
+                    messageID: responseParsed.messageId,
+                    oldMessageID: responseParsed.oldMessageId,
+                    oldThreadID: responseParsed.oldThreadId
+                  });
+                  currentSendConnectionIDs.delete(connection);
+                  currentDraftSaveConnectionIDs.delete(connection);
+                  currentFirstDraftSaveConnectionIDs.delete(connection);
+                  return;
+                } else if (responseParsed.type === 'SEND') {
+                  triggerEvent({
+                    draftID: draftID,
+                    type: 'emailSent',
+                    rfcID: responseParsed.rfcID,
+                    threadID: responseParsed.threadId,
+                    messageID: responseParsed.messageId,
+                    oldMessageID: responseParsed.oldMessageId,
+                    oldThreadID: responseParsed.oldThreadId
+                  });
+                  currentSendConnectionIDs.delete(connection);
+                  currentDraftSaveConnectionIDs.delete(connection);
+                  currentFirstDraftSaveConnectionIDs.delete(connection);
+                  return;
+                }
+              }
+            } catch (err) {
+              injected_logger.eventSdkPassive('connection.requestResponseParsingFailed', {
+                responseParseError: err
+              });
+            }
+            const originalResponse = JSON.parse(connection.originalResponseText);
+
+            // TODO this function silently fails way too easily. Need to add better logging for it!
+            if (currentFirstDraftSaveConnectionIDs.has(connection)) {
+              const wrapper = originalResponse[2] && originalResponse[2][6] && originalResponse[2][6][0] && originalResponse[2][6][0][1];
+              if (wrapper) {
+                const threadUpdate = wrapper[3] && wrapper[3][7] && wrapper[3][7][1];
+                const messageUpdate = threadUpdate && threadUpdate[5] && threadUpdate[5][0];
+                if (threadUpdate && messageUpdate) {
+                  triggerEvent({
+                    draftID: draftID,
+                    type: 'emailDraftReceived',
+                    rfcID: messageUpdate[14],
+                    threadID: threadUpdate[4].split('|')[0],
+                    messageID: messageUpdate[1],
+                    oldMessageID: messageUpdate[56],
+                    oldThreadID: threadUpdate[20]
+                  });
+                } else {
+                  injected_logger.error(new Error('Could not parse draft save'));
+                }
+              } else {
+                // pre-2019-05-29 handling
+                injected_logger.eventSdkPassive('old compose draft id handling hit');
+                const oldWrapper = originalResponse[2] && originalResponse[2][6] && originalResponse[2][6][1] && originalResponse[2][6][1][1];
+                if (oldWrapper) {
+                  const saveUpdate = oldWrapper[3] && oldWrapper[3][1] && oldWrapper[3][1][1];
+                  if (saveUpdate) {
+                    triggerEvent({
+                      draftID: draftID,
+                      type: 'emailDraftReceived',
+                      rfcID: saveUpdate[14],
+                      messageID: saveUpdate[1],
+                      oldMessageID: saveUpdate[48] ? new (bignumber_default())(saveUpdate[48]).toString(16) : saveUpdate[56],
+                      syncThreadID: oldWrapper[1]
+                    });
+                  }
+                }
+              }
+            } else {
+              const updateList = originalResponse[2]?.[6];
+              if (!updateList) {
+                sendFailed();
+                return;
+              }
+              const sendUpdateMatch = updateList.find(update => update[1]?.[3]?.[7]?.[1]?.[5]?.[0]?.[14] && update[1][3][7][1][5].find(message => includes_default()(message[1], draftID)));
+              if (!sendUpdateMatch) {
+                if (currentSendConnectionIDs.has(connection)) {
+                  const minimalSendUpdates = updateList.filter(update => update[1]?.[3]?.[5]?.[3]);
+                  if (minimalSendUpdates.length > 0) {
+                    const threadID = minimalSendUpdates[0][1][1] ? minimalSendUpdates[0][1][1].replace(/\|.*$/, '') : undefined;
+                    triggerEvent({
+                      draftID,
+                      type: 'emailSent',
+                      threadID,
+                      //new compose
+                      messageID: minimalSendUpdates[0][1][3]?.[5]?.[5]?.[0] ||
+                      //replies
+                      minimalSendUpdates[0][1][3][5][3]?.[0]
+                    });
+                  } else {
+                    sendFailed();
+                  }
+                } else {
+                  sendFailed();
+                }
+                return;
+              }
+              const sendUpdateWrapper = sendUpdateMatch[1]?.[3]?.[7]?.[1];
+              const sendUpdate = sendUpdateWrapper[5].find(message => message[1].includes(draftID));
+              if (!sendUpdate) {
+                sendFailed();
+                return;
+              }
+              const isEmailSentResponse = currentSendConnectionIDs.has(connection);
+              if (!Array.isArray(sendUpdate[11])) {
+                injected_logger.error(new Error('sendUpdate[11] was not an array'));
+              } else {
+                if (isEmailSentResponse) {
+                  if (sendUpdate[11].indexOf('^r') >= 0) {
+                    injected_logger.error(new Error('sendUpdate[11] unexpectedly contained "^r"'));
+                  }
+                }
+              }
+              if (isEmailSentResponse) {
+                if (sendUpdate[22] !== undefined && sendUpdate[22] !== 3) {
+                  injected_logger.error(new Error('sendUpdate[22] was not expected value'), {
+                    value: sendUpdate[22]
+                  });
+                }
+              }
+              const threadID = sendUpdateWrapper[4] ? sendUpdateWrapper[4].replace(/\|.*$/, '') : undefined;
+              triggerEvent({
+                draftID: draftID,
+                type: isEmailSentResponse ? 'emailSent' : 'emailDraftReceived',
+                rfcID: sendUpdate[14],
+                messageID: sendUpdate[1],
+                oldMessageID: sendUpdate[48] ? new (bignumber_default())(sendUpdate[48]).toString(16) : sendUpdate[56],
+                threadID,
+                // It seems Gmail is A/B testing including gmailThreadID in response[20] and not including
+                // the encoded version of it in response[18], so pull it from [20] if [18] is not set.
+                oldThreadID: sendUpdateWrapper[18] != null ? new (bignumber_default())(sendUpdateWrapper[18]).toString(16) : sendUpdateWrapper[20]
+              });
+            }
+            currentSendConnectionIDs.delete(connection);
+            currentDraftSaveConnectionIDs.delete(connection);
+            currentFirstDraftSaveConnectionIDs.delete(connection);
+          }
+        }
+      });
+    }
+  }
+
+  // intercept and process thread responses
+  {
+    js_frame_wrappers.push({
+      isRelevantTo(connection) {
+        return !!connection.params.search && connection.params.view === 'tl';
+      },
+      async responseTextChanger(connection, responseText) {
+        // Presence of a responseTextChanger blocks Gmail from getting the partial
+        // values as this loads. We want our originalResponseTextLogger to run
+        // before Gmail has seen any of the response.
+        return responseText;
+      },
+      originalResponseTextLogger(connection) {
+        if (connection.status === 200) {
+          const responseText = connection.originalResponseText;
+          processThreadListResponse(responseText);
+        }
+      }
+    });
+  }
+  // intercept and process conversation view responses to get message metadata
+  {
+    // do this for gmail v1
+    {
+      js_frame_wrappers.push({
+        isRelevantTo(connection) {
+          return connection.params.view === 'cv';
+        },
+        originalResponseTextLogger(connection) {
+          if (connection.status === 200) {
+            const groupedMessages = gmail_response_processor/* extractMessages */.St(connection.originalResponseText);
+            add(groupedMessages);
+          }
+        }
+      });
+    }
+    // sync API based
+    {
+      // search response
+      main_wrappers.push({
+        isRelevantTo: function (connection) {
+          return /sync(?:\/u\/\d+)?\/i\/bv/.test(connection.url);
+        },
+        originalResponseTextLogger(connection) {
+          if (connection.status === 200) {
+            const threads = extractThreadsFromSearchResponse(connection.originalResponseText);
+            add(threads.map(syncThread => ({
+              threadID: syncThread.syncThreadID,
+              messages: syncThread.extraMetaData.syncMessageData.map(syncMessage => ({
+                date: syncMessage.date,
+                recipients: syncMessage.recipients
+              }))
+            })));
+          }
+        }
+      });
+      // thread response
+      main_wrappers.push({
+        isRelevantTo: function (connection) {
+          return /sync(?:\/u\/\d+)?\/i\/fd/.test(connection.url);
+        },
+        originalResponseTextLogger(connection) {
+          if (connection.status === 200) {
+            const threads = extractThreadsFromThreadResponse(connection.originalResponseText);
+            add(threads.map(syncThread => ({
+              threadID: syncThread.syncThreadID,
+              messages: syncThread.extraMetaData.syncMessageData.map(syncMessage => ({
+                date: syncMessage.date,
+                recipients: syncMessage.recipients
+              }))
+            })));
+          }
+        }
+      });
+    }
+  }
+  // Search suggestions modifier
+  // The content scripts tell us when they're interested in adding
+  // modifications to future suggestion results. When we see a search
+  // suggestions request come through, we signal the query string to the content
+  // scripts, wait for the same number of responses as the number of registered
+  // suggestion modifiers, and then meld them into the query response.
+  {
+    const providers = Object.create(null);
+    let currentQuery;
+    let suggestionModifications;
+    let currentQueryDefer;
+    document.addEventListener('inboxSDKregisterSuggestionsModifier', function (_ref7) {
+      let {
+        detail
+      } = _ref7;
+      providers[detail.providerID] = {
+        position: Object.keys(providers).length
+      };
+    });
+    document.addEventListener('inboxSDKprovideSuggestions', function (_ref8) {
+      let {
+        detail
+      } = _ref8;
+      if (detail.query === currentQuery) {
+        const provider = providers[detail.providerID];
+        if (!provider) {
+          throw new Error('provider does not exist for providerID');
+        }
+        if (suggestionModifications == null) {
+          throw new Error('tried to modified a null suggestionModifications');
+        }
+        suggestionModifications[provider.position] = detail.suggestions;
+        if (suggestionModifications.filter(Boolean).length === Object.keys(providers).length) {
+          if (currentQueryDefer == null) {
+            throw new Error('tried to resolve a null currentQueryDefer');
+          }
+          currentQueryDefer.resolve(flatten_default()(suggestionModifications));
+          currentQueryDefer = currentQuery = suggestionModifications = null;
+        }
+      }
+    });
+    main_wrappers.push({
+      isRelevantTo(connection) {
+        return Object.keys(providers).length > 0 && !!connection.url.match(/^\/cloudsearch\/request\?/) && connection.params.client == 'gmail' && connection.params.gs_ri == 'gmail';
+      },
+      originalSendBodyLogger(connection, body) {
+        const parsedBody = querystring_es3.parse(body);
+        if (!parsedBody.request) {
+          return;
+        }
+        const query = JSON.parse(parsedBody.request)[2];
+        if (!query) {
+          return;
+        }
+        currentQuery = query;
+        if (currentQueryDefer) currentQueryDefer.resolve();
+        currentQueryDefer = connection._defer = defer();
+        suggestionModifications = [];
+        triggerEvent({
+          type: 'suggestionsRequest',
+          query: currentQuery
+        });
+      },
+      async responseTextChanger(connection, responseText) {
+        if (connection._defer && connection.status === 200) {
+          const modifications = await connection._defer.promise;
+          if (modifications) {
+            let modified;
+            try {
+              modified = (0,modify_suggestions/* default */.A)(responseText, modifications);
+            } catch (e) {
+              injected_logger.eventSdkPassive('suggestionsModified.error', {
+                query: currentQuery,
+                originalResponseText: responseText,
+                error: e instanceof Error && e.message
+              }, true);
+              throw e;
+            }
+            return modified;
+          }
+        }
+        return responseText;
+      }
+    });
+  }
+  {
+    // TODO: simplify this code
+    // the triggerEvent call should happen in the requestChanger callback
+    // and a lot of these state variables can be stored in the closure
+    // Search query replacer.
+    // The content script tells us search terms to watch for. Whenever we see a
+    // search query containing the term, we delay it being sent out, trigger an
+    // event containing the full query, and wait for a response event from the
+    // content script that contains a new query to substitute in.
+    const customSearchTerms = [];
+    let queryReplacement;
+    document.addEventListener('inboxSDKcreateCustomSearchTerm', function (event) {
+      customSearchTerms.push(event.detail.term);
+    });
+    document.addEventListener('inboxSDKsearchReplacementReady', function (event) {
+      if (queryReplacement.query === event.detail.query) {
+        queryReplacement.newQuery.resolve(event.detail.newQuery);
+      }
+    });
+
+    // classic Gmail API intercept
+    js_frame_wrappers.push({
+      isRelevantTo: function (connection) {
+        let customSearchTerm;
+        const params = connection.params;
+        if (connection.method === 'POST' && params.search && params.view === 'tl' && connection.url.match(/^\?/) && params.q && (customSearchTerm = intersection_default()(customSearchTerms, quotedSplit(params.q))[0])) {
+          if (queryReplacement && queryReplacement.query === params.q && queryReplacement.start != params.start) {
+            // If this is the same query that was made last, but just for a
+            // different page, then re-use the replacement query we got last time.
+            // Don't wait on the extension to come up with it again (and risk it
+            // giving an inconsistent answer between pages).
+            connection._queryReplacement = queryReplacement;
+            // Mark the old queryReplacement with this page now so we can tell on
+            // a later request whether the page was changed or the list refresh
+            // button was hit.
+            queryReplacement.start = params.start;
+          } else {
+            if (queryReplacement) {
+              // Resolve the old one with something because no one else is going
+              // to after it's replaced in a moment.
+              queryReplacement.newQuery.resolve(queryReplacement.query);
+            }
+            queryReplacement = connection._queryReplacement = {
+              term: customSearchTerm,
+              query: params.q,
+              start: params.start,
+              newQuery: defer()
+            };
+            triggerEvent({
+              type: 'searchQueryForReplacement',
+              term: customSearchTerm,
+              query: params.q
+            });
+          }
+          return true;
+        }
+        return false;
+      },
+      requestChanger: function (connection, request) {
+        return connection._queryReplacement.newQuery.promise.then(function (newQuery) {
+          const newParams = clone_default()(connection.params);
+          newParams.q = newQuery;
+          return {
+            method: request.method,
+            url: '?' + (0,querystring_es3.stringify)(newParams),
+            body: request.body
+          };
+        });
+      }
+    });
+
+    // newer, sync API based request intercept
+    main_wrappers.push({
+      isRelevantTo: function (connection) {
+        return connection.method === 'POST' && /sync(?:\/u\/\d+)?\/i\/bv/.test(connection.url);
+      },
+      requestChanger: function (connection, request) {
+        let customSearchTerm;
+        const body = JSON.parse(request.body);
+        let newFormat = false;
+        let payload, searchString, pageOffset;
+        if (Array.isArray(body)) {
+          newFormat = true;
+          payload = body[0];
+          searchString = payload[3];
+          pageOffset = payload[9];
+        } else {
+          payload = body[1];
+          searchString = payload[4];
+          pageOffset = payload[10];
+        }
+        const isSyncAPISearchWithCustomTerm = payload[newFormat ? 0 : 1] === 79 && typeof searchString === 'string' && (customSearchTerm = intersection_default()(customSearchTerms, quotedSplit(searchString))[0]);
+        if (!isSyncAPISearchWithCustomTerm) return Promise.resolve(request);
+        if (queryReplacement && queryReplacement.query === searchString && queryReplacement.start != pageOffset) {
+          // If this is the same query that was made last, but just for a
+          // different page, then re-use the replacement query we got last time.
+          // Don't wait on the extension to come up with it again (and risk it
+          // giving an inconsistent answer between pages).
+          connection._queryReplacement = queryReplacement;
+          // Mark the old queryReplacement with this page now so we can tell on
+          // a later request whether the page was changed or the list refresh
+          // button was hit.
+          queryReplacement.start = pageOffset;
+        } else {
+          if (queryReplacement) {
+            // Resolve the old one with something because no one else is going
+            // to after it's replaced in a moment.
+            queryReplacement.newQuery.resolve(queryReplacement.query);
+          }
+          queryReplacement = connection._queryReplacement = {
+            term: customSearchTerm,
+            query: searchString,
+            start: pageOffset,
+            newQuery: defer()
+          };
+          triggerEvent({
+            type: 'searchQueryForReplacement',
+            term: customSearchTerm,
+            query: searchString
+          });
+        }
+        return connection._queryReplacement.newQuery.promise.then(function (newQuery) {
+          if (newFormat) {
+            body[0][3] = newQuery;
+          } else {
+            body[1][4] = newQuery;
+          }
+          return {
+            method: request.method,
+            url: request.url,
+            body: JSON.stringify(body)
+          };
+        });
+      }
+    });
+  }
+  {
+    // Search results replacer.
+    // The content script tells us a search query to watch for. Whenever we see
+    // the search query, trigger an event containing the query, trigger an
+    // event containing the response, and then wait for a response event from
+    // the content script that contains new results to substitute in.
+    const customSearchQueries = [];
+    let customListJob;
+    document.addEventListener('inboxSDKcustomListRegisterQuery', event => {
+      customSearchQueries.push(event.detail.query);
+    });
+    document.addEventListener('inboxSDKcustomListNewQuery', event => {
+      if (customListJob.query === event.detail.query && customListJob.start === event.detail.start) {
+        const {
+          newQuery,
+          newStart
+        } = event.detail;
+        customListJob.newRequestParams.resolve({
+          query: newQuery,
+          start: newStart
+        });
+      }
+    });
+    document.addEventListener('inboxSDKcustomListResults', event => {
+      if (customListJob.query === event.detail.query) {
+        customListJob.newResults.resolve(event.detail.newResults);
+      }
+    });
+    js_frame_wrappers.push({
+      isRelevantTo: function (connection) {
+        const params = connection.params;
+        if (connection.method === 'POST' && params.search && params.view === 'tl' && connection.url.match(/^\?/) && params.q && !params.act && find_default()(customSearchQueries, x => x === params.q)) {
+          if (customListJob) {
+            // Resolve the old one with something because no one else is going
+            // to after it's replaced in a moment.
+            customListJob.newRequestParams.resolve({
+              query: customListJob.query,
+              start: customListJob.start
+            });
+            customListJob.newResults.resolve(null);
+          }
+          customListJob = connection._customListJob = {
+            query: params.q,
+            start: +params.start,
+            newRequestParams: defer(),
+            newResults: defer()
+          };
+          triggerEvent({
+            type: 'searchForReplacement',
+            query: customListJob.query,
+            start: customListJob.start
+          });
+          return true;
+        }
+        return false;
+      },
+      requestChanger: function (connection, request) {
+        return connection._customListJob.newRequestParams.promise.then(_ref9 => {
+          let {
+            query,
+            start
+          } = _ref9;
+          const newParams = clone_default()(connection.params);
+          newParams.q = query;
+          newParams.start = start;
+          return {
+            method: request.method,
+            url: '?' + (0,querystring_es3.stringify)(newParams),
+            body: request.body
+          };
+        });
+      },
+      responseTextChanger: function (connection, response) {
+        triggerEvent({
+          type: 'searchResultsResponse',
+          query: connection._customListJob.query,
+          start: connection._customListJob.start,
+          response
+        });
+        return connection._customListJob.newResults.promise.then(newResults => newResults === null ? response : newResults);
+      }
+    });
+    // Sync API-based custom thread list interception
+    main_wrappers.push({
+      isRelevantTo: function (connection) {
+        if (/sync(?:\/u\/\d+)?\/i\/bv/.test(connection.url)) {
+          if (customListJob) {
+            // Resolve the old one with something because no one else is going
+            // to after it's replaced in a moment.
+            customListJob.newRequestParams.resolve({
+              query: customListJob.query,
+              start: customListJob.start
+            });
+            customListJob.newResults.resolve(null);
+          }
+          return true;
+        }
+        return false;
+      },
+      requestChanger: async function (connection, request) {
+        if (request.body) {
+          const parsedBody = JSON.parse(request.body);
+          const newFormat = Array.isArray(parsedBody);
+          // we are a search!
+          const searchQuery = (newFormat ? parsedBody && parsedBody[0] && parsedBody[0][3] : parsedBody && parsedBody[1] && parsedBody[1][4]) || '';
+          if (find_default()(customSearchQueries, x => x === searchQuery)) {
+            customListJob = connection._customListJob = {
+              query: searchQuery,
+              start: newFormat ? parsedBody[0][9] : parsedBody[1][10],
+              newRequestParams: defer(),
+              newResults: defer()
+            };
+            triggerEvent({
+              type: 'searchForReplacement',
+              query: customListJob.query,
+              start: customListJob.start
+            });
+            return connection._customListJob.newRequestParams.promise.then(_ref10 => {
+              let {
+                query,
+                start
+              } = _ref10;
+              if (newFormat) {
+                parsedBody[0][3] = query;
+                parsedBody[0][9] = start;
+              } else {
+                parsedBody[1][4] = query;
+                parsedBody[1][10] = start;
+              }
+              return {
+                method: request.method,
+                url: request.url,
+                body: JSON.stringify(parsedBody)
+              };
+            });
+          }
+        }
+        return request;
+      },
+      responseTextChanger: async function (connection, response) {
+        if (connection._customListJob) {
+          triggerEvent({
+            type: 'searchResultsResponse',
+            query: connection._customListJob.query,
+            start: connection._customListJob.start,
+            response
+          });
+          return connection._customListJob.newResults.promise.then(newResults => newResults === null ? response : newResults);
+        } else {
+          return response;
+        }
+      }
+    });
+  }
+  // sync token savers
+  {
+    const saveBTAIHeader = header => {
+      document.head.setAttribute('data-inboxsdk-btai-header', header);
+      triggerEvent({
+        type: 'btaiHeaderReceived'
+      });
+    };
+    main_wrappers.push({
+      isRelevantTo(connection) {
+        return /sync(?:\/u\/\d+)?\//.test(connection.url) && !document.head.hasAttribute('data-inboxsdk-btai-header');
+      },
+      originalSendBodyLogger(connection) {
+        if (connection.headers['X-Gmail-BTAI']) {
+          saveBTAIHeader(connection.headers['X-Gmail-BTAI']);
+        }
+      }
+    });
+    const saveXsrfTokenHeader = header => {
+      document.head.setAttribute('data-inboxsdk-xsrf-token', header);
+      triggerEvent({
+        type: 'xsrfTokenHeaderReceived'
+      });
+    };
+    main_wrappers.push({
+      isRelevantTo(connection) {
+        return /sync(?:\/u\/\d+)?\//.test(connection.url) && !document.head.hasAttribute('data-inboxsdk-xsrf-token');
+      },
+      originalSendBodyLogger(connection) {
+        if (connection.headers['X-Framework-Xsrf-Token']) {
+          saveXsrfTokenHeader(connection.headers['X-Framework-Xsrf-Token']);
+        }
+      }
+    });
+  }
+
+  // Google API request header values
+  {
+    // harcoding a value observed across multiple accounts to start with.
+    // Will be updated when we see a request, in case Gmail has changed it.
+    let googleApiKey = 'AIzaSyBm7aDMG9actsWSlx-MvrYsepwdnLgz69I';
+    document.addEventListener('inboxSDKgetGoogleRequestHeaders', () => {
+      const authorizationHeader = window.gapi.auth.getAuthHeaderValueForFirstParty([]);
+      const headers = {
+        authorization: authorizationHeader,
+        'x-goog-api-key': googleApiKey
+      };
+      document.head.setAttribute('data-inboxsdk-google-headers', JSON.stringify(headers));
+    });
+    main_wrappers.push({
+      isRelevantTo(connection) {
+        // check for absolute URLs going to a google domain
+        if (connection.url.startsWith('https://')) {
+          const url = new URL(connection.url);
+          return url.hostname.endsWith('.google.com');
+        }
+        return false;
+      },
+      originalSendBodyLogger(connection) {
+        if (connection.headers['X-Goog-Api-Key']) {
+          googleApiKey = connection.headers['X-Goog-Api-Key'];
+        }
+      }
+    });
+  }
+}
+function triggerEvent(detail) {
+  document.dispatchEvent(new CustomEvent('inboxSDKajaxIntercept', {
+    bubbles: true,
+    cancelable: false,
+    detail
+  }));
+}
+function stringifyComposeParams(inComposeParams) {
+  const composeParams = clone_default()(inComposeParams);
+  const string = `=${stringifyComposeRecipientParam(composeParams.to, 'to')}&=${stringifyComposeRecipientParam(composeParams.cc, 'cc')}&=${stringifyComposeRecipientParam(composeParams.bcc, 'bcc')}`;
+  delete composeParams.to;
+  delete composeParams.bcc;
+  delete composeParams.cc;
+  return string + '&' + querystring_es3.stringify(composeParams);
+}
+function stringifyComposeRecipientParam(value, paramType) {
+  let string = '';
+  if (Array.isArray(value)) {
+    for (let ii = 0; ii < value.length; ii++) {
+      string += `&${paramType}=${encodeURIComponent(value[ii])}`;
+    }
+  } else {
+    string += `&${paramType}=${encodeURIComponent(value)}`;
+  }
+  return string;
 }
 
 /***/ }),
 
-/***/ "./src/injected-js/injected-logger.ts":
-/*!********************************************!*\
-  !*** ./src/injected-js/injected-logger.ts ***!
-  \********************************************/
+/***/ 8809:
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   A: () => (/* binding */ setupGmonkeyHandler)
+/* harmony export */ });
+function setupGmonkeyHandler() {
+  const gmonkeyPromise = setupGmonkey();
+  document.addEventListener('inboxSDKtellMeIsConversationViewDisabled', function () {
+    gmonkeyPromise.then(gmonkey => {
+      const answer = gmonkey.isConversationViewDisabled();
+      const event = document.createEvent('CustomEvent');
+      event.initCustomEvent('inboxSDKgmonkeyResponse', false, false, answer);
+      document.dispatchEvent(event);
+    });
+  });
+  document.addEventListener('inboxSDKtellMeCurrentThreadId', function (event) {
+    let threadId;
+    if (event.detail.isPreviewedThread) {
+      const rows = Array.from(document.querySelectorAll('[gh=tl] tr.aps'));
+      if (rows.length > 0) {
+        const elementWithId = rows.map(row => row.querySelector('[data-thread-id]')).filter(Boolean)[0];
+        if (elementWithId) {
+          threadId = elementWithId.getAttribute('data-thread-id');
+        } else {
+          threadId = rows[0].getAttribute('data-inboxsdk-threadid');
+        }
+      }
+    } else {
+      threadId = window.gmonkey?.v2?.getCurrentThread?.()?.getThreadId();
+    }
+    if (threadId) {
+      // hash is included in the sync id route url, so we also need to take it out
+      threadId = threadId.replace('#', '');
+      event.target.setAttribute('data-inboxsdk-currentthreadid', threadId);
+    }
+  });
+}
+function setupGmonkey() {
+  return new Promise(resolve => {
+    function check() {
+      if (!window.gmonkey) {
+        setTimeout(check, 500);
+      } else {
+        window.gmonkey.load('2.0', resolve);
+      }
+    }
+    check();
+  });
+}
+
+/***/ }),
+
+/***/ 4530:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -2506,142 +3223,61 @@ function eventSdkPassive(name, details, sensitive) {
 
 /***/ }),
 
-/***/ "./src/injected-js/message-metadata-holder.ts":
-/*!****************************************************!*\
-  !*** ./src/injected-js/message-metadata-holder.ts ***!
-  \****************************************************/
+/***/ 6465:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   add: () => (/* binding */ add),
-/* harmony export */   setup: () => (/* binding */ setup)
-/* harmony export */ });
-/* harmony import */ var lodash_startsWith__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lodash/startsWith */ "./node_modules/lodash/startsWith.js");
-/* harmony import */ var lodash_startsWith__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(lodash_startsWith__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _platform_implementation_js_dom_driver_gmail_gmail_response_processor__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../platform-implementation-js/dom-driver/gmail/gmail-response-processor */ "./src/platform-implementation-js/dom-driver/gmail/gmail-response-processor.ts");
-/* harmony import */ var _platform_implementation_js_dom_driver_gmail_gmail_driver_getSyncThreadFromSyncThreadId__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../platform-implementation-js/dom-driver/gmail/gmail-driver/getSyncThreadFromSyncThreadId */ "./src/platform-implementation-js/dom-driver/gmail/gmail-driver/getSyncThreadFromSyncThreadId.ts");
-/* harmony import */ var _injected_logger__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./injected-logger */ "./src/injected-js/injected-logger.ts");
-/* harmony import */ var _platform_implementation_js_driver_common_requestGmailThread__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../platform-implementation-js/driver-common/requestGmailThread */ "./src/platform-implementation-js/driver-common/requestGmailThread.ts");
 
+// EXPORTS
+__webpack_require__.d(__webpack_exports__, {
+  A: () => (/* binding */ setupDataExposer)
+});
 
-
-
-
-const threadIdToMessages = new Map();
-function setup() {
-  document.addEventListener('inboxSDKtellMeThisMessageDate', function (event) {
-    exposeMetadata(event, 'data-inboxsdk-sortdate', m => m.date);
-  });
-  document.addEventListener('inboxSDKtellMeThisMessageRecipients', function (event) {
-    exposeMetadata(event, 'data-inboxsdk-recipients', m => {
-      if (m.recipients) return m.recipients;else return null;
-    });
-  });
+// EXTERNAL MODULE: ./node_modules/lodash/find.js
+var find = __webpack_require__(4455);
+var find_default = /*#__PURE__*/__webpack_require__.n(find);
+// EXTERNAL MODULE: ./src/injected-js/injected-logger.ts
+var injected_logger = __webpack_require__(4530);
+;// CONCATENATED MODULE: ./src/platform-implementation-js/lib/wait-for.ts
+class WaitForError extends Error {
+  name = 'WaitForError';
+  constructor() {
+    super('waitFor timeout');
+  }
 }
-function exposeMetadata(event, attribute, processor) {
-  const {
-    target,
-    detail: {
-      threadId,
-      ikValue,
-      btaiHeader,
-      xsrfToken
-    }
-  } = event;
-  (async () => {
-    const messageIndex = Array.from(target.parentElement.children).filter(el => !el.classList.contains('inboxsdk__custom_message_view')).indexOf(target);
-    if (messageIndex < 0) {
-      throw new Error('Should not happen');
-    }
-    let message = getMessage(threadId, messageIndex);
-    if (message == null || !message.recipients) {
+
+/**
+ * @param condition a function that returns the value to wait for, or falsey if it's not ready yet
+ * @throws {WaitForError} if the condition is not met within the timeout
+ */
+function waitFor(condition) {
+  let timeout = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 120 * 1000;
+  let steptime = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 250;
+  // make this error here so we have a sensible stack.
+  const timeoutError = new WaitForError();
+  return new Promise(function (resolve, reject) {
+    let waited = 0;
+    function step() {
       try {
-        await addDataForThread(threadId, ikValue, btaiHeader, xsrfToken);
-      } catch (err) {
-        _injected_logger__WEBPACK_IMPORTED_MODULE_3__.error(err);
-      }
-      message = getMessage(threadId, messageIndex);
-      if (message == null) {
-        throw new Error('Failed to find message date after re-requesting thread');
+        const result = condition();
+        if (result) {
+          resolve(result);
+        } else {
+          if (waited >= timeout) {
+            reject(timeoutError);
+          } else {
+            waited += steptime;
+            setTimeout(step, steptime);
+          }
+        }
+      } catch (e) {
+        reject(e);
       }
     }
-    target.setAttribute(attribute, JSON.stringify(processor(message)));
-  })().catch(err => {
-    target.setAttribute(attribute, 'error');
-    _injected_logger__WEBPACK_IMPORTED_MODULE_3__.error(err);
+    setTimeout(step, 1);
   });
 }
-function getMessage(threadId, messageIndex) {
-  const messages = threadIdToMessages.get(threadId);
-  if (messages) {
-    const message = messages[messageIndex];
-    if (message) {
-      return message;
-    }
-  }
-}
-function add(groupedMessages) {
-  groupedMessages.forEach(group => {
-    threadIdToMessages.set(group.threadID, group.messages);
-  });
-}
-const activeThreadRequestPromises = new Map();
-function addDataForThread(threadId, ikValue, btaiHeader, xsrfToken) {
-  const existingRequestPromise = activeThreadRequestPromises.get(threadId);
-  if (existingRequestPromise) {
-    return existingRequestPromise;
-  }
-  const newPromise = (async () => {
-    try {
-      if (lodash_startsWith__WEBPACK_IMPORTED_MODULE_0___default()(threadId, 'thread')) {
-        // new data layer
-        if (!btaiHeader || !xsrfToken) {
-          throw new Error('Need btaiHeader and xsrfToken when in new data layer');
-        }
-        const syncThread = await (0,_platform_implementation_js_dom_driver_gmail_gmail_driver_getSyncThreadFromSyncThreadId__WEBPACK_IMPORTED_MODULE_2__.getThreadFromSyncThreadIdUsingHeaders)(threadId, btaiHeader, xsrfToken);
-        if (syncThread) {
-          add([{
-            threadID: syncThread.syncThreadID,
-            messages: syncThread.extraMetaData.syncMessageData.map(syncMessage => ({
-              date: syncMessage.date,
-              recipients: syncMessage.recipients
-            }))
-          }]);
-        }
-      } else {
-        // legacy gmail
-        const text = await (0,_platform_implementation_js_driver_common_requestGmailThread__WEBPACK_IMPORTED_MODULE_4__["default"])(ikValue, threadId);
-        add((0,_platform_implementation_js_dom_driver_gmail_gmail_response_processor__WEBPACK_IMPORTED_MODULE_1__.extractMessages)(text));
-      }
-    } catch (err) {
-      _injected_logger__WEBPACK_IMPORTED_MODULE_3__.error(err);
-    } finally {
-      activeThreadRequestPromises.delete(threadId);
-    }
-  })();
-  activeThreadRequestPromises.set(threadId, newPromise);
-  return newPromise;
-}
-
-/***/ }),
-
-/***/ "./src/injected-js/setup-data-exposer.ts":
-/*!***********************************************!*\
-  !*** ./src/injected-js/setup-data-exposer.ts ***!
-  \***********************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ setupDataExposer)
-/* harmony export */ });
-/* harmony import */ var lodash_find__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lodash/find */ "./node_modules/lodash/find.js");
-/* harmony import */ var lodash_find__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(lodash_find__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _injected_logger__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./injected-logger */ "./src/injected-js/injected-logger.ts");
-/* harmony import */ var _platform_implementation_js_lib_wait_for__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../platform-implementation-js/lib/wait-for */ "./src/platform-implementation-js/lib/wait-for.ts");
+;// CONCATENATED MODULE: ./src/injected-js/setup-data-exposer.ts
 
 
 
@@ -2656,7 +3292,7 @@ function stupidToBool(stupid) {
   }
 }
 function getSettingValue(settings, name) {
-  var entry = lodash_find__WEBPACK_IMPORTED_MODULE_0___default()(settings, setting => setting[0] === name);
+  var entry = find_default()(settings, setting => setting[0] === name);
   return entry ? stupidToBool(entry[1]) : false;
 }
 function getContext() {
@@ -2680,7 +3316,7 @@ function getContext() {
 }
 function setupDataExposer() {
   let context;
-  (0,_platform_implementation_js_lib_wait_for__WEBPACK_IMPORTED_MODULE_2__["default"])(() => {
+  waitFor(() => {
     context = getContext();
     return context && (context.GLOBALS || context.gbar);
   }).then(() => {
@@ -2694,7 +3330,7 @@ function setupDataExposer() {
       // Gmail
       document.head.setAttribute('data-inboxsdk-ik-value', context.GLOBALS[9]);
       document.head.setAttribute('data-inboxsdk-action-token-value', context.GM_ACTION_TOKEN);
-      var globalSettingsHolder = lodash_find__WEBPACK_IMPORTED_MODULE_0___default()(context.GLOBALS[17], item => item[0] === 'p');
+      var globalSettingsHolder = find_default()(context.GLOBALS[17], item => item[0] === 'p');
       if (!globalSettingsHolder) {
         // global settings doesn't exist on gmail v2, so we don't need to log this anymore
         return;
@@ -2711,9 +3347,9 @@ function setupDataExposer() {
     } else {
       // Inbox
       const preloadDataSearchString = 'window.BT_EmbeddedAppData=[';
-      const preloadScript = lodash_find__WEBPACK_IMPORTED_MODULE_0___default()(document.querySelectorAll('script:not([src])'), script => script.text && script.text.slice(0, 500).indexOf(preloadDataSearchString) > -1);
+      const preloadScript = find_default()(document.querySelectorAll('script:not([src])'), script => script.text && script.text.slice(0, 500).indexOf(preloadDataSearchString) > -1);
       if (!preloadScript) {
-        _injected_logger__WEBPACK_IMPORTED_MODULE_1__.error(new Error('Could not read preloaded BT_EmbeddedAppData'));
+        injected_logger.error(new Error('Could not read preloaded BT_EmbeddedAppData'));
       } else {
         const {
           text
@@ -2729,13 +3365,13 @@ function setupDataExposer() {
         const preloadData = JSON.parse(text.slice(firstBracket + preloadDataSearchString.length - 1, lastBracket + 1));
         const ikValue = preloadData[11];
         if (typeof ikValue !== 'string') {
-          _injected_logger__WEBPACK_IMPORTED_MODULE_1__.error(new Error('Could not find valid ikValue'));
+          injected_logger.error(new Error('Could not find valid ikValue'));
         } else {
           document.head.setAttribute('data-inboxsdk-ik-value', ikValue);
         }
         const xsrfToken = preloadData[12];
         if (typeof xsrfToken !== 'string') {
-          _injected_logger__WEBPACK_IMPORTED_MODULE_1__.error(new Error('Could not find valid xsrfToken'));
+          injected_logger.error(new Error('Could not find valid xsrfToken'));
         } else {
           document.head.setAttribute('data-inboxsdk-xsrf-token', xsrfToken);
         }
@@ -2752,40 +3388,31 @@ function setupDataExposer() {
     var waitTime = 180 * 1000;
     setTimeout(() => {
       var laterStatus = getStatus();
-      _injected_logger__WEBPACK_IMPORTED_MODULE_1__.eventSdkPassive('waitfor global data', {
+      injected_logger.eventSdkPassive('waitfor global data', {
         startStatus,
         waitTime,
         laterStatus
       });
     }, waitTime);
     throw err;
-  }).catch(_injected_logger__WEBPACK_IMPORTED_MODULE_1__.error);
+  }).catch(injected_logger.error);
 }
 
 /***/ }),
 
-/***/ "./src/injected-js/setup-error-silencer.ts":
-/*!*************************************************!*\
-  !*** ./src/injected-js/setup-error-silencer.ts ***!
-  \*************************************************/
+/***/ 5915:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ setupErrorSilencer)
+/* harmony export */   A: () => (/* binding */ setupErrorSilencer)
 /* harmony export */ });
 function setupErrorSilencer() {
   var oldErrorHandlers = [];
   document.addEventListener('inboxSDKsilencePageErrors', function () {
     oldErrorHandlers.push(window.onerror);
     window.onerror = function () {
-      if (true) {
-        for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
-          args[_key] = arguments[_key];
-        }
-        console.error('(Silenced in production) Page error:', ...args);
-      }
+      if (false) { var _len, args, _key; }
       return true;
     };
   });
@@ -2796,16 +3423,12 @@ function setupErrorSilencer() {
 
 /***/ }),
 
-/***/ "./src/injected-js/setup-event-reemitter.ts":
-/*!**************************************************!*\
-  !*** ./src/injected-js/setup-event-reemitter.ts ***!
-  \**************************************************/
+/***/ 9729:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ setupEventReemitter)
+/* harmony export */   A: () => (/* binding */ setupEventReemitter)
 /* harmony export */ });
 /* eslint-disable @typescript-eslint/no-empty-function */
 function setupEventReemitter() {
@@ -2865,21 +3488,17 @@ function setupEventReemitter() {
 
 /***/ }),
 
-/***/ "./src/injected-js/setupCustomViewEventAssassin.ts":
-/*!*********************************************************!*\
-  !*** ./src/injected-js/setupCustomViewEventAssassin.ts ***!
-  \*********************************************************/
+/***/ 4630:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ setupCustomViewEventAssassin)
+/* harmony export */   A: () => (/* binding */ setupCustomViewEventAssassin)
 /* harmony export */ });
-/* harmony import */ var ud__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ud */ "./node_modules/ud/js/index.js");
-/* harmony import */ var lodash_includes__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lodash/includes */ "./node_modules/lodash/includes.js");
+/* harmony import */ var ud__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(7332);
+/* harmony import */ var lodash_includes__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(5193);
 /* harmony import */ var lodash_includes__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(lodash_includes__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _injected_logger__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./injected-logger */ "./src/injected-js/injected-logger.ts");
+/* harmony import */ var _injected_logger__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(4530);
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 
@@ -2929,7 +3548,7 @@ function shouldBlockEvent(event) {
   }
   return false;
 }
-const handler = (0,ud__WEBPACK_IMPORTED_MODULE_2__.defn)(module, function (event) {
+const handler = (0,ud__WEBPACK_IMPORTED_MODULE_1__.defn)(module, function (event) {
   try {
     // If the key is in a blacklist and it originated while a custom view is
     // present, then maim the event object before Gmail or Inbox sees it.
@@ -2947,7 +3566,7 @@ const handler = (0,ud__WEBPACK_IMPORTED_MODULE_2__.defn)(module, function (event
       });
     }
   } catch (err) {
-    _injected_logger__WEBPACK_IMPORTED_MODULE_1__.error(err);
+    _injected_logger__WEBPACK_IMPORTED_MODULE_2__.error(err);
   }
 });
 function setupCustomViewEventAssassin() {
@@ -2956,16 +3575,12 @@ function setupCustomViewEventAssassin() {
 
 /***/ }),
 
-/***/ "./src/injected-js/setupInboxCustomViewLinkFixer.ts":
-/*!**********************************************************!*\
-  !*** ./src/injected-js/setupInboxCustomViewLinkFixer.ts ***!
-  \**********************************************************/
+/***/ 9234:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ setupInboxCustomViewLinkFixer)
+/* harmony export */   A: () => (/* binding */ setupInboxCustomViewLinkFixer)
 /* harmony export */ });
 function setupInboxCustomViewLinkFixer() {
   const allowedStartTerms = new Set();
@@ -2990,16 +3605,12 @@ function setupInboxCustomViewLinkFixer() {
 
 /***/ }),
 
-/***/ "./src/injected-js/setupPushStateListener.ts":
-/*!***************************************************!*\
-  !*** ./src/injected-js/setupPushStateListener.ts ***!
-  \***************************************************/
+/***/ 3095:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ setupPushStateListener)
+/* harmony export */   A: () => (/* binding */ setupPushStateListener)
 /* harmony export */ });
 function setupPushStateListener() {
   const origPushState = history.pushState;
@@ -3021,16 +3632,12 @@ function setupPushStateListener() {
 
 /***/ }),
 
-/***/ "./src/injected-js/xhr-helper.ts":
-/*!***************************************!*\
-  !*** ./src/injected-js/xhr-helper.ts ***!
-  \***************************************/
+/***/ 284:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ xhrHelper)
+/* harmony export */   A: () => (/* binding */ xhrHelper)
 /* harmony export */ });
 function xhrHelper() {
   document.addEventListener('inboxSDKpageAjax', function (event) {
@@ -3079,658 +3686,28 @@ function xhrHelper() {
 
 /***/ }),
 
-/***/ "./src/injected-js/xhr-proxy-factory.ts":
-/*!**********************************************!*\
-  !*** ./src/injected-js/xhr-proxy-factory.ts ***!
-  \**********************************************/
+/***/ 1433:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ XHRProxyFactory)
+/* harmony export */   On: () => (/* binding */ cleanupPeopleLine),
+/* harmony export */   St: () => (/* binding */ extractMessages),
+/* harmony export */   XX: () => (/* binding */ deserializeArray),
+/* harmony export */   eF: () => (/* binding */ extractThreadsFromDeserialized),
+/* harmony export */   iu: () => (/* binding */ deserialize),
+/* harmony export */   lK: () => (/* binding */ serialize),
+/* harmony export */   rq: () => (/* binding */ extractThreads)
 /* harmony export */ });
-/* harmony import */ var lodash_has__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lodash/has */ "./node_modules/lodash/has.js");
-/* harmony import */ var lodash_has__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(lodash_has__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var lodash_noop__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! lodash/noop */ "./node_modules/lodash/noop.js");
-/* harmony import */ var lodash_noop__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(lodash_noop__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var lodash_each__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! lodash/each */ "./node_modules/lodash/each.js");
-/* harmony import */ var lodash_each__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(lodash_each__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var lodash_filter__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! lodash/filter */ "./node_modules/lodash/filter.js");
-/* harmony import */ var lodash_filter__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(lodash_filter__WEBPACK_IMPORTED_MODULE_3__);
-/* harmony import */ var lodash_includes__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! lodash/includes */ "./node_modules/lodash/includes.js");
-/* harmony import */ var lodash_includes__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(lodash_includes__WEBPACK_IMPORTED_MODULE_4__);
-/* harmony import */ var lodash_once__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! lodash/once */ "./node_modules/lodash/once.js");
-/* harmony import */ var lodash_once__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(lodash_once__WEBPACK_IMPORTED_MODULE_5__);
-/* harmony import */ var _common_assert__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../common/assert */ "./src/common/assert.ts");
-/* harmony import */ var events__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! events */ "./node_modules/events/events.js");
-/* harmony import */ var events__WEBPACK_IMPORTED_MODULE_7___default = /*#__PURE__*/__webpack_require__.n(events__WEBPACK_IMPORTED_MODULE_7__);
-/* harmony import */ var querystring__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! querystring */ "./node_modules/querystring-es3/index.js");
-/* harmony import */ var _common_isNotNil__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../common/isNotNil */ "./src/common/isNotNil.ts");
-/* eslint-disable prefer-rest-params */
-
-
-
-
-
-
-
-
-
-
-const WARNING_TIMEOUT = 60 * 1000;
-
-/**
- * Object with information about the connection in progress. Its fields are
- * populated as the connection goes on. The object is passed as the first
- * argument to all of the wrappers. The object is mutable so the wrappers can
- * add properties to it.
- *
- * @typedef {Object} XHRProxyConnectionDetails
- * @property {string} method
- * @property {string} url
- * @property {Object} params - parameters decoded from the URL
- * @property {Object} headers - request headers set on the XHR
- * @property {string} responseType
- * @property {string} originalSendBody - data passed to send method
- * @property {number} status - HTTP response status
- * @property {string} [originalResponseText] - Is not set if responseType is set
- *  to a value besides 'text'.
- * @property {string} [modifiedResponseText]
- */
-
-/**
- * Thing
- *
- * @callback XHRProxyWrapperCallback
- * @param {XHRProxyConnectionDetails} connection
- */
-
-/**
- * Wrapper object contains optional callbacks that get run for completed
- * requests, and a required isRelevantTo method that filters what types of
- * requests the methods should be called for. All methods are passed an object
- * with details about the connection as the first argument. Some methods are
- * called with a relevant second argument (which is also present within the
- * connection argument).
- *
- * @typedef {Object} XHRProxyWrapper
- * @property {XHRProxyWrapperCallback} isRelevantTo - returns true if wrapper should be used
- *  for request.
- * @property {XHRProxyWrapperCallback} [originalSendBodyLogger] - called with value passed to
- *  send.
- * @property {XHRProxyWrapperCallback} [requestChanger] - Allows the protocol, URL, and body
- *  to be changed together before the connection is opened and sent.
- * @property {XHRProxyWrapperCallback} [originalResponseTextLogger] - called with the responseText as
- *  given by the server. Is not called if responseType is set to a value besides 'text'.
- * @property {XHRProxyWrapperCallback} [responseTextChanger] - called with the responseText as given
- *  by the server and returns new responseText value. Is not called if responseType
- * is set to a value besides 'text'.
- * @property {XHRProxyWrapperCallback} [finalResponseTextLogger] - called with the responseText as
- *  delivered to application code. Is not called if responseType is set to a value besides 'text'.
- * @property {XHRProxyWrapperCallback} [afterListeners] - called after all event listeners
- *  for readystatechange have run
- */
-
-/**
- * Creates a drop-in replacement for the XMLHttpRequest constructor that can
- * have wrappers which may log or modify server responses. See
- * test/xhrproxy.js for usage examples and tests.
- * @function XHRProxyFactory
- * @param {function} XHR - original XMLHttpRequest constructor to wrap
- * @param {XHRProxyWrapper[]} wrappers - mutable array
- * @param {Object} [opts] - Can specify a logError function
- * @returns {function} wrapped XMLHttpRequest-like constructor
- */
-
-function XHRProxyFactory(XHR, wrappers, opts) {
-  const logError = opts && opts.logError || function (error) {
-    setTimeout(function () {
-      // let window.onerror log this
-      throw error;
-    }, 1);
-  };
-  function transformEvent(oldTarget, newTarget, event) {
-    const newEvent = {};
-    Object.keys(event).concat(['bubbles', 'cancelBubble', 'cancelable', 'defaultPrevented', 'preventDefault', 'stopPropagation', 'stopImmediatePropagation', 'lengthComputable', 'loaded', 'total', 'type', 'currentTarget', 'target', 'srcElement', 'NONE', 'CAPTURING_PHASE', 'AT_TARGET', 'BUBBLING_PHASE', 'eventPhase']).filter(name => name in event).forEach(name => {
-      const value = event[name];
-      if (value === oldTarget) {
-        newEvent[name] = newTarget;
-      } else if (typeof value === 'function') {
-        newEvent[name] = value.bind(event);
-      } else {
-        newEvent[name] = value;
-      }
-    });
-    return newEvent;
-  }
-  function wrapEventListener(oldTarget, newTarget, listener) {
-    return function (event) {
-      return listener.call(newTarget, transformEvent(oldTarget, newTarget, event));
-    };
-  }
-  function findApplicableWrappers(wrappers, connection) {
-    return lodash_filter__WEBPACK_IMPORTED_MODULE_3___default()(wrappers, function (wrapper) {
-      try {
-        return wrapper.isRelevantTo(connection);
-      } catch (e) {
-        logError(e);
-      }
-    });
-  }
-  function XHRProxy() {
-    this._wrappers = wrappers;
-    this._listeners = {};
-    this._boundListeners = {};
-    this._events = new (events__WEBPACK_IMPORTED_MODULE_7___default())(); // used for internal stuff, not user-visible events
-
-    this.responseText = '';
-    this._openState = false;
-    if (XHR.bind && XHR.bind.apply) {
-      // call constructor with variable number of arguments
-      this._realxhr = new (XHR.bind.apply(XHR, [null].concat(arguments)))();
-    } else {
-      // Safari's XMLHttpRequest lacks a bind method, but its constructor
-      // doesn't support extra arguments anyway, so don't bother logging an
-      // error here.
-      this._realxhr = new XHR();
-    }
-    const self = this;
-    const triggerEventListeners = (name, event) => {
-      if (this['on' + name]) {
-        try {
-          wrapEventListener(this._realxhr, this, this['on' + name]).call(this, event);
-        } catch (e) {
-          logError(e, 'XMLHttpRequest event listener error');
-        }
-      }
-      lodash_each__WEBPACK_IMPORTED_MODULE_2___default()(this._boundListeners[name], boundListener => {
-        try {
-          boundListener(event);
-        } catch (e) {
-          logError(e, 'XMLHttpRequest event listener error');
-        }
-      });
-    };
-    const runRscListeners = event => {
-      triggerEventListeners('readystatechange', event);
-    };
-    this._fakeRscEvent = function () {
-      runRscListeners(Object.freeze({
-        bubbles: false,
-        cancelBubble: false,
-        cancelable: false,
-        defaultPrevented: false,
-        preventDefault: (lodash_noop__WEBPACK_IMPORTED_MODULE_1___default()),
-        stopPropagation: (lodash_noop__WEBPACK_IMPORTED_MODULE_1___default()),
-        stopImmediatePropagation: (lodash_noop__WEBPACK_IMPORTED_MODULE_1___default()),
-        type: 'readystatechange',
-        currentTarget: this,
-        target: this,
-        srcElement: this,
-        NONE: 0,
-        CAPTURING_PHASE: 1,
-        AT_TARGET: 2,
-        BUBBLING_PHASE: 3,
-        eventPhase: 0
-      }));
-    };
-    const deliverFinalRsc = event => {
-      this.readyState = 4;
-      // Remember the status now before any event handlers are called, just in
-      // case one aborts the request.
-      var wasSuccess = this.status == 200;
-      var progressEvent = Object.assign({}, transformEvent(this._realxhr, this, event), {
-        lengthComputable: false,
-        loaded: 0,
-        total: 0
-      });
-      var supportsResponseText = !this._realxhr.responseType || this._realxhr.responseType == 'text';
-      if (supportsResponseText) {
-        lodash_each__WEBPACK_IMPORTED_MODULE_2___default()(this._activeWrappers, wrapper => {
-          if (wrapper.finalResponseTextLogger) {
-            try {
-              wrapper.finalResponseTextLogger(this._connection, this.responseText);
-            } catch (e) {
-              logError(e);
-            }
-          }
-        });
-      }
-      runRscListeners(event);
-      if (wasSuccess) {
-        triggerEventListeners('load', progressEvent);
-      } else {
-        triggerEventListeners('error', progressEvent);
-      }
-      triggerEventListeners('loadend', progressEvent);
-      lodash_each__WEBPACK_IMPORTED_MODULE_2___default()(this._activeWrappers, wrapper => {
-        if (wrapper.afterListeners) {
-          try {
-            wrapper.afterListeners(this._connection);
-          } catch (e) {
-            logError(e);
-          }
-        }
-      });
-    };
-    this._realxhr.addEventListener('readystatechange', event => {
-      if (!this._connection) {
-        return;
-      }
-      if (this._realxhr.readyState >= 2) {
-        this._connection.status = this._realxhr.status;
-      }
-      const supportsResponseText = !this._realxhr.responseType || this._realxhr.responseType == 'text';
-
-      // Process the response text.
-      if (this._realxhr.readyState == 4) {
-        if (supportsResponseText) {
-          Object.defineProperty(this._connection, 'originalResponseText', {
-            enumerable: true,
-            writable: false,
-            configurable: false,
-            value: self._realxhr.responseText
-          });
-          lodash_each__WEBPACK_IMPORTED_MODULE_2___default()(this._activeWrappers, wrapper => {
-            if (wrapper.originalResponseTextLogger) {
-              try {
-                wrapper.originalResponseTextLogger(this._connection, this._connection.originalResponseText);
-              } catch (e) {
-                logError(e);
-              }
-            }
-          });
-          const finish = lodash_once__WEBPACK_IMPORTED_MODULE_5___default()(deliverFinalRsc.bind(null, event));
-          if (this._connection.async) {
-            // If the XHR object is re-used for another connection, then we need
-            // to make sure that our upcoming async calls here do nothing.
-            // Remember the current connection object, and do nothing in our async
-            // calls if it no longer matches.
-            const startConnection = this._connection;
-            (async () => {
-              let modifiedResponseText = startConnection.originalResponseText;
-              startConnection.modifiedResponseText = modifiedResponseText;
-              for (const responseTextChanger of this._responseTextChangers) {
-                const longRunWarningTimer = setTimeout(() => {
-                  console.warn('responseTextChanger is taking too long', responseTextChanger, startConnection);
-                }, WARNING_TIMEOUT);
-                try {
-                  modifiedResponseText = await responseTextChanger(startConnection, modifiedResponseText);
-                } finally {
-                  clearTimeout(longRunWarningTimer);
-                }
-                if (typeof modifiedResponseText !== 'string') {
-                  throw new Error('responseTextChanger returned non-string value ' + modifiedResponseText);
-                }
-                startConnection.modifiedResponseText = modifiedResponseText;
-                if (startConnection !== this._connection) break;
-              }
-              return modifiedResponseText;
-            })().then(modifiedResponseText => {
-              if (startConnection === self._connection) {
-                this.responseText = modifiedResponseText;
-                finish();
-              }
-            }, err => {
-              logError(err);
-              if (startConnection === this._connection) {
-                this.responseText = this._realxhr.responseText;
-                finish();
-              }
-            }).catch(logError);
-            return;
-          } else {
-            self.responseText = self._realxhr.responseText;
-          }
-        } else {
-          self.responseText = '';
-        }
-        deliverFinalRsc(event);
-      } else {
-        if (self._realxhr.readyState == 1 && self.readyState == 1) {
-          // Delayed open+send just happened. We already delivered an event
-          // for this, so drop this event.
-          return;
-        } else if (self._realxhr.readyState >= 3 && supportsResponseText) {
-          if (self._responseTextChangers.length) {
-            // If we're going to transform the final response, then we don't
-            // want to expose any partial untransformed responses and we don't
-            // want to bother trying to transform partial responses. Only show
-            // an empty string as the loaded response until the connection is
-            // done.
-            self.responseText = '';
-          } else {
-            self.responseText = self._realxhr.responseText;
-          }
-        } else {
-          self.responseText = '';
-        }
-        self.readyState = self._realxhr.readyState;
-        runRscListeners(event);
-      }
-    }, false);
-    ['dispatchEvent', 'getAllResponseHeaders', 'getResponseHeader', 'overrideMimeType', 'responseType', 'responseXML', 'responseURL', 'status', 'statusText', 'timeout', 'ontimeout', 'onloadstart', 'onprogress', 'onabort', 'upload', 'withCredentials'].forEach(function (prop) {
-      Object.defineProperty(self, prop, {
-        enumerable: true,
-        configurable: false,
-        get: function () {
-          // If we give the original native methods directly, they'll be called
-          // with `this` as the XHRProxy object, which they aren't made for.
-          if (typeof self._realxhr[prop] == 'function') {
-            return self._realxhr[prop].bind(self._realxhr);
-          }
-          return self._realxhr[prop];
-        },
-        set: function (v) {
-          if (typeof v == 'function') {
-            v = wrapEventListener(this._realxhr, this, v);
-          }
-          self._realxhr[prop] = v;
-        }
-      });
-    });
-    Object.defineProperty(self, 'response', {
-      enumerable: true,
-      configurable: false,
-      get: function () {
-        if (!this._realxhr.responseType || this._realxhr.responseType == 'text') {
-          return this.responseText;
-        } else {
-          // We're not trying to transform non-text responses currently.
-          return this._realxhr.response;
-        }
-      }
-    });
-    self.readyState = self._realxhr.readyState;
-  }
-  XHRProxy.prototype.abort = function () {
-    // Important: If the request has already been sent, the XHR will change
-    // its readyState to 4 after abort. However, we sometimes asynchronously
-    // delay send calls. If the application has already called send but we
-    // haven't sent off the real call yet, then we need to hurry up and send
-    // something before the abort so that the readyState change happens.
-    if (this._clientStartedSend && !this._realStartedSend) {
-      if (this.readyState != 0 && this._realxhr.readyState == 0) {
-        this._realxhr.open(this._connection.method, this._connection.url);
-      }
-      this._realStartedSend = true;
-      this._realxhr.send();
-    }
-    this._realxhr.abort();
-  };
-  XHRProxy.prototype.setRequestHeader = function (name, value) {
-    var self = this;
-    if (this.readyState != 1) {
-      console.warn('setRequestHeader improperly called at readyState ' + this.readyState);
-    }
-    if (!this._openState) {
-      throw new Error('Can only set headers after open and before send');
-    }
-    this._connection.headers[name] = value;
-    if (this._connection.async && this._requestChangers.length) {
-      this._events.once('realOpen', function () {
-        self._realxhr.setRequestHeader(name, value);
-      });
-    } else {
-      this._realxhr.setRequestHeader(name, value);
-    }
-  };
-  XHRProxy.prototype.addEventListener = function (name, listener) {
-    if (!this._listeners[name]) {
-      this._listeners[name] = [];
-      this._boundListeners[name] = [];
-    }
-    if (!lodash_includes__WEBPACK_IMPORTED_MODULE_4___default()(this._listeners[name], listener)) {
-      var boundListener = wrapEventListener(this._realxhr, this, listener);
-      this._listeners[name].push(listener);
-      this._boundListeners[name].push(boundListener);
-      if (!lodash_includes__WEBPACK_IMPORTED_MODULE_4___default()(['readystatechange', 'load', 'error', 'loadend'], name)) {
-        // certain listeners are called manually so that the final
-        // call (when readyState==4) can be delayed.
-        this._realxhr.addEventListener(name, boundListener, false);
-      }
-    }
-  };
-  XHRProxy.prototype.removeEventListener = function (name, listener) {
-    if (!this._listeners[name]) {
-      return;
-    }
-    var i = this._listeners[name].indexOf(listener);
-    if (i == -1) {
-      return;
-    }
-    this._listeners[name].splice(i, 1);
-    var boundListener = this._boundListeners[name].splice(i, 1)[0];
-    if (name != 'readystatechange') {
-      this._realxhr.removeEventListener(name, boundListener, false);
-    }
-  };
-  XHRProxy.prototype.open = function (method, url, async) {
-    // Work around MailTrack issue
-    if (!(this instanceof XHRProxy)) {
-      return XHR.prototype.open.apply(this, arguments);
-    }
-    var self = this;
-    this._connection = {
-      method: method,
-      url: url,
-      params: (0,querystring__WEBPACK_IMPORTED_MODULE_8__.parse)(url.split('?')[1] || ''),
-      headers: {},
-      async: arguments.length < 3 || !!async
-    };
-    this._clientStartedSend = false;
-    this._realStartedSend = false;
-    this._activeWrappers = findApplicableWrappers(this._wrappers, this._connection);
-    this._responseTextChangers = this._activeWrappers.map(wrapper => {
-      return wrapper.responseTextChanger && wrapper.responseTextChanger.bind(wrapper);
-    }).filter(_common_isNotNil__WEBPACK_IMPORTED_MODULE_9__["default"]);
-    this.responseText = '';
-    this._openState = true;
-    function finish(method, url) {
-      return self._realxhr.open(method, url, self._connection.async);
-    }
-    if (this._connection.async) {
-      this._requestChangers = this._activeWrappers.map(wrapper => {
-        return wrapper.requestChanger && wrapper.requestChanger.bind(wrapper);
-      }).filter(_common_isNotNil__WEBPACK_IMPORTED_MODULE_9__["default"]);
-      if (this._requestChangers.length) {
-        if (this.readyState != 1) {
-          this.readyState = 1;
-          this._fakeRscEvent();
-        }
-      } else {
-        finish(method, url);
-      }
-    } else {
-      finish(method, url);
-    }
-  };
-  XHRProxy.prototype.send = function (body) {
-    var self = this;
-    this._clientStartedSend = true;
-    this._openState = false;
-    Object.defineProperty(this._connection, 'originalSendBody', {
-      enumerable: true,
-      writable: false,
-      configurable: false,
-      value: body
-    });
-    this._connection.responseType = this._realxhr.responseType || 'text';
-    lodash_each__WEBPACK_IMPORTED_MODULE_2___default()(self._activeWrappers, function (wrapper) {
-      if (wrapper.originalSendBodyLogger) {
-        try {
-          wrapper.originalSendBodyLogger(self._connection, body);
-        } catch (e) {
-          logError(e);
-        }
-      }
-    });
-    function finish(body) {
-      self._realStartedSend = true;
-      self._realxhr.send(body);
-    }
-    if (this._connection.async && this._requestChangers.length) {
-      // If the XHR object is re-used for another connection, then we need
-      // to make sure that our upcoming async calls here do nothing.
-      // Remember the current connection object, and do nothing in our async
-      // calls if it no longer matches. Also check for aborts.
-      const startConnection = this._connection;
-      const request = {
-        method: this._connection.method,
-        url: this._connection.url,
-        body: body
-      };
-      (async () => {
-        let modifiedRequest = request;
-        for (const requestChanger of this._requestChangers) {
-          const longRunWarningTimer = setTimeout(() => {
-            console.warn('requestChanger is taking too long', requestChanger, startConnection);
-          }, WARNING_TIMEOUT);
-          try {
-            modifiedRequest = await requestChanger(this._connection, Object.freeze(modifiedRequest));
-          } finally {
-            clearTimeout(longRunWarningTimer);
-          }
-          (0,_common_assert__WEBPACK_IMPORTED_MODULE_6__.assert)(lodash_has__WEBPACK_IMPORTED_MODULE_0___default()(modifiedRequest, 'method'), 'modifiedRequest has method');
-          (0,_common_assert__WEBPACK_IMPORTED_MODULE_6__.assert)(lodash_has__WEBPACK_IMPORTED_MODULE_0___default()(modifiedRequest, 'url'), 'modifiedRequest has url');
-          (0,_common_assert__WEBPACK_IMPORTED_MODULE_6__.assert)(lodash_has__WEBPACK_IMPORTED_MODULE_0___default()(modifiedRequest, 'body'), 'modifiedRequest has body');
-          if (startConnection !== this._connection || this._realStartedSend) break;
-        }
-        return modifiedRequest;
-      })().catch(err => {
-        logError(err);
-        return request;
-      }).then(modifiedRequest => {
-        if (startConnection === this._connection && !this._realStartedSend) {
-          this._realxhr.open(modifiedRequest.method, modifiedRequest.url);
-          this._events.emit('realOpen');
-          finish(modifiedRequest.body);
-        }
-      });
-    } else {
-      finish(body);
-    }
-  };
-  [XHRProxy, XHRProxy.prototype].forEach(function (obj) {
-    Object.assign(obj, {
-      UNSENT: 0,
-      OPENED: 1,
-      HEADERS_RECEIVED: 2,
-      LOADING: 3,
-      DONE: 4
-    });
-  });
-  return XHRProxy;
-}
-
-/***/ }),
-
-/***/ "./src/platform-implementation-js/dom-driver/gmail/gmail-driver/getSyncThreadFromSyncThreadId.ts":
-/*!*******************************************************************************************************!*\
-  !*** ./src/platform-implementation-js/dom-driver/gmail/gmail-driver/getSyncThreadFromSyncThreadId.ts ***!
-  \*******************************************************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ getThreadFromSyncThreadId),
-/* harmony export */   getThreadFromSyncThreadIdUsingHeaders: () => (/* binding */ getThreadFromSyncThreadIdUsingHeaders)
-/* harmony export */ });
-/* harmony import */ var _driver_common_gmailAjax__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../../driver-common/gmailAjax */ "./src/platform-implementation-js/driver-common/gmailAjax.ts");
-/* harmony import */ var _gmail_sync_response_processor__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../gmail-sync-response-processor */ "./src/platform-implementation-js/dom-driver/gmail/gmail-sync-response-processor.ts");
-/* harmony import */ var _driver_common_getAccountUrlPart__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../driver-common/getAccountUrlPart */ "./src/platform-implementation-js/driver-common/getAccountUrlPart.ts");
-
-
-
-async function getThreadFromSyncThreadId(driver, syncThreadId) {
-  const [btaiHeader, xsrfToken] = await Promise.all([driver.getPageCommunicator().getBtaiHeader(), driver.getPageCommunicator().getXsrfToken()]);
-  return getThreadFromSyncThreadIdUsingHeaders(syncThreadId, btaiHeader, xsrfToken);
-}
-async function getThreadFromSyncThreadIdUsingHeaders(syncThreadId, btaiHeader, xsrfToken) {
-  let responseText = null;
-  try {
-    const {
-      text
-    } = await (0,_driver_common_gmailAjax__WEBPACK_IMPORTED_MODULE_0__["default"])({
-      method: 'POST',
-      url: `https://mail.google.com/sync${(0,_driver_common_getAccountUrlPart__WEBPACK_IMPORTED_MODULE_2__["default"])()}/i/fd`,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Framework-Xsrf-Token': xsrfToken,
-        'X-Gmail-BTAI': btaiHeader,
-        'X-Google-BTD': '1'
-      },
-      data: JSON.stringify({
-        '1': [{
-          '1': syncThreadId,
-          '2': 1
-        }]
-      })
-    });
-    responseText = text;
-  } catch (err) {
-    // try sending request with new format 2022_09_09
-    const {
-      text
-    } = await (0,_driver_common_gmailAjax__WEBPACK_IMPORTED_MODULE_0__["default"])({
-      method: 'POST',
-      url: `https://mail.google.com/sync${(0,_driver_common_getAccountUrlPart__WEBPACK_IMPORTED_MODULE_2__["default"])()}/i/fd?rt=r&pt=ji`,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Framework-Xsrf-Token': xsrfToken,
-        'X-Gmail-BTAI': btaiHeader,
-        'X-Google-BTD': '1'
-      },
-      data: JSON.stringify([[[syncThreadId, 1]], 2])
-    });
-    responseText = text;
-  }
-  const threadDescriptors = (0,_gmail_sync_response_processor__WEBPACK_IMPORTED_MODULE_1__.extractThreadsFromThreadResponse)(responseText);
-  if (threadDescriptors.length > 0) {
-    const thread = threadDescriptors[0];
-    if (thread.oldGmailThreadID) {
-      return thread;
-    }
-  }
-  return null;
-}
-
-/***/ }),
-
-/***/ "./src/platform-implementation-js/dom-driver/gmail/gmail-response-processor.ts":
-/*!*************************************************************************************!*\
-  !*** ./src/platform-implementation-js/dom-driver/gmail/gmail-response-processor.ts ***!
-  \*************************************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   cleanupPeopleLine: () => (/* binding */ cleanupPeopleLine),
-/* harmony export */   deserialize: () => (/* binding */ deserialize),
-/* harmony export */   deserializeArray: () => (/* binding */ deserializeArray),
-/* harmony export */   extractGmailThreadIdFromMessageIdSearch: () => (/* binding */ extractGmailThreadIdFromMessageIdSearch),
-/* harmony export */   extractMessageIdsFromThreadBatchRequest: () => (/* binding */ extractMessageIdsFromThreadBatchRequest),
-/* harmony export */   extractMessages: () => (/* binding */ extractMessages),
-/* harmony export */   extractThreads: () => (/* binding */ extractThreads),
-/* harmony export */   extractThreadsFromDeserialized: () => (/* binding */ extractThreadsFromDeserialized),
-/* harmony export */   readDraftId: () => (/* binding */ readDraftId),
-/* harmony export */   replaceThreadsInResponse: () => (/* binding */ replaceThreadsInResponse),
-/* harmony export */   rewriteSingleQuotes: () => (/* binding */ rewriteSingleQuotes),
-/* harmony export */   serialize: () => (/* binding */ serialize)
-/* harmony export */ });
-/* harmony import */ var lodash_flatten__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! lodash/flatten */ "./node_modules/lodash/flatten.js");
+/* unused harmony exports extractGmailThreadIdFromMessageIdSearch, rewriteSingleQuotes, readDraftId, replaceThreadsInResponse, extractMessageIdsFromThreadBatchRequest */
+/* harmony import */ var lodash_flatten__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4176);
 /* harmony import */ var lodash_flatten__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(lodash_flatten__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var lodash_last__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! lodash/last */ "./node_modules/lodash/last.js");
+/* harmony import */ var lodash_last__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(6456);
 /* harmony import */ var lodash_last__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(lodash_last__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var transducers_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! transducers.js */ "./node_modules/transducers.js/transducers.js");
+/* harmony import */ var transducers_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6046);
 /* harmony import */ var transducers_js__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(transducers_js__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var map_indexed_xf__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! map-indexed-xf */ "./node_modules/map-indexed-xf/js/index.js");
-/* harmony import */ var map_indexed_xf__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(map_indexed_xf__WEBPACK_IMPORTED_MODULE_5__);
-/* harmony import */ var _common_html_to_text__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../common/html-to-text */ "./src/common/html-to-text.ts");
-/* harmony import */ var _common_assert__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../../common/assert */ "./src/common/assert.ts");
+/* harmony import */ var _common_html_to_text__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(6305);
+/* harmony import */ var _common_assert__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(1602);
 
 
 
@@ -3908,7 +3885,7 @@ function deserializeArray(value) {
 }
 function serialize(value, options) {
   if (options.suggestionMode) {
-    (0,_common_assert__WEBPACK_IMPORTED_MODULE_4__.assert)(options.includeLengths);
+    (0,_common_assert__WEBPACK_IMPORTED_MODULE_4__/* .assert */ .v)(options.includeLengths);
     return suggestionSerialize(value, options.includeExplicitNulls);
   }
   return threadListSerialize(value, options);
@@ -3977,7 +3954,7 @@ function serializeArray(array, noArrayNewLines, includeExplicitNulls) {
 }
 function readDraftId(response, messageID) {
   const decoded = deserialize(response).value;
-  const msgA = transducers_js__WEBPACK_IMPORTED_MODULE_2___default().toArray(decoded, transducers_js__WEBPACK_IMPORTED_MODULE_2___default().compose((transducers_js__WEBPACK_IMPORTED_MODULE_2___default().cat), transducers_js__WEBPACK_IMPORTED_MODULE_2___default().filter(Array.isArray), (transducers_js__WEBPACK_IMPORTED_MODULE_2___default().cat), transducers_js__WEBPACK_IMPORTED_MODULE_2___default().filter(x => x[0] === 'ms' && x[1] === messageID), transducers_js__WEBPACK_IMPORTED_MODULE_2___default().take(1), transducers_js__WEBPACK_IMPORTED_MODULE_2___default().map(x => x[60])))[0];
+  const msgA = t.toArray(decoded, t.compose(t.cat, t.filter(Array.isArray), t.cat, t.filter(x => x[0] === 'ms' && x[1] === messageID), t.take(1), t.map(x => x[60])))[0];
   if (msgA) {
     const match = msgA.match(/^msg-[^:]:(\S+)$/i);
     return match && match[1];
@@ -4089,14 +4066,14 @@ function replaceThreadsInResponse(response, replacementThreads, _ref) {
       newTbs.push(postTbItems);
     }
   }
-  const parsedNew = lodash_flatten__WEBPACK_IMPORTED_MODULE_0___default()([preTbGroups, newTbs, postTbGroups]);
-  const allSections = lodash_flatten__WEBPACK_IMPORTED_MODULE_0___default()(parsedNew);
-  const endSection = lodash_last__WEBPACK_IMPORTED_MODULE_1___default()(allSections);
+  const parsedNew = flatten([preTbGroups, newTbs, postTbGroups]);
+  const allSections = flatten(parsedNew);
+  const endSection = last(allSections);
   if (endSection[0] !== 'e') {
     throw new Error('Failed to find end section');
   }
   endSection[1] = allSections.length;
-  const fullNew = actionResponseMode ? [[lodash_flatten__WEBPACK_IMPORTED_MODULE_0___default()(parsedNew), value[0][1]]] : parsedNew;
+  const fullNew = actionResponseMode ? [[flatten(parsedNew), value[0][1]]] : parsedNew;
   return serialize(fullNew, options);
 }
 function extractThreads(response) {
@@ -4107,9 +4084,9 @@ function extractThreadsFromDeserialized(value) {
     value = [value[0][0]];
   }
   return _extractThreadArraysFromResponseArray(value).map(thread => Object.freeze(Object.defineProperty({
-    subject: (0,_common_html_to_text__WEBPACK_IMPORTED_MODULE_3__["default"])(thread[9]),
-    shortDate: (0,_common_html_to_text__WEBPACK_IMPORTED_MODULE_3__["default"])(thread[14]),
-    timeString: (0,_common_html_to_text__WEBPACK_IMPORTED_MODULE_3__["default"])(thread[15]),
+    subject: (0,_common_html_to_text__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .A)(thread[9]),
+    shortDate: (0,_common_html_to_text__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .A)(thread[14]),
+    timeString: (0,_common_html_to_text__WEBPACK_IMPORTED_MODULE_3__/* ["default"] */ .A)(thread[15]),
     peopleHtml: cleanupPeopleLine(thread[7]),
     timestamp: thread[16] / 1000,
     isUnread: thread[9].indexOf('<b>') > -1,
@@ -4126,7 +4103,7 @@ function extractMessageIdsFromThreadBatchRequest(response) {
   const {
     value
   } = deserialize(response);
-  return transducers_js__WEBPACK_IMPORTED_MODULE_2___default().toObj(value, _extractMessageIdsFromThreadBatchRequestXf);
+  return t.toObj(value, _extractMessageIdsFromThreadBatchRequestXf);
 }
 function cleanupPeopleLine(peopleHtml) {
   // Removes possible headings like "To: " that get added on the Sent page, and
@@ -4171,8 +4148,8 @@ function extractMessages(response) {
   });
 }
 function _threadsToTbGroups(threads, start) {
-  const _threadsToTbGroupsXf = transducers_js__WEBPACK_IMPORTED_MODULE_2___default().compose(transducers_js__WEBPACK_IMPORTED_MODULE_2___default().map(thread => thread._originalGmailFormat), transducers_js__WEBPACK_IMPORTED_MODULE_2___default().partition(10), map_indexed_xf__WEBPACK_IMPORTED_MODULE_5___default()((threadsChunk, i) => [['tb', start + i * 10, threadsChunk]]));
-  return transducers_js__WEBPACK_IMPORTED_MODULE_2___default().toArray(threads, _threadsToTbGroupsXf);
+  const _threadsToTbGroupsXf = t.compose(t.map(thread => thread._originalGmailFormat), t.partition(10), mapIndexed((threadsChunk, i) => [['tb', start + i * 10, threadsChunk]]));
+  return t.toArray(threads, _threadsToTbGroupsXf);
 }
 function _searchArray(responseArray, marker, markerArrayValidator) {
   const pathArray = _searchObject(responseArray, marker, 100);
@@ -4223,309 +4200,12 @@ function _getArrayValueFromPath(responseArray, path) {
 
 /***/ }),
 
-/***/ "./src/platform-implementation-js/dom-driver/gmail/gmail-sync-response-processor.ts":
-/*!******************************************************************************************!*\
-  !*** ./src/platform-implementation-js/dom-driver/gmail/gmail-sync-response-processor.ts ***!
-  \******************************************************************************************/
+/***/ 8105:
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   extractThreadsFromSearchResponse: () => (/* binding */ extractThreadsFromSearchResponse),
-/* harmony export */   extractThreadsFromSearchResponse_20220909: () => (/* binding */ extractThreadsFromSearchResponse_20220909),
-/* harmony export */   extractThreadsFromThreadResponse: () => (/* binding */ extractThreadsFromThreadResponse),
-/* harmony export */   replaceThreadsInSearchResponse: () => (/* binding */ replaceThreadsInSearchResponse),
-/* harmony export */   replaceThreadsInSearchResponse_20220909: () => (/* binding */ replaceThreadsInSearchResponse_20220909)
-/* harmony export */ });
-/* harmony import */ var bignumber_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! bignumber.js */ "./node_modules/bignumber.js/bignumber.js");
-/* harmony import */ var bignumber_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(bignumber_js__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _common_isNotNil__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../common/isNotNil */ "./src/common/isNotNil.ts");
-
-
-function extractThreadsFromSearchResponse(response) {
-  const parsedResponse = JSON.parse(response);
-  if (Array.isArray(parsedResponse)) {
-    try {
-      return extractThreadsFromSearchResponse_20220909(parsedResponse);
-    } catch (err) {
-      return [];
-    }
-  }
-  const threadDescriptors = parsedResponse && parsedResponse[3];
-  if (!threadDescriptors) return [];
-  return threadDescriptors.map((descriptorWrapper, index) => {
-    const descriptor = descriptorWrapper[1];
-    if (!descriptor) return null;
-    return {
-      subject: descriptor[1],
-      snippet: descriptor[2],
-      syncThreadID: descriptor[4],
-      // It seems Gmail is A/B testing including gmailThreadID in descriptor[20] and not including
-      // the encoded version of it in descriptor[18], so pull it from [20] if [18] is not set.
-      oldGmailThreadID: descriptor[18] != null ? new (bignumber_js__WEBPACK_IMPORTED_MODULE_0___default())(descriptor[18]).toString(16) : descriptor[20],
-      rawResponse: descriptorWrapper,
-      extraMetaData: {
-        snippet: parsedResponse[15] && parsedResponse[15][1] && parsedResponse[15][1][index] || '',
-        syncMessageData: descriptor[5].map(md => ({
-          syncMessageID: md[1],
-          oldMessageID: md[56],
-          date: +md[7]
-        }))
-      }
-    };
-  }).filter(_common_isNotNil__WEBPACK_IMPORTED_MODULE_1__["default"]);
-}
-function extractThreadsFromSearchResponse_20220909(parsedResponse) {
-  const threadDescriptors = parsedResponse && parsedResponse[2];
-  if (!threadDescriptors) return [];
-  return threadDescriptors.map((descriptorWrapper, index) => {
-    const descriptor = descriptorWrapper[0];
-    if (!descriptor) return null;
-    return {
-      subject: descriptor[0],
-      snippet: descriptor[1],
-      syncThreadID: descriptor[3],
-      // It seems Gmail is A/B testing including gmailThreadID in descriptor[20] and not including
-      // the encoded version of it in descriptor[18], so pull it from [20] if [18] is not set.
-      oldGmailThreadID: descriptor[17] != null ? new (bignumber_js__WEBPACK_IMPORTED_MODULE_0___default())(descriptor[17]).toString(16) : descriptor[19],
-      rawResponse: descriptorWrapper,
-      extraMetaData: {
-        snippet: parsedResponse[14] && parsedResponse[14][0] && parsedResponse[14][0][index] || '',
-        syncMessageData: descriptor[4].map(md => ({
-          syncMessageID: md[0],
-          oldMessageID: md[55],
-          date: +md[6]
-        }))
-      }
-    };
-  }).filter(_common_isNotNil__WEBPACK_IMPORTED_MODULE_1__["default"]);
-}
-function extractThreadsFromThreadResponse(response) {
-  const parsedResponse = JSON.parse(response);
-  if (Array.isArray(parsedResponse)) {
-    return extractThreadsFromThreadResponse_20220909(parsedResponse);
-  }
-  const threadDescriptors = parsedResponse && parsedResponse[2];
-  if (!threadDescriptors) throw new Error('Failed to process thread response');
-  return threadDescriptors.map(descriptorWrapper => {
-    if (typeof descriptorWrapper[1] === 'string' && Array.isArray(descriptorWrapper[3]) && !(descriptorWrapper[2] && descriptorWrapper[2][1] && descriptorWrapper[2][1][14] && Array.isArray(descriptorWrapper[2][2]))) {
-      return {
-        syncThreadID: descriptorWrapper[1],
-        oldGmailThreadID: descriptorWrapper[2] && descriptorWrapper[2][1] && descriptorWrapper[2][1][16] || undefined,
-        extraMetaData: {
-          snippet: descriptorWrapper[2] && descriptorWrapper[2][1] && descriptorWrapper[2][1][3] || undefined,
-          syncMessageData: (descriptorWrapper[3] || []).filter(md => Boolean(md[2])).map(md => ({
-            syncMessageID: md[1],
-            date: +md[2][17],
-            recipients: getRecipientsFromMessageDescriptor(md)
-          }))
-        }
-      };
-    } else {
-      const threadDescriptor = descriptorWrapper[2] && descriptorWrapper[2][1];
-      if (!threadDescriptor) return null;
-      let syncMessageData;
-      const fullMessageDescriptors = Array.isArray(descriptorWrapper[3]) && descriptorWrapper[3];
-      if (fullMessageDescriptors) {
-        syncMessageData = fullMessageDescriptors.map(md => ({
-          syncMessageID: md[1],
-          date: +md[2][17],
-          recipients: getRecipientsFromMessageDescriptor(md)
-        }));
-      } else {
-        const messageDescriptors = descriptorWrapper[2] && descriptorWrapper[2][2];
-        syncMessageData = messageDescriptors.map(md => ({
-          syncMessageId: md[1],
-          date: +md[16]
-        }));
-      }
-      return {
-        subject: threadDescriptor[2],
-        snippet: threadDescriptor[3],
-        syncThreadID: threadDescriptor[1],
-        oldGmailThreadID: new (bignumber_js__WEBPACK_IMPORTED_MODULE_0___default())(threadDescriptor[14]).toString(16),
-        rawResponse: descriptorWrapper,
-        extraMetaData: {
-          syncMessageData,
-          snippet: ''
-        }
-      };
-    }
-  }).filter(_common_isNotNil__WEBPACK_IMPORTED_MODULE_1__["default"]);
-}
-function extractThreadsFromThreadResponse_20220909(parsedResponse) {
-  const threadDescriptors = parsedResponse && parsedResponse[1];
-  if (!threadDescriptors) throw new Error('Failed to process thread response');
-  return threadDescriptors.map(descriptorWrapper => {
-    if (typeof descriptorWrapper[0] === 'string' && Array.isArray(descriptorWrapper[2]) && !(descriptorWrapper[1] && descriptorWrapper[1][0] && descriptorWrapper[1][0][13] && Array.isArray(descriptorWrapper[1][1]))) {
-      return {
-        syncThreadID: descriptorWrapper[0],
-        oldGmailThreadID: descriptorWrapper[1] && descriptorWrapper[1][0] && descriptorWrapper[1][0][15] || undefined,
-        extraMetaData: {
-          snippet: descriptorWrapper[1] && descriptorWrapper[1][0] && descriptorWrapper[1][0][2] || undefined,
-          syncMessageData: (descriptorWrapper[2] || []).filter(md => Boolean(md[1])).map(md => ({
-            syncMessageID: md[0],
-            date: +md[1][16],
-            recipients: getRecipientsFromMessageDescriptor_20220909(md)
-          }))
-        }
-      };
-    } else {
-      const threadDescriptor = descriptorWrapper[1] && descriptorWrapper[1][0];
-      if (!threadDescriptor) return null;
-      let syncMessageData;
-      const fullMessageDescriptors = Array.isArray(descriptorWrapper[2]) && descriptorWrapper[2];
-      if (fullMessageDescriptors) {
-        syncMessageData = fullMessageDescriptors.map(md => ({
-          syncMessageID: md[0],
-          date: +md[1][16],
-          recipients: getRecipientsFromMessageDescriptor_20220909(md)
-        }));
-      } else {
-        const messageDescriptors = descriptorWrapper[1] && descriptorWrapper[1][1];
-        syncMessageData = messageDescriptors.map(md => ({
-          syncMessageId: md[0],
-          date: +md[15]
-        }));
-      }
-      return {
-        subject: threadDescriptor[1],
-        snippet: threadDescriptor[2],
-        syncThreadID: threadDescriptor[0],
-        oldGmailThreadID: new (bignumber_js__WEBPACK_IMPORTED_MODULE_0___default())(threadDescriptor[13]).toString(16),
-        rawResponse: descriptorWrapper,
-        extraMetaData: {
-          syncMessageData,
-          snippet: ''
-        }
-      };
-    }
-  }).filter(_common_isNotNil__WEBPACK_IMPORTED_MODULE_1__["default"]);
-}
-function getRecipientsFromMessageDescriptor(messageDescriptor) {
-  if (!messageDescriptor[2]) return;
-  const to = messageDescriptor[2][1] || [];
-  const cc = messageDescriptor[2][2] || [];
-  const bcc = messageDescriptor[2][3] || [];
-  return to.concat(cc).concat(bcc).map(recipientDescriptor => ({
-    emailAddress: recipientDescriptor[2],
-    name: recipientDescriptor[3]
-  }));
-}
-function getRecipientsFromMessageDescriptor_20220909(messageDescriptor) {
-  if (!messageDescriptor[1]) return;
-  const to = messageDescriptor[1][0] || [];
-  const cc = messageDescriptor[1][1] || [];
-  const bcc = messageDescriptor[1][2] || [];
-  return to.concat(cc).concat(bcc).map(recipientDescriptor => ({
-    emailAddress: recipientDescriptor[1],
-    name: recipientDescriptor[2]
-  }));
-}
-function replaceThreadsInSearchResponse(response, replacementThreads, _unused // TODO why is this unused?
-) {
-  const parsedResponse = JSON.parse(response);
-  if (Array.isArray(parsedResponse)) {
-    try {
-      return replaceThreadsInSearchResponse_20220909(parsedResponse, replacementThreads, _unused);
-    } catch (err) {
-      console.error('Caught err in replaceThreadsInSearchResponse', err);
-      return response;
-    }
-  }
-  if (parsedResponse[3] || replacementThreads.length) {
-    parsedResponse[3] = replacementThreads.map((_ref, index) => {
-      let {
-        rawResponse
-      } = _ref;
-      return {
-        ...rawResponse,
-        '2': index
-      };
-    });
-  }
-  if (parsedResponse[15] || replacementThreads.length) {
-    parsedResponse[15] = {
-      ...parsedResponse[15],
-      '1': replacementThreads.map(_ref2 => {
-        let {
-          extraMetaData
-        } = _ref2;
-        return extraMetaData.snippet;
-      }),
-      '2': replacementThreads.map(_ref3 => {
-        let {
-          extraMetaData
-        } = _ref3;
-        return extraMetaData.syncMessageData.map(_ref4 => {
-          let {
-            syncMessageID
-          } = _ref4;
-          return syncMessageID;
-        });
-      })
-    };
-  }
-  return JSON.stringify(parsedResponse);
-}
-function replaceThreadsInSearchResponse_20220909(parsedResponse, replacementThreads, _unused // TODO why is this unused?
-) {
-  if (parsedResponse[2] || replacementThreads.length) {
-    parsedResponse[2] = replacementThreads.map((_ref5, index) => {
-      let {
-        rawResponse
-      } = _ref5;
-      const res = [...rawResponse];
-      res[1] = index;
-      return res;
-    });
-  }
-  if (parsedResponse[14] || replacementThreads.length) {
-    parsedResponse[14] = [...parsedResponse[14]];
-    parsedResponse[14][0] = replacementThreads.map(_ref6 => {
-      let {
-        extraMetaData
-      } = _ref6;
-      return extraMetaData.snippet;
-    });
-    if (Array.isArray(parsedResponse[14][1]) && parsedResponse[14][1].length > 0 && Array.isArray(parsedResponse[14][1][0][0])) {
-      // 2023-04-19 gmail change
-      parsedResponse[14][1] = replacementThreads.map(_ref7 => {
-        let {
-          extraMetaData
-        } = _ref7;
-        return [[extraMetaData.syncMessageData[0].syncMessageID]];
-      });
-    } else {
-      parsedResponse[14][1] = replacementThreads.map(_ref8 => {
-        let {
-          extraMetaData
-        } = _ref8;
-        return extraMetaData.syncMessageData.map(_ref9 => {
-          let {
-            syncMessageID
-          } = _ref9;
-          return syncMessageID;
-        });
-      });
-    }
-  }
-  return JSON.stringify(parsedResponse);
-}
-
-/***/ }),
-
-/***/ "./src/platform-implementation-js/driver-common/getAccountUrlPart.ts":
-/*!***************************************************************************!*\
-  !*** ./src/platform-implementation-js/driver-common/getAccountUrlPart.ts ***!
-  \***************************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ getAccountUrlPart)
+/* harmony export */   A: () => (/* binding */ getAccountUrlPart)
 /* harmony export */ });
 /*
  returns "/u/NUMBER" or "/u/NUMBER/d/DELEGATE_ID" for delegated accounts
@@ -4546,22 +4226,89 @@ function getAccountUrlPart() {
 
 /***/ }),
 
-/***/ "./src/platform-implementation-js/driver-common/gmailAjax.ts":
-/*!*******************************************************************!*\
-  !*** ./src/platform-implementation-js/driver-common/gmailAjax.ts ***!
-  \*******************************************************************/
+/***/ 5609:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
-/* harmony export */ });
-/* harmony import */ var ud__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ud */ "./node_modules/ud/js/index.js");
-/* harmony import */ var kefir__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! kefir */ "./node_modules/kefir/dist/kefir.esm.js");
-/* harmony import */ var _lib_imageRequest__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../lib/imageRequest */ "./src/platform-implementation-js/lib/imageRequest.ts");
-/* harmony import */ var _common_rate_limit_queuer__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../common/rate-limit-queuer */ "./src/common/rate-limit-queuer.ts");
-/* harmony import */ var _common_ajax__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../common/ajax */ "./src/common/ajax.ts");
+
+// EXPORTS
+__webpack_require__.d(__webpack_exports__, {
+  A: () => (/* binding */ driver_common_gmailAjax)
+});
+
+// EXTERNAL MODULE: ./node_modules/ud/js/index.js
+var js = __webpack_require__(7332);
+// EXTERNAL MODULE: ./node_modules/kefir/dist/kefir.esm.js
+var kefir_esm = __webpack_require__(7249);
+;// CONCATENATED MODULE: ./src/platform-implementation-js/lib/imageRequest.ts
+function imageRequest(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.addEventListener('load', () => resolve(img));
+    img.addEventListener('error', reject);
+    img.src = url;
+  });
+}
+;// CONCATENATED MODULE: ./src/common/rate-limit-queuer.ts
+// Returns a wrapped version of the function which queues up callTimestamps to the
+// function if it is called more than count times within period amount of time.
+function rateLimitQueuer(fn, period, count) {
+  let callTimestamps = [];
+  const queue = [];
+  let runningQueue = false;
+  function runJob() {
+    const job = queue.shift();
+    job();
+    if (queue.length) {
+      runQueue();
+    } else {
+      runningQueue = false;
+    }
+  }
+  function runQueue() {
+    runningQueue = true;
+    const timeToWait = getTimeToUnqueueItem();
+    if (timeToWait > 0) {
+      setTimeout(runJob, timeToWait);
+    } else {
+      runJob();
+    }
+  }
+  function getTimeToUnqueueItem() {
+    const now = Date.now();
+    const periodAgo = now - period;
+    callTimestamps = callTimestamps.filter(time => time > periodAgo);
+    if (callTimestamps.length >= count) {
+      return callTimestamps[0] - periodAgo;
+    }
+    return -1;
+  }
+  return function attempt() {
+    for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+      args[_key] = arguments[_key];
+    }
+    let job;
+    const promise = new Promise((resolve, reject) => {
+      job = () => {
+        callTimestamps.push(Date.now());
+        try {
+          resolve(fn.apply(this, args));
+        } catch (err) {
+          reject(err);
+        }
+      };
+    });
+    if (!job) throw new Error('Should not happen');
+    queue.push(job);
+    if (!runningQueue) {
+      runQueue();
+    }
+    return promise;
+  };
+}
+// EXTERNAL MODULE: ./src/common/ajax.ts + 1 modules
+var ajax = __webpack_require__(8587);
+;// CONCATENATED MODULE: ./src/platform-implementation-js/driver-common/gmailAjax.ts
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 
@@ -4570,7 +4317,7 @@ __webpack_require__.r(__webpack_exports__);
 
 const IMAGE_REQUEST_TIMEOUT = 1000 * 60; // one minute
 
-const limitedAjax = (0,_common_rate_limit_queuer__WEBPACK_IMPORTED_MODULE_2__["default"])((0,_common_rate_limit_queuer__WEBPACK_IMPORTED_MODULE_2__["default"])(_common_ajax__WEBPACK_IMPORTED_MODULE_3__["default"], 1000, 7), 10 * 1000, 50);
+const limitedAjax = rateLimitQueuer(rateLimitQueuer(ajax/* default */.A, 1000, 7), 10 * 1000, 50);
 
 // Tool for making ajax requests to Gmail endpoints. When used in Inbox, this
 // function is able to handle the issue that happens when the user has no Gmail
@@ -4597,7 +4344,7 @@ async function gmailAjax(opts) {
       // request (which doesn't have cross-domain restrictions) so the Gmail
       // cookies get set, and then retrying the original ajax request.
       try {
-        await kefir__WEBPACK_IMPORTED_MODULE_0__["default"].fromPromise((0,_lib_imageRequest__WEBPACK_IMPORTED_MODULE_1__["default"])('https://mail.google.com/mail/u/0/')).merge(kefir__WEBPACK_IMPORTED_MODULE_0__["default"].later(IMAGE_REQUEST_TIMEOUT, undefined)).take(1).takeErrors(1).toPromise();
+        await kefir_esm["default"].fromPromise(imageRequest('https://mail.google.com/mail/u/0/')).merge(kefir_esm["default"].later(IMAGE_REQUEST_TIMEOUT, undefined)).take(1).takeErrors(1).toPromise();
       } catch (e) {
         // ignore. If we got an error here, there are several possible causes:
         // 1. The user has Gmail cookies, but the first connection attempt
@@ -4624,25 +4371,21 @@ async function gmailAjax(opts) {
     }
   }
 }
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = ((0,ud__WEBPACK_IMPORTED_MODULE_4__.defn)(module, gmailAjax));
+/* harmony default export */ const driver_common_gmailAjax = ((0,js.defn)(module, gmailAjax));
 
 /***/ }),
 
-/***/ "./src/platform-implementation-js/driver-common/requestGmailThread.ts":
-/*!****************************************************************************!*\
-  !*** ./src/platform-implementation-js/driver-common/requestGmailThread.ts ***!
-  \****************************************************************************/
+/***/ 5355:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */   A: () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var ud__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ud */ "./node_modules/ud/js/index.js");
-/* harmony import */ var querystring__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! querystring */ "./node_modules/querystring-es3/index.js");
-/* harmony import */ var _gmailAjax__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./gmailAjax */ "./src/platform-implementation-js/driver-common/gmailAjax.ts");
-/* harmony import */ var _getAccountUrlPart__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./getAccountUrlPart */ "./src/platform-implementation-js/driver-common/getAccountUrlPart.ts");
+/* harmony import */ var ud__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(7332);
+/* harmony import */ var querystring__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(6448);
+/* harmony import */ var _gmailAjax__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(5609);
+/* harmony import */ var _getAccountUrlPart__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(8105);
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 
@@ -4662,9 +4405,9 @@ async function requestGmailThread(ikValue, threadId) {
   };
   const {
     text
-  } = await (0,_gmailAjax__WEBPACK_IMPORTED_MODULE_1__["default"])({
+  } = await (0,_gmailAjax__WEBPACK_IMPORTED_MODULE_1__/* ["default"] */ .A)({
     method: 'POST',
-    url: `https://mail.google.com/mail${(0,_getAccountUrlPart__WEBPACK_IMPORTED_MODULE_2__["default"])()}?${querystring__WEBPACK_IMPORTED_MODULE_0__.stringify(queryParameters)}`,
+    url: `https://mail.google.com/mail${(0,_getAccountUrlPart__WEBPACK_IMPORTED_MODULE_2__/* ["default"] */ .A)()}?${querystring__WEBPACK_IMPORTED_MODULE_0__.stringify(queryParameters)}`,
     canRetry: true
   });
   return text;
@@ -4673,103 +4416,7 @@ async function requestGmailThread(ikValue, threadId) {
 
 /***/ }),
 
-/***/ "./src/platform-implementation-js/lib/dom/custom-events.ts":
-/*!*****************************************************************!*\
-  !*** ./src/platform-implementation-js/lib/dom/custom-events.ts ***!
-  \*****************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   CustomDomEvent: () => (/* binding */ CustomDomEvent)
-/* harmony export */ });
-var CustomDomEvent = {
-  tellMeThisThreadIdByDatabase: "inboxSDKtellMeThisThreadIdByDatabase",
-  tellMeThisThreadIdByClick: "inboxSDKtellMeThisThreadIdByClick"
-};
-
-/***/ }),
-
-/***/ "./src/platform-implementation-js/lib/imageRequest.ts":
-/*!************************************************************!*\
-  !*** ./src/platform-implementation-js/lib/imageRequest.ts ***!
-  \************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ imageRequest)
-/* harmony export */ });
-function imageRequest(url) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.addEventListener('load', () => resolve(img));
-    img.addEventListener('error', reject);
-    img.src = url;
-  });
-}
-
-/***/ }),
-
-/***/ "./src/platform-implementation-js/lib/wait-for.ts":
-/*!********************************************************!*\
-  !*** ./src/platform-implementation-js/lib/wait-for.ts ***!
-  \********************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   WaitForError: () => (/* binding */ WaitForError),
-/* harmony export */   "default": () => (/* binding */ waitFor)
-/* harmony export */ });
-class WaitForError extends Error {
-  name = 'WaitForError';
-  constructor() {
-    super('waitFor timeout');
-  }
-}
-
-/**
- * @param condition a function that returns the value to wait for, or falsey if it's not ready yet
- * @throws {WaitForError} if the condition is not met within the timeout
- */
-function waitFor(condition) {
-  let timeout = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 120 * 1000;
-  let steptime = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 250;
-  // make this error here so we have a sensible stack.
-  const timeoutError = new WaitForError();
-  return new Promise(function (resolve, reject) {
-    let waited = 0;
-    function step() {
-      try {
-        const result = condition();
-        if (result) {
-          resolve(result);
-        } else {
-          if (waited >= timeout) {
-            reject(timeoutError);
-          } else {
-            waited += steptime;
-            setTimeout(step, steptime);
-          }
-        }
-      } catch (e) {
-        reject(e);
-      }
-    }
-    setTimeout(step, 1);
-  });
-}
-
-/***/ }),
-
-/***/ "./node_modules/array-range/index.js":
-/*!*******************************************!*\
-  !*** ./node_modules/array-range/index.js ***!
-  \*******************************************/
+/***/ 9060:
 /***/ ((module) => {
 
 
@@ -4799,10 +4446,7 @@ module.exports = function newArray(start, end) {
 
 /***/ }),
 
-/***/ "./node_modules/auto-html/js/index.js":
-/*!********************************************!*\
-  !*** ./node_modules/auto-html/js/index.js ***!
-  \********************************************/
+/***/ 1812:
 /***/ ((module, exports, __webpack_require__) => {
 
 "use strict";
@@ -4813,7 +4457,7 @@ Object.defineProperty(exports, "__esModule", ({
 }));
 exports["default"] = autoHtml;
 
-var _escape = _interopRequireDefault(__webpack_require__(/*! lodash/escape */ "./node_modules/lodash/escape.js"));
+var _escape = _interopRequireDefault(__webpack_require__(3131));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -4836,10 +4480,7 @@ module.exports["default"] = exports.default;
 
 /***/ }),
 
-/***/ "./node_modules/bignumber.js/bignumber.js":
-/*!************************************************!*\
-  !*** ./node_modules/bignumber.js/bignumber.js ***!
-  \************************************************/
+/***/ 2180:
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
@@ -7739,10 +7380,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
 
 /***/ }),
 
-/***/ "./node_modules/events/events.js":
-/*!***************************************!*\
-  !*** ./node_modules/events/events.js ***!
-  \***************************************/
+/***/ 4785:
 /***/ ((module) => {
 
 "use strict";
@@ -8247,10 +7885,7 @@ function eventTargetAgnosticAddListener(emitter, name, listener, flags) {
 
 /***/ }),
 
-/***/ "./node_modules/ext-corb-workaround/dist/src/moduleId.js":
-/*!***************************************************************!*\
-  !*** ./node_modules/ext-corb-workaround/dist/src/moduleId.js ***!
-  \***************************************************************/
+/***/ 917:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -8266,27 +7901,24 @@ exports.moduleId = moduleId;
 
 /***/ }),
 
-/***/ "./node_modules/ext-corb-workaround/dist/src/pageWorld.js":
-/*!****************************************************************!*\
-  !*** ./node_modules/ext-corb-workaround/dist/src/pageWorld.js ***!
-  \****************************************************************/
+/***/ 4835:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 
-var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ "./node_modules/@babel/runtime/helpers/interopRequireDefault.js");
+var _interopRequireDefault = __webpack_require__(1654);
 
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports.init = init;
 
-var _toConsumableArray2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/toConsumableArray */ "./node_modules/@babel/runtime/helpers/toConsumableArray.js"));
+var _toConsumableArray2 = _interopRequireDefault(__webpack_require__(1752));
 
-var _transferrables = _interopRequireDefault(__webpack_require__(/*! ./transferrables */ "./node_modules/ext-corb-workaround/dist/src/transferrables.js"));
+var _transferrables = _interopRequireDefault(__webpack_require__(5440));
 
-var _moduleId = __webpack_require__(/*! ./moduleId */ "./node_modules/ext-corb-workaround/dist/src/moduleId.js");
+var _moduleId = __webpack_require__(917);
 
 // must be executed in page's world
 function init() {
@@ -8383,23 +8015,20 @@ function init() {
 
 /***/ }),
 
-/***/ "./node_modules/ext-corb-workaround/dist/src/transferrables.js":
-/*!*********************************************************************!*\
-  !*** ./node_modules/ext-corb-workaround/dist/src/transferrables.js ***!
-  \*********************************************************************/
+/***/ 5440:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 
-var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ "./node_modules/@babel/runtime/helpers/interopRequireDefault.js");
+var _interopRequireDefault = __webpack_require__(1654);
 
 Object.defineProperty(exports, "__esModule", ({
   value: true
 }));
 exports["default"] = transferrables;
 
-var _typeof2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/typeof */ "./node_modules/@babel/runtime/helpers/typeof.js"));
+var _typeof2 = _interopRequireDefault(__webpack_require__(2990));
 
 function transferrables(list) {
   return list.map(function (value) {
@@ -8418,44 +8047,14 @@ function transferrables(list) {
 
 /***/ }),
 
-/***/ "./node_modules/kefir/dist/kefir.esm.js":
-/*!**********************************************!*\
-  !*** ./node_modules/kefir/dist/kefir.esm.js ***!
-  \**********************************************/
+/***/ 7249:
 /***/ ((module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   Kefir: () => (/* binding */ Kefir),
-/* harmony export */   Observable: () => (/* binding */ Observable),
-/* harmony export */   Pool: () => (/* binding */ Pool),
-/* harmony export */   Property: () => (/* binding */ Property),
-/* harmony export */   Stream: () => (/* binding */ Stream),
-/* harmony export */   combine: () => (/* binding */ combine),
-/* harmony export */   concat: () => (/* binding */ concat$1),
-/* harmony export */   constant: () => (/* binding */ constant),
-/* harmony export */   constantError: () => (/* binding */ constantError),
-/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__),
-/* harmony export */   dissableDeprecationWarnings: () => (/* binding */ dissableDeprecationWarnings),
-/* harmony export */   fromCallback: () => (/* binding */ fromCallback),
-/* harmony export */   fromESObservable: () => (/* binding */ fromESObservable),
-/* harmony export */   fromEvents: () => (/* binding */ fromEvents),
-/* harmony export */   fromNodeCallback: () => (/* binding */ fromNodeCallback),
-/* harmony export */   fromPoll: () => (/* binding */ fromPoll),
-/* harmony export */   fromPromise: () => (/* binding */ fromPromise),
-/* harmony export */   interval: () => (/* binding */ interval),
-/* harmony export */   later: () => (/* binding */ later),
-/* harmony export */   merge: () => (/* binding */ merge),
-/* harmony export */   never: () => (/* binding */ never),
-/* harmony export */   pool: () => (/* binding */ pool),
-/* harmony export */   repeat: () => (/* binding */ repeat),
-/* harmony export */   sequentially: () => (/* binding */ sequentially),
-/* harmony export */   staticLand: () => (/* binding */ staticLand),
-/* harmony export */   stream: () => (/* binding */ stream),
-/* harmony export */   withInterval: () => (/* binding */ withInterval),
-/* harmony export */   zip: () => (/* binding */ zip)
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
+/* unused harmony exports dissableDeprecationWarnings, Kefir, Observable, Stream, Property, never, later, interval, sequentially, fromPoll, withInterval, fromCallback, fromNodeCallback, fromEvents, stream, constant, constantError, fromPromise, fromESObservable, combine, zip, merge, concat, Pool, pool, repeat, staticLand */
 /* module decorator */ module = __webpack_require__.hmd(module);
 /*! Kefir.js v3.8.8
  *  https://github.com/kefirjs/kefir
@@ -12100,14 +11699,11 @@ Kefir.Kefir = Kefir;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_DataView.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_DataView.js ***!
-  \******************************************/
+/***/ 7230:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var getNative = __webpack_require__(/*! ./_getNative */ "./node_modules/lodash/_getNative.js"),
-    root = __webpack_require__(/*! ./_root */ "./node_modules/lodash/_root.js");
+var getNative = __webpack_require__(3984),
+    root = __webpack_require__(9107);
 
 /* Built-in method references that are verified to be native. */
 var DataView = getNative(root, 'DataView');
@@ -12117,17 +11713,14 @@ module.exports = DataView;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_Hash.js":
-/*!**************************************!*\
-  !*** ./node_modules/lodash/_Hash.js ***!
-  \**************************************/
+/***/ 3435:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var hashClear = __webpack_require__(/*! ./_hashClear */ "./node_modules/lodash/_hashClear.js"),
-    hashDelete = __webpack_require__(/*! ./_hashDelete */ "./node_modules/lodash/_hashDelete.js"),
-    hashGet = __webpack_require__(/*! ./_hashGet */ "./node_modules/lodash/_hashGet.js"),
-    hashHas = __webpack_require__(/*! ./_hashHas */ "./node_modules/lodash/_hashHas.js"),
-    hashSet = __webpack_require__(/*! ./_hashSet */ "./node_modules/lodash/_hashSet.js");
+var hashClear = __webpack_require__(6890),
+    hashDelete = __webpack_require__(9484),
+    hashGet = __webpack_require__(7215),
+    hashHas = __webpack_require__(7811),
+    hashSet = __webpack_require__(747);
 
 /**
  * Creates a hash object.
@@ -12159,17 +11752,14 @@ module.exports = Hash;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_ListCache.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_ListCache.js ***!
-  \*******************************************/
+/***/ 5217:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var listCacheClear = __webpack_require__(/*! ./_listCacheClear */ "./node_modules/lodash/_listCacheClear.js"),
-    listCacheDelete = __webpack_require__(/*! ./_listCacheDelete */ "./node_modules/lodash/_listCacheDelete.js"),
-    listCacheGet = __webpack_require__(/*! ./_listCacheGet */ "./node_modules/lodash/_listCacheGet.js"),
-    listCacheHas = __webpack_require__(/*! ./_listCacheHas */ "./node_modules/lodash/_listCacheHas.js"),
-    listCacheSet = __webpack_require__(/*! ./_listCacheSet */ "./node_modules/lodash/_listCacheSet.js");
+var listCacheClear = __webpack_require__(4412),
+    listCacheDelete = __webpack_require__(8522),
+    listCacheGet = __webpack_require__(469),
+    listCacheHas = __webpack_require__(1161),
+    listCacheSet = __webpack_require__(1441);
 
 /**
  * Creates an list cache object.
@@ -12201,14 +11791,11 @@ module.exports = ListCache;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_Map.js":
-/*!*************************************!*\
-  !*** ./node_modules/lodash/_Map.js ***!
-  \*************************************/
+/***/ 5661:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var getNative = __webpack_require__(/*! ./_getNative */ "./node_modules/lodash/_getNative.js"),
-    root = __webpack_require__(/*! ./_root */ "./node_modules/lodash/_root.js");
+var getNative = __webpack_require__(3984),
+    root = __webpack_require__(9107);
 
 /* Built-in method references that are verified to be native. */
 var Map = getNative(root, 'Map');
@@ -12218,17 +11805,14 @@ module.exports = Map;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_MapCache.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_MapCache.js ***!
-  \******************************************/
+/***/ 3287:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var mapCacheClear = __webpack_require__(/*! ./_mapCacheClear */ "./node_modules/lodash/_mapCacheClear.js"),
-    mapCacheDelete = __webpack_require__(/*! ./_mapCacheDelete */ "./node_modules/lodash/_mapCacheDelete.js"),
-    mapCacheGet = __webpack_require__(/*! ./_mapCacheGet */ "./node_modules/lodash/_mapCacheGet.js"),
-    mapCacheHas = __webpack_require__(/*! ./_mapCacheHas */ "./node_modules/lodash/_mapCacheHas.js"),
-    mapCacheSet = __webpack_require__(/*! ./_mapCacheSet */ "./node_modules/lodash/_mapCacheSet.js");
+var mapCacheClear = __webpack_require__(8206),
+    mapCacheDelete = __webpack_require__(9768),
+    mapCacheGet = __webpack_require__(6827),
+    mapCacheHas = __webpack_require__(663),
+    mapCacheSet = __webpack_require__(5135);
 
 /**
  * Creates a map cache object to store key-value pairs.
@@ -12260,14 +11844,11 @@ module.exports = MapCache;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_Promise.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/_Promise.js ***!
-  \*****************************************/
+/***/ 9102:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var getNative = __webpack_require__(/*! ./_getNative */ "./node_modules/lodash/_getNative.js"),
-    root = __webpack_require__(/*! ./_root */ "./node_modules/lodash/_root.js");
+var getNative = __webpack_require__(3984),
+    root = __webpack_require__(9107);
 
 /* Built-in method references that are verified to be native. */
 var Promise = getNative(root, 'Promise');
@@ -12277,14 +11858,11 @@ module.exports = Promise;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_Set.js":
-/*!*************************************!*\
-  !*** ./node_modules/lodash/_Set.js ***!
-  \*************************************/
+/***/ 5963:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var getNative = __webpack_require__(/*! ./_getNative */ "./node_modules/lodash/_getNative.js"),
-    root = __webpack_require__(/*! ./_root */ "./node_modules/lodash/_root.js");
+var getNative = __webpack_require__(3984),
+    root = __webpack_require__(9107);
 
 /* Built-in method references that are verified to be native. */
 var Set = getNative(root, 'Set');
@@ -12294,15 +11872,12 @@ module.exports = Set;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_SetCache.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_SetCache.js ***!
-  \******************************************/
+/***/ 1641:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var MapCache = __webpack_require__(/*! ./_MapCache */ "./node_modules/lodash/_MapCache.js"),
-    setCacheAdd = __webpack_require__(/*! ./_setCacheAdd */ "./node_modules/lodash/_setCacheAdd.js"),
-    setCacheHas = __webpack_require__(/*! ./_setCacheHas */ "./node_modules/lodash/_setCacheHas.js");
+var MapCache = __webpack_require__(3287),
+    setCacheAdd = __webpack_require__(2486),
+    setCacheHas = __webpack_require__(9361);
 
 /**
  *
@@ -12331,18 +11906,15 @@ module.exports = SetCache;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_Stack.js":
-/*!***************************************!*\
-  !*** ./node_modules/lodash/_Stack.js ***!
-  \***************************************/
+/***/ 6435:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var ListCache = __webpack_require__(/*! ./_ListCache */ "./node_modules/lodash/_ListCache.js"),
-    stackClear = __webpack_require__(/*! ./_stackClear */ "./node_modules/lodash/_stackClear.js"),
-    stackDelete = __webpack_require__(/*! ./_stackDelete */ "./node_modules/lodash/_stackDelete.js"),
-    stackGet = __webpack_require__(/*! ./_stackGet */ "./node_modules/lodash/_stackGet.js"),
-    stackHas = __webpack_require__(/*! ./_stackHas */ "./node_modules/lodash/_stackHas.js"),
-    stackSet = __webpack_require__(/*! ./_stackSet */ "./node_modules/lodash/_stackSet.js");
+var ListCache = __webpack_require__(5217),
+    stackClear = __webpack_require__(8658),
+    stackDelete = __webpack_require__(3844),
+    stackGet = __webpack_require__(6503),
+    stackHas = __webpack_require__(1563),
+    stackSet = __webpack_require__(259);
 
 /**
  * Creates a stack cache object to store key-value pairs.
@@ -12368,13 +11940,10 @@ module.exports = Stack;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_Symbol.js":
-/*!****************************************!*\
-  !*** ./node_modules/lodash/_Symbol.js ***!
-  \****************************************/
+/***/ 6711:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var root = __webpack_require__(/*! ./_root */ "./node_modules/lodash/_root.js");
+var root = __webpack_require__(9107);
 
 /** Built-in value references. */
 var Symbol = root.Symbol;
@@ -12384,13 +11953,10 @@ module.exports = Symbol;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_Uint8Array.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_Uint8Array.js ***!
-  \********************************************/
+/***/ 9282:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var root = __webpack_require__(/*! ./_root */ "./node_modules/lodash/_root.js");
+var root = __webpack_require__(9107);
 
 /** Built-in value references. */
 var Uint8Array = root.Uint8Array;
@@ -12400,14 +11966,11 @@ module.exports = Uint8Array;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_WeakMap.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/_WeakMap.js ***!
-  \*****************************************/
+/***/ 2850:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var getNative = __webpack_require__(/*! ./_getNative */ "./node_modules/lodash/_getNative.js"),
-    root = __webpack_require__(/*! ./_root */ "./node_modules/lodash/_root.js");
+var getNative = __webpack_require__(3984),
+    root = __webpack_require__(9107);
 
 /* Built-in method references that are verified to be native. */
 var WeakMap = getNative(root, 'WeakMap');
@@ -12417,10 +11980,7 @@ module.exports = WeakMap;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_apply.js":
-/*!***************************************!*\
-  !*** ./node_modules/lodash/_apply.js ***!
-  \***************************************/
+/***/ 807:
 /***/ ((module) => {
 
 /**
@@ -12448,10 +12008,7 @@ module.exports = apply;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_arrayEach.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_arrayEach.js ***!
-  \*******************************************/
+/***/ 3643:
 /***/ ((module) => {
 
 /**
@@ -12480,10 +12037,7 @@ module.exports = arrayEach;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_arrayFilter.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_arrayFilter.js ***!
-  \*********************************************/
+/***/ 3928:
 /***/ ((module) => {
 
 /**
@@ -12515,13 +12069,10 @@ module.exports = arrayFilter;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_arrayIncludes.js":
-/*!***********************************************!*\
-  !*** ./node_modules/lodash/_arrayIncludes.js ***!
-  \***********************************************/
+/***/ 3271:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseIndexOf = __webpack_require__(/*! ./_baseIndexOf */ "./node_modules/lodash/_baseIndexOf.js");
+var baseIndexOf = __webpack_require__(8357);
 
 /**
  * A specialized version of `_.includes` for arrays without support for
@@ -12542,10 +12093,7 @@ module.exports = arrayIncludes;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_arrayIncludesWith.js":
-/*!***************************************************!*\
-  !*** ./node_modules/lodash/_arrayIncludesWith.js ***!
-  \***************************************************/
+/***/ 7599:
 /***/ ((module) => {
 
 /**
@@ -12574,18 +12122,15 @@ module.exports = arrayIncludesWith;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_arrayLikeKeys.js":
-/*!***********************************************!*\
-  !*** ./node_modules/lodash/_arrayLikeKeys.js ***!
-  \***********************************************/
+/***/ 7137:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseTimes = __webpack_require__(/*! ./_baseTimes */ "./node_modules/lodash/_baseTimes.js"),
-    isArguments = __webpack_require__(/*! ./isArguments */ "./node_modules/lodash/isArguments.js"),
-    isArray = __webpack_require__(/*! ./isArray */ "./node_modules/lodash/isArray.js"),
-    isBuffer = __webpack_require__(/*! ./isBuffer */ "./node_modules/lodash/isBuffer.js"),
-    isIndex = __webpack_require__(/*! ./_isIndex */ "./node_modules/lodash/_isIndex.js"),
-    isTypedArray = __webpack_require__(/*! ./isTypedArray */ "./node_modules/lodash/isTypedArray.js");
+var baseTimes = __webpack_require__(5410),
+    isArguments = __webpack_require__(2382),
+    isArray = __webpack_require__(2003),
+    isBuffer = __webpack_require__(1262),
+    isIndex = __webpack_require__(2615),
+    isTypedArray = __webpack_require__(9221);
 
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
@@ -12633,10 +12178,7 @@ module.exports = arrayLikeKeys;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_arrayMap.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_arrayMap.js ***!
-  \******************************************/
+/***/ 14:
 /***/ ((module) => {
 
 /**
@@ -12664,10 +12206,7 @@ module.exports = arrayMap;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_arrayPush.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_arrayPush.js ***!
-  \*******************************************/
+/***/ 562:
 /***/ ((module) => {
 
 /**
@@ -12694,10 +12233,7 @@ module.exports = arrayPush;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_arraySome.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_arraySome.js ***!
-  \*******************************************/
+/***/ 9854:
 /***/ ((module) => {
 
 /**
@@ -12727,14 +12263,11 @@ module.exports = arraySome;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_assignValue.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_assignValue.js ***!
-  \*********************************************/
+/***/ 6645:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseAssignValue = __webpack_require__(/*! ./_baseAssignValue */ "./node_modules/lodash/_baseAssignValue.js"),
-    eq = __webpack_require__(/*! ./eq */ "./node_modules/lodash/eq.js");
+var baseAssignValue = __webpack_require__(9330),
+    eq = __webpack_require__(8330);
 
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
@@ -12765,13 +12298,10 @@ module.exports = assignValue;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_assocIndexOf.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_assocIndexOf.js ***!
-  \**********************************************/
+/***/ 4767:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var eq = __webpack_require__(/*! ./eq */ "./node_modules/lodash/eq.js");
+var eq = __webpack_require__(8330);
 
 /**
  * Gets the index at which the `key` is found in `array` of key-value pairs.
@@ -12796,14 +12326,11 @@ module.exports = assocIndexOf;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseAssign.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_baseAssign.js ***!
-  \********************************************/
+/***/ 383:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var copyObject = __webpack_require__(/*! ./_copyObject */ "./node_modules/lodash/_copyObject.js"),
-    keys = __webpack_require__(/*! ./keys */ "./node_modules/lodash/keys.js");
+var copyObject = __webpack_require__(8113),
+    keys = __webpack_require__(5304);
 
 /**
  * The base implementation of `_.assign` without support for multiple sources
@@ -12823,14 +12350,11 @@ module.exports = baseAssign;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseAssignIn.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_baseAssignIn.js ***!
-  \**********************************************/
+/***/ 7844:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var copyObject = __webpack_require__(/*! ./_copyObject */ "./node_modules/lodash/_copyObject.js"),
-    keysIn = __webpack_require__(/*! ./keysIn */ "./node_modules/lodash/keysIn.js");
+var copyObject = __webpack_require__(8113),
+    keysIn = __webpack_require__(7495);
 
 /**
  * The base implementation of `_.assignIn` without support for multiple sources
@@ -12850,13 +12374,10 @@ module.exports = baseAssignIn;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseAssignValue.js":
-/*!*************************************************!*\
-  !*** ./node_modules/lodash/_baseAssignValue.js ***!
-  \*************************************************/
+/***/ 9330:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var defineProperty = __webpack_require__(/*! ./_defineProperty */ "./node_modules/lodash/_defineProperty.js");
+var defineProperty = __webpack_require__(3009);
 
 /**
  * The base implementation of `assignValue` and `assignMergeValue` without
@@ -12885,10 +12406,7 @@ module.exports = baseAssignValue;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseClamp.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_baseClamp.js ***!
-  \*******************************************/
+/***/ 9631:
 /***/ ((module) => {
 
 /**
@@ -12917,34 +12435,31 @@ module.exports = baseClamp;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseClone.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_baseClone.js ***!
-  \*******************************************/
+/***/ 1937:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Stack = __webpack_require__(/*! ./_Stack */ "./node_modules/lodash/_Stack.js"),
-    arrayEach = __webpack_require__(/*! ./_arrayEach */ "./node_modules/lodash/_arrayEach.js"),
-    assignValue = __webpack_require__(/*! ./_assignValue */ "./node_modules/lodash/_assignValue.js"),
-    baseAssign = __webpack_require__(/*! ./_baseAssign */ "./node_modules/lodash/_baseAssign.js"),
-    baseAssignIn = __webpack_require__(/*! ./_baseAssignIn */ "./node_modules/lodash/_baseAssignIn.js"),
-    cloneBuffer = __webpack_require__(/*! ./_cloneBuffer */ "./node_modules/lodash/_cloneBuffer.js"),
-    copyArray = __webpack_require__(/*! ./_copyArray */ "./node_modules/lodash/_copyArray.js"),
-    copySymbols = __webpack_require__(/*! ./_copySymbols */ "./node_modules/lodash/_copySymbols.js"),
-    copySymbolsIn = __webpack_require__(/*! ./_copySymbolsIn */ "./node_modules/lodash/_copySymbolsIn.js"),
-    getAllKeys = __webpack_require__(/*! ./_getAllKeys */ "./node_modules/lodash/_getAllKeys.js"),
-    getAllKeysIn = __webpack_require__(/*! ./_getAllKeysIn */ "./node_modules/lodash/_getAllKeysIn.js"),
-    getTag = __webpack_require__(/*! ./_getTag */ "./node_modules/lodash/_getTag.js"),
-    initCloneArray = __webpack_require__(/*! ./_initCloneArray */ "./node_modules/lodash/_initCloneArray.js"),
-    initCloneByTag = __webpack_require__(/*! ./_initCloneByTag */ "./node_modules/lodash/_initCloneByTag.js"),
-    initCloneObject = __webpack_require__(/*! ./_initCloneObject */ "./node_modules/lodash/_initCloneObject.js"),
-    isArray = __webpack_require__(/*! ./isArray */ "./node_modules/lodash/isArray.js"),
-    isBuffer = __webpack_require__(/*! ./isBuffer */ "./node_modules/lodash/isBuffer.js"),
-    isMap = __webpack_require__(/*! ./isMap */ "./node_modules/lodash/isMap.js"),
-    isObject = __webpack_require__(/*! ./isObject */ "./node_modules/lodash/isObject.js"),
-    isSet = __webpack_require__(/*! ./isSet */ "./node_modules/lodash/isSet.js"),
-    keys = __webpack_require__(/*! ./keys */ "./node_modules/lodash/keys.js"),
-    keysIn = __webpack_require__(/*! ./keysIn */ "./node_modules/lodash/keysIn.js");
+var Stack = __webpack_require__(6435),
+    arrayEach = __webpack_require__(3643),
+    assignValue = __webpack_require__(6645),
+    baseAssign = __webpack_require__(383),
+    baseAssignIn = __webpack_require__(7844),
+    cloneBuffer = __webpack_require__(2932),
+    copyArray = __webpack_require__(9061),
+    copySymbols = __webpack_require__(709),
+    copySymbolsIn = __webpack_require__(8038),
+    getAllKeys = __webpack_require__(5760),
+    getAllKeysIn = __webpack_require__(3183),
+    getTag = __webpack_require__(695),
+    initCloneArray = __webpack_require__(9303),
+    initCloneByTag = __webpack_require__(5385),
+    initCloneObject = __webpack_require__(3991),
+    isArray = __webpack_require__(2003),
+    isBuffer = __webpack_require__(1262),
+    isMap = __webpack_require__(5652),
+    isObject = __webpack_require__(5603),
+    isSet = __webpack_require__(9318),
+    keys = __webpack_require__(5304),
+    keysIn = __webpack_require__(7495);
 
 /** Used to compose bitmasks for cloning. */
 var CLONE_DEEP_FLAG = 1,
@@ -13093,13 +12608,10 @@ module.exports = baseClone;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseCreate.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_baseCreate.js ***!
-  \********************************************/
+/***/ 3962:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var isObject = __webpack_require__(/*! ./isObject */ "./node_modules/lodash/isObject.js");
+var isObject = __webpack_require__(5603);
 
 /** Built-in value references. */
 var objectCreate = Object.create;
@@ -13133,14 +12645,11 @@ module.exports = baseCreate;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseEach.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_baseEach.js ***!
-  \******************************************/
+/***/ 7587:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseForOwn = __webpack_require__(/*! ./_baseForOwn */ "./node_modules/lodash/_baseForOwn.js"),
-    createBaseEach = __webpack_require__(/*! ./_createBaseEach */ "./node_modules/lodash/_createBaseEach.js");
+var baseForOwn = __webpack_require__(427),
+    createBaseEach = __webpack_require__(3679);
 
 /**
  * The base implementation of `_.forEach` without support for iteratee shorthands.
@@ -13157,13 +12666,10 @@ module.exports = baseEach;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseFilter.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_baseFilter.js ***!
-  \********************************************/
+/***/ 4384:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseEach = __webpack_require__(/*! ./_baseEach */ "./node_modules/lodash/_baseEach.js");
+var baseEach = __webpack_require__(7587);
 
 /**
  * The base implementation of `_.filter` without support for iteratee shorthands.
@@ -13188,10 +12694,7 @@ module.exports = baseFilter;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseFindIndex.js":
-/*!***********************************************!*\
-  !*** ./node_modules/lodash/_baseFindIndex.js ***!
-  \***********************************************/
+/***/ 6917:
 /***/ ((module) => {
 
 /**
@@ -13222,14 +12725,11 @@ module.exports = baseFindIndex;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseFlatten.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_baseFlatten.js ***!
-  \*********************************************/
+/***/ 4958:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayPush = __webpack_require__(/*! ./_arrayPush */ "./node_modules/lodash/_arrayPush.js"),
-    isFlattenable = __webpack_require__(/*! ./_isFlattenable */ "./node_modules/lodash/_isFlattenable.js");
+var arrayPush = __webpack_require__(562),
+    isFlattenable = __webpack_require__(4385);
 
 /**
  * The base implementation of `_.flatten` with support for restricting flattening.
@@ -13270,13 +12770,10 @@ module.exports = baseFlatten;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseFor.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/_baseFor.js ***!
-  \*****************************************/
+/***/ 1595:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var createBaseFor = __webpack_require__(/*! ./_createBaseFor */ "./node_modules/lodash/_createBaseFor.js");
+var createBaseFor = __webpack_require__(951);
 
 /**
  * The base implementation of `baseForOwn` which iterates over `object`
@@ -13296,14 +12793,11 @@ module.exports = baseFor;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseForOwn.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_baseForOwn.js ***!
-  \********************************************/
+/***/ 427:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseFor = __webpack_require__(/*! ./_baseFor */ "./node_modules/lodash/_baseFor.js"),
-    keys = __webpack_require__(/*! ./keys */ "./node_modules/lodash/keys.js");
+var baseFor = __webpack_require__(1595),
+    keys = __webpack_require__(5304);
 
 /**
  * The base implementation of `_.forOwn` without support for iteratee shorthands.
@@ -13322,14 +12816,11 @@ module.exports = baseForOwn;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseGet.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/_baseGet.js ***!
-  \*****************************************/
+/***/ 384:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var castPath = __webpack_require__(/*! ./_castPath */ "./node_modules/lodash/_castPath.js"),
-    toKey = __webpack_require__(/*! ./_toKey */ "./node_modules/lodash/_toKey.js");
+var castPath = __webpack_require__(4275),
+    toKey = __webpack_require__(8059);
 
 /**
  * The base implementation of `_.get` without support for default values.
@@ -13356,14 +12847,11 @@ module.exports = baseGet;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseGetAllKeys.js":
-/*!************************************************!*\
-  !*** ./node_modules/lodash/_baseGetAllKeys.js ***!
-  \************************************************/
+/***/ 8821:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayPush = __webpack_require__(/*! ./_arrayPush */ "./node_modules/lodash/_arrayPush.js"),
-    isArray = __webpack_require__(/*! ./isArray */ "./node_modules/lodash/isArray.js");
+var arrayPush = __webpack_require__(562),
+    isArray = __webpack_require__(2003);
 
 /**
  * The base implementation of `getAllKeys` and `getAllKeysIn` which uses
@@ -13386,15 +12874,12 @@ module.exports = baseGetAllKeys;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseGetTag.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_baseGetTag.js ***!
-  \********************************************/
+/***/ 6522:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Symbol = __webpack_require__(/*! ./_Symbol */ "./node_modules/lodash/_Symbol.js"),
-    getRawTag = __webpack_require__(/*! ./_getRawTag */ "./node_modules/lodash/_getRawTag.js"),
-    objectToString = __webpack_require__(/*! ./_objectToString */ "./node_modules/lodash/_objectToString.js");
+var Symbol = __webpack_require__(6711),
+    getRawTag = __webpack_require__(905),
+    objectToString = __webpack_require__(2588);
 
 /** `Object#toString` result references. */
 var nullTag = '[object Null]',
@@ -13424,10 +12909,7 @@ module.exports = baseGetTag;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseHas.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/_baseHas.js ***!
-  \*****************************************/
+/***/ 8772:
 /***/ ((module) => {
 
 /** Used for built-in method references. */
@@ -13453,10 +12935,7 @@ module.exports = baseHas;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseHasIn.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_baseHasIn.js ***!
-  \*******************************************/
+/***/ 6571:
 /***/ ((module) => {
 
 /**
@@ -13476,15 +12955,12 @@ module.exports = baseHasIn;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseIndexOf.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_baseIndexOf.js ***!
-  \*********************************************/
+/***/ 8357:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseFindIndex = __webpack_require__(/*! ./_baseFindIndex */ "./node_modules/lodash/_baseFindIndex.js"),
-    baseIsNaN = __webpack_require__(/*! ./_baseIsNaN */ "./node_modules/lodash/_baseIsNaN.js"),
-    strictIndexOf = __webpack_require__(/*! ./_strictIndexOf */ "./node_modules/lodash/_strictIndexOf.js");
+var baseFindIndex = __webpack_require__(6917),
+    baseIsNaN = __webpack_require__(3001),
+    strictIndexOf = __webpack_require__(5957);
 
 /**
  * The base implementation of `_.indexOf` without `fromIndex` bounds checks.
@@ -13506,18 +12982,15 @@ module.exports = baseIndexOf;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseIntersection.js":
-/*!**************************************************!*\
-  !*** ./node_modules/lodash/_baseIntersection.js ***!
-  \**************************************************/
+/***/ 739:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var SetCache = __webpack_require__(/*! ./_SetCache */ "./node_modules/lodash/_SetCache.js"),
-    arrayIncludes = __webpack_require__(/*! ./_arrayIncludes */ "./node_modules/lodash/_arrayIncludes.js"),
-    arrayIncludesWith = __webpack_require__(/*! ./_arrayIncludesWith */ "./node_modules/lodash/_arrayIncludesWith.js"),
-    arrayMap = __webpack_require__(/*! ./_arrayMap */ "./node_modules/lodash/_arrayMap.js"),
-    baseUnary = __webpack_require__(/*! ./_baseUnary */ "./node_modules/lodash/_baseUnary.js"),
-    cacheHas = __webpack_require__(/*! ./_cacheHas */ "./node_modules/lodash/_cacheHas.js");
+var SetCache = __webpack_require__(1641),
+    arrayIncludes = __webpack_require__(3271),
+    arrayIncludesWith = __webpack_require__(7599),
+    arrayMap = __webpack_require__(14),
+    baseUnary = __webpack_require__(2347),
+    cacheHas = __webpack_require__(7585);
 
 /* Built-in method references for those with the same name as other `lodash` methods. */
 var nativeMin = Math.min;
@@ -13590,14 +13063,11 @@ module.exports = baseIntersection;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseIsArguments.js":
-/*!*************************************************!*\
-  !*** ./node_modules/lodash/_baseIsArguments.js ***!
-  \*************************************************/
+/***/ 2744:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseGetTag = __webpack_require__(/*! ./_baseGetTag */ "./node_modules/lodash/_baseGetTag.js"),
-    isObjectLike = __webpack_require__(/*! ./isObjectLike */ "./node_modules/lodash/isObjectLike.js");
+var baseGetTag = __webpack_require__(6522),
+    isObjectLike = __webpack_require__(2620);
 
 /** `Object#toString` result references. */
 var argsTag = '[object Arguments]';
@@ -13618,14 +13088,11 @@ module.exports = baseIsArguments;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseIsEqual.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_baseIsEqual.js ***!
-  \*********************************************/
+/***/ 9336:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseIsEqualDeep = __webpack_require__(/*! ./_baseIsEqualDeep */ "./node_modules/lodash/_baseIsEqualDeep.js"),
-    isObjectLike = __webpack_require__(/*! ./isObjectLike */ "./node_modules/lodash/isObjectLike.js");
+var baseIsEqualDeep = __webpack_require__(1894),
+    isObjectLike = __webpack_require__(2620);
 
 /**
  * The base implementation of `_.isEqual` which supports partial comparisons
@@ -13656,20 +13123,17 @@ module.exports = baseIsEqual;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseIsEqualDeep.js":
-/*!*************************************************!*\
-  !*** ./node_modules/lodash/_baseIsEqualDeep.js ***!
-  \*************************************************/
+/***/ 1894:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Stack = __webpack_require__(/*! ./_Stack */ "./node_modules/lodash/_Stack.js"),
-    equalArrays = __webpack_require__(/*! ./_equalArrays */ "./node_modules/lodash/_equalArrays.js"),
-    equalByTag = __webpack_require__(/*! ./_equalByTag */ "./node_modules/lodash/_equalByTag.js"),
-    equalObjects = __webpack_require__(/*! ./_equalObjects */ "./node_modules/lodash/_equalObjects.js"),
-    getTag = __webpack_require__(/*! ./_getTag */ "./node_modules/lodash/_getTag.js"),
-    isArray = __webpack_require__(/*! ./isArray */ "./node_modules/lodash/isArray.js"),
-    isBuffer = __webpack_require__(/*! ./isBuffer */ "./node_modules/lodash/isBuffer.js"),
-    isTypedArray = __webpack_require__(/*! ./isTypedArray */ "./node_modules/lodash/isTypedArray.js");
+var Stack = __webpack_require__(6435),
+    equalArrays = __webpack_require__(1505),
+    equalByTag = __webpack_require__(9620),
+    equalObjects = __webpack_require__(439),
+    getTag = __webpack_require__(695),
+    isArray = __webpack_require__(2003),
+    isBuffer = __webpack_require__(1262),
+    isTypedArray = __webpack_require__(9221);
 
 /** Used to compose bitmasks for value comparisons. */
 var COMPARE_PARTIAL_FLAG = 1;
@@ -13749,14 +13213,11 @@ module.exports = baseIsEqualDeep;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseIsMap.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_baseIsMap.js ***!
-  \*******************************************/
+/***/ 8742:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var getTag = __webpack_require__(/*! ./_getTag */ "./node_modules/lodash/_getTag.js"),
-    isObjectLike = __webpack_require__(/*! ./isObjectLike */ "./node_modules/lodash/isObjectLike.js");
+var getTag = __webpack_require__(695),
+    isObjectLike = __webpack_require__(2620);
 
 /** `Object#toString` result references. */
 var mapTag = '[object Map]';
@@ -13777,14 +13238,11 @@ module.exports = baseIsMap;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseIsMatch.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_baseIsMatch.js ***!
-  \*********************************************/
+/***/ 4253:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Stack = __webpack_require__(/*! ./_Stack */ "./node_modules/lodash/_Stack.js"),
-    baseIsEqual = __webpack_require__(/*! ./_baseIsEqual */ "./node_modules/lodash/_baseIsEqual.js");
+var Stack = __webpack_require__(6435),
+    baseIsEqual = __webpack_require__(9336);
 
 /** Used to compose bitmasks for value comparisons. */
 var COMPARE_PARTIAL_FLAG = 1,
@@ -13849,10 +13307,7 @@ module.exports = baseIsMatch;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseIsNaN.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_baseIsNaN.js ***!
-  \*******************************************/
+/***/ 3001:
 /***/ ((module) => {
 
 /**
@@ -13871,16 +13326,13 @@ module.exports = baseIsNaN;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseIsNative.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_baseIsNative.js ***!
-  \**********************************************/
+/***/ 2249:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var isFunction = __webpack_require__(/*! ./isFunction */ "./node_modules/lodash/isFunction.js"),
-    isMasked = __webpack_require__(/*! ./_isMasked */ "./node_modules/lodash/_isMasked.js"),
-    isObject = __webpack_require__(/*! ./isObject */ "./node_modules/lodash/isObject.js"),
-    toSource = __webpack_require__(/*! ./_toSource */ "./node_modules/lodash/_toSource.js");
+var isFunction = __webpack_require__(8148),
+    isMasked = __webpack_require__(1398),
+    isObject = __webpack_require__(5603),
+    toSource = __webpack_require__(1543);
 
 /**
  * Used to match `RegExp`
@@ -13928,14 +13380,11 @@ module.exports = baseIsNative;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseIsSet.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_baseIsSet.js ***!
-  \*******************************************/
+/***/ 5476:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var getTag = __webpack_require__(/*! ./_getTag */ "./node_modules/lodash/_getTag.js"),
-    isObjectLike = __webpack_require__(/*! ./isObjectLike */ "./node_modules/lodash/isObjectLike.js");
+var getTag = __webpack_require__(695),
+    isObjectLike = __webpack_require__(2620);
 
 /** `Object#toString` result references. */
 var setTag = '[object Set]';
@@ -13956,15 +13405,12 @@ module.exports = baseIsSet;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseIsTypedArray.js":
-/*!**************************************************!*\
-  !*** ./node_modules/lodash/_baseIsTypedArray.js ***!
-  \**************************************************/
+/***/ 5387:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseGetTag = __webpack_require__(/*! ./_baseGetTag */ "./node_modules/lodash/_baseGetTag.js"),
-    isLength = __webpack_require__(/*! ./isLength */ "./node_modules/lodash/isLength.js"),
-    isObjectLike = __webpack_require__(/*! ./isObjectLike */ "./node_modules/lodash/isObjectLike.js");
+var baseGetTag = __webpack_require__(6522),
+    isLength = __webpack_require__(7164),
+    isObjectLike = __webpack_require__(2620);
 
 /** `Object#toString` result references. */
 var argsTag = '[object Arguments]',
@@ -14026,17 +13472,14 @@ module.exports = baseIsTypedArray;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseIteratee.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_baseIteratee.js ***!
-  \**********************************************/
+/***/ 7675:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseMatches = __webpack_require__(/*! ./_baseMatches */ "./node_modules/lodash/_baseMatches.js"),
-    baseMatchesProperty = __webpack_require__(/*! ./_baseMatchesProperty */ "./node_modules/lodash/_baseMatchesProperty.js"),
-    identity = __webpack_require__(/*! ./identity */ "./node_modules/lodash/identity.js"),
-    isArray = __webpack_require__(/*! ./isArray */ "./node_modules/lodash/isArray.js"),
-    property = __webpack_require__(/*! ./property */ "./node_modules/lodash/property.js");
+var baseMatches = __webpack_require__(5141),
+    baseMatchesProperty = __webpack_require__(8476),
+    identity = __webpack_require__(1686),
+    isArray = __webpack_require__(2003),
+    property = __webpack_require__(7093);
 
 /**
  * The base implementation of `_.iteratee`.
@@ -14067,14 +13510,11 @@ module.exports = baseIteratee;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseKeys.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_baseKeys.js ***!
-  \******************************************/
+/***/ 6794:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var isPrototype = __webpack_require__(/*! ./_isPrototype */ "./node_modules/lodash/_isPrototype.js"),
-    nativeKeys = __webpack_require__(/*! ./_nativeKeys */ "./node_modules/lodash/_nativeKeys.js");
+var isPrototype = __webpack_require__(6165),
+    nativeKeys = __webpack_require__(6132);
 
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
@@ -14107,15 +13547,12 @@ module.exports = baseKeys;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseKeysIn.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_baseKeysIn.js ***!
-  \********************************************/
+/***/ 8157:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var isObject = __webpack_require__(/*! ./isObject */ "./node_modules/lodash/isObject.js"),
-    isPrototype = __webpack_require__(/*! ./_isPrototype */ "./node_modules/lodash/_isPrototype.js"),
-    nativeKeysIn = __webpack_require__(/*! ./_nativeKeysIn */ "./node_modules/lodash/_nativeKeysIn.js");
+var isObject = __webpack_require__(5603),
+    isPrototype = __webpack_require__(6165),
+    nativeKeysIn = __webpack_require__(4555);
 
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
@@ -14150,14 +13587,11 @@ module.exports = baseKeysIn;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseMap.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/_baseMap.js ***!
-  \*****************************************/
+/***/ 5718:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseEach = __webpack_require__(/*! ./_baseEach */ "./node_modules/lodash/_baseEach.js"),
-    isArrayLike = __webpack_require__(/*! ./isArrayLike */ "./node_modules/lodash/isArrayLike.js");
+var baseEach = __webpack_require__(7587),
+    isArrayLike = __webpack_require__(6316);
 
 /**
  * The base implementation of `_.map` without support for iteratee shorthands.
@@ -14182,15 +13616,12 @@ module.exports = baseMap;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseMatches.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_baseMatches.js ***!
-  \*********************************************/
+/***/ 5141:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseIsMatch = __webpack_require__(/*! ./_baseIsMatch */ "./node_modules/lodash/_baseIsMatch.js"),
-    getMatchData = __webpack_require__(/*! ./_getMatchData */ "./node_modules/lodash/_getMatchData.js"),
-    matchesStrictComparable = __webpack_require__(/*! ./_matchesStrictComparable */ "./node_modules/lodash/_matchesStrictComparable.js");
+var baseIsMatch = __webpack_require__(4253),
+    getMatchData = __webpack_require__(8418),
+    matchesStrictComparable = __webpack_require__(3591);
 
 /**
  * The base implementation of `_.matches` which doesn't clone `source`.
@@ -14214,19 +13645,16 @@ module.exports = baseMatches;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseMatchesProperty.js":
-/*!*****************************************************!*\
-  !*** ./node_modules/lodash/_baseMatchesProperty.js ***!
-  \*****************************************************/
+/***/ 8476:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseIsEqual = __webpack_require__(/*! ./_baseIsEqual */ "./node_modules/lodash/_baseIsEqual.js"),
-    get = __webpack_require__(/*! ./get */ "./node_modules/lodash/get.js"),
-    hasIn = __webpack_require__(/*! ./hasIn */ "./node_modules/lodash/hasIn.js"),
-    isKey = __webpack_require__(/*! ./_isKey */ "./node_modules/lodash/_isKey.js"),
-    isStrictComparable = __webpack_require__(/*! ./_isStrictComparable */ "./node_modules/lodash/_isStrictComparable.js"),
-    matchesStrictComparable = __webpack_require__(/*! ./_matchesStrictComparable */ "./node_modules/lodash/_matchesStrictComparable.js"),
-    toKey = __webpack_require__(/*! ./_toKey */ "./node_modules/lodash/_toKey.js");
+var baseIsEqual = __webpack_require__(9336),
+    get = __webpack_require__(1214),
+    hasIn = __webpack_require__(8765),
+    isKey = __webpack_require__(5456),
+    isStrictComparable = __webpack_require__(7030),
+    matchesStrictComparable = __webpack_require__(3591),
+    toKey = __webpack_require__(8059);
 
 /** Used to compose bitmasks for value comparisons. */
 var COMPARE_PARTIAL_FLAG = 1,
@@ -14257,21 +13685,18 @@ module.exports = baseMatchesProperty;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseOrderBy.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_baseOrderBy.js ***!
-  \*********************************************/
+/***/ 3729:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayMap = __webpack_require__(/*! ./_arrayMap */ "./node_modules/lodash/_arrayMap.js"),
-    baseGet = __webpack_require__(/*! ./_baseGet */ "./node_modules/lodash/_baseGet.js"),
-    baseIteratee = __webpack_require__(/*! ./_baseIteratee */ "./node_modules/lodash/_baseIteratee.js"),
-    baseMap = __webpack_require__(/*! ./_baseMap */ "./node_modules/lodash/_baseMap.js"),
-    baseSortBy = __webpack_require__(/*! ./_baseSortBy */ "./node_modules/lodash/_baseSortBy.js"),
-    baseUnary = __webpack_require__(/*! ./_baseUnary */ "./node_modules/lodash/_baseUnary.js"),
-    compareMultiple = __webpack_require__(/*! ./_compareMultiple */ "./node_modules/lodash/_compareMultiple.js"),
-    identity = __webpack_require__(/*! ./identity */ "./node_modules/lodash/identity.js"),
-    isArray = __webpack_require__(/*! ./isArray */ "./node_modules/lodash/isArray.js");
+var arrayMap = __webpack_require__(14),
+    baseGet = __webpack_require__(384),
+    baseIteratee = __webpack_require__(7675),
+    baseMap = __webpack_require__(5718),
+    baseSortBy = __webpack_require__(1163),
+    baseUnary = __webpack_require__(2347),
+    compareMultiple = __webpack_require__(7644),
+    identity = __webpack_require__(1686),
+    isArray = __webpack_require__(2003);
 
 /**
  * The base implementation of `_.orderBy` without param guards.
@@ -14316,10 +13741,7 @@ module.exports = baseOrderBy;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseProperty.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_baseProperty.js ***!
-  \**********************************************/
+/***/ 1171:
 /***/ ((module) => {
 
 /**
@@ -14340,13 +13762,10 @@ module.exports = baseProperty;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_basePropertyDeep.js":
-/*!**************************************************!*\
-  !*** ./node_modules/lodash/_basePropertyDeep.js ***!
-  \**************************************************/
+/***/ 4589:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseGet = __webpack_require__(/*! ./_baseGet */ "./node_modules/lodash/_baseGet.js");
+var baseGet = __webpack_require__(384);
 
 /**
  * A specialized version of `baseProperty` which supports deep paths.
@@ -14366,10 +13785,7 @@ module.exports = basePropertyDeep;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_basePropertyOf.js":
-/*!************************************************!*\
-  !*** ./node_modules/lodash/_basePropertyOf.js ***!
-  \************************************************/
+/***/ 9390:
 /***/ ((module) => {
 
 /**
@@ -14390,15 +13806,12 @@ module.exports = basePropertyOf;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseRest.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_baseRest.js ***!
-  \******************************************/
+/***/ 3408:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var identity = __webpack_require__(/*! ./identity */ "./node_modules/lodash/identity.js"),
-    overRest = __webpack_require__(/*! ./_overRest */ "./node_modules/lodash/_overRest.js"),
-    setToString = __webpack_require__(/*! ./_setToString */ "./node_modules/lodash/_setToString.js");
+var identity = __webpack_require__(1686),
+    overRest = __webpack_require__(5683),
+    setToString = __webpack_require__(6391);
 
 /**
  * The base implementation of `_.rest` which doesn't validate or coerce arguments.
@@ -14417,15 +13830,12 @@ module.exports = baseRest;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseSetToString.js":
-/*!*************************************************!*\
-  !*** ./node_modules/lodash/_baseSetToString.js ***!
-  \*************************************************/
+/***/ 7880:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var constant = __webpack_require__(/*! ./constant */ "./node_modules/lodash/constant.js"),
-    defineProperty = __webpack_require__(/*! ./_defineProperty */ "./node_modules/lodash/_defineProperty.js"),
-    identity = __webpack_require__(/*! ./identity */ "./node_modules/lodash/identity.js");
+var constant = __webpack_require__(7660),
+    defineProperty = __webpack_require__(3009),
+    identity = __webpack_require__(1686);
 
 /**
  * The base implementation of `setToString` without support for hot loop shorting.
@@ -14449,10 +13859,7 @@ module.exports = baseSetToString;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseSortBy.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_baseSortBy.js ***!
-  \********************************************/
+/***/ 1163:
 /***/ ((module) => {
 
 /**
@@ -14480,10 +13887,7 @@ module.exports = baseSortBy;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseTimes.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_baseTimes.js ***!
-  \*******************************************/
+/***/ 5410:
 /***/ ((module) => {
 
 /**
@@ -14510,16 +13914,13 @@ module.exports = baseTimes;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseToString.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_baseToString.js ***!
-  \**********************************************/
+/***/ 8354:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Symbol = __webpack_require__(/*! ./_Symbol */ "./node_modules/lodash/_Symbol.js"),
-    arrayMap = __webpack_require__(/*! ./_arrayMap */ "./node_modules/lodash/_arrayMap.js"),
-    isArray = __webpack_require__(/*! ./isArray */ "./node_modules/lodash/isArray.js"),
-    isSymbol = __webpack_require__(/*! ./isSymbol */ "./node_modules/lodash/isSymbol.js");
+var Symbol = __webpack_require__(6711),
+    arrayMap = __webpack_require__(14),
+    isArray = __webpack_require__(2003),
+    isSymbol = __webpack_require__(6596);
 
 /** Used as references for various `Number` constants. */
 var INFINITY = 1 / 0;
@@ -14557,13 +13958,10 @@ module.exports = baseToString;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseTrim.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_baseTrim.js ***!
-  \******************************************/
+/***/ 9070:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var trimmedEndIndex = __webpack_require__(/*! ./_trimmedEndIndex */ "./node_modules/lodash/_trimmedEndIndex.js");
+var trimmedEndIndex = __webpack_require__(8882);
 
 /** Used to match leading whitespace. */
 var reTrimStart = /^\s+/;
@@ -14586,10 +13984,7 @@ module.exports = baseTrim;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseUnary.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_baseUnary.js ***!
-  \*******************************************/
+/***/ 2347:
 /***/ ((module) => {
 
 /**
@@ -14610,13 +14005,10 @@ module.exports = baseUnary;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_baseValues.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_baseValues.js ***!
-  \********************************************/
+/***/ 4956:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayMap = __webpack_require__(/*! ./_arrayMap */ "./node_modules/lodash/_arrayMap.js");
+var arrayMap = __webpack_require__(14);
 
 /**
  * The base implementation of `_.values` and `_.valuesIn` which creates an
@@ -14639,10 +14031,7 @@ module.exports = baseValues;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_cacheHas.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_cacheHas.js ***!
-  \******************************************/
+/***/ 7585:
 /***/ ((module) => {
 
 /**
@@ -14662,13 +14051,10 @@ module.exports = cacheHas;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_castArrayLikeObject.js":
-/*!*****************************************************!*\
-  !*** ./node_modules/lodash/_castArrayLikeObject.js ***!
-  \*****************************************************/
+/***/ 9471:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var isArrayLikeObject = __webpack_require__(/*! ./isArrayLikeObject */ "./node_modules/lodash/isArrayLikeObject.js");
+var isArrayLikeObject = __webpack_require__(1899);
 
 /**
  * Casts `value` to an empty array if it's not an array like object.
@@ -14686,13 +14072,10 @@ module.exports = castArrayLikeObject;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_castFunction.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_castFunction.js ***!
-  \**********************************************/
+/***/ 2072:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var identity = __webpack_require__(/*! ./identity */ "./node_modules/lodash/identity.js");
+var identity = __webpack_require__(1686);
 
 /**
  * Casts `value` to `identity` if it's not a function.
@@ -14710,16 +14093,13 @@ module.exports = castFunction;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_castPath.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_castPath.js ***!
-  \******************************************/
+/***/ 4275:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var isArray = __webpack_require__(/*! ./isArray */ "./node_modules/lodash/isArray.js"),
-    isKey = __webpack_require__(/*! ./_isKey */ "./node_modules/lodash/_isKey.js"),
-    stringToPath = __webpack_require__(/*! ./_stringToPath */ "./node_modules/lodash/_stringToPath.js"),
-    toString = __webpack_require__(/*! ./toString */ "./node_modules/lodash/toString.js");
+var isArray = __webpack_require__(2003),
+    isKey = __webpack_require__(5456),
+    stringToPath = __webpack_require__(5240),
+    toString = __webpack_require__(7060);
 
 /**
  * Casts `value` to a path array if it's not one.
@@ -14741,13 +14121,10 @@ module.exports = castPath;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_cloneArrayBuffer.js":
-/*!**************************************************!*\
-  !*** ./node_modules/lodash/_cloneArrayBuffer.js ***!
-  \**************************************************/
+/***/ 1987:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Uint8Array = __webpack_require__(/*! ./_Uint8Array */ "./node_modules/lodash/_Uint8Array.js");
+var Uint8Array = __webpack_require__(9282);
 
 /**
  * Creates a clone of `arrayBuffer`.
@@ -14767,14 +14144,11 @@ module.exports = cloneArrayBuffer;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_cloneBuffer.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_cloneBuffer.js ***!
-  \*********************************************/
+/***/ 2932:
 /***/ ((module, exports, __webpack_require__) => {
 
 /* module decorator */ module = __webpack_require__.nmd(module);
-var root = __webpack_require__(/*! ./_root */ "./node_modules/lodash/_root.js");
+var root = __webpack_require__(9107);
 
 /** Detect free variable `exports`. */
 var freeExports =  true && exports && !exports.nodeType && exports;
@@ -14813,13 +14187,10 @@ module.exports = cloneBuffer;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_cloneDataView.js":
-/*!***********************************************!*\
-  !*** ./node_modules/lodash/_cloneDataView.js ***!
-  \***********************************************/
+/***/ 3931:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var cloneArrayBuffer = __webpack_require__(/*! ./_cloneArrayBuffer */ "./node_modules/lodash/_cloneArrayBuffer.js");
+var cloneArrayBuffer = __webpack_require__(1987);
 
 /**
  * Creates a clone of `dataView`.
@@ -14839,10 +14210,7 @@ module.exports = cloneDataView;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_cloneRegExp.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_cloneRegExp.js ***!
-  \*********************************************/
+/***/ 1259:
 /***/ ((module) => {
 
 /** Used to match `RegExp` flags from their coerced string values. */
@@ -14866,13 +14234,10 @@ module.exports = cloneRegExp;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_cloneSymbol.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_cloneSymbol.js ***!
-  \*********************************************/
+/***/ 6878:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Symbol = __webpack_require__(/*! ./_Symbol */ "./node_modules/lodash/_Symbol.js");
+var Symbol = __webpack_require__(6711);
 
 /** Used to convert symbols to primitives and strings. */
 var symbolProto = Symbol ? Symbol.prototype : undefined,
@@ -14894,13 +14259,10 @@ module.exports = cloneSymbol;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_cloneTypedArray.js":
-/*!*************************************************!*\
-  !*** ./node_modules/lodash/_cloneTypedArray.js ***!
-  \*************************************************/
+/***/ 3859:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var cloneArrayBuffer = __webpack_require__(/*! ./_cloneArrayBuffer */ "./node_modules/lodash/_cloneArrayBuffer.js");
+var cloneArrayBuffer = __webpack_require__(1987);
 
 /**
  * Creates a clone of `typedArray`.
@@ -14920,13 +14282,10 @@ module.exports = cloneTypedArray;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_compareAscending.js":
-/*!**************************************************!*\
-  !*** ./node_modules/lodash/_compareAscending.js ***!
-  \**************************************************/
+/***/ 8452:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var isSymbol = __webpack_require__(/*! ./isSymbol */ "./node_modules/lodash/isSymbol.js");
+var isSymbol = __webpack_require__(6596);
 
 /**
  * Compares values to sort them in ascending order.
@@ -14971,13 +14330,10 @@ module.exports = compareAscending;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_compareMultiple.js":
-/*!*************************************************!*\
-  !*** ./node_modules/lodash/_compareMultiple.js ***!
-  \*************************************************/
+/***/ 7644:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var compareAscending = __webpack_require__(/*! ./_compareAscending */ "./node_modules/lodash/_compareAscending.js");
+var compareAscending = __webpack_require__(8452);
 
 /**
  * Used by `_.orderBy` to compare multiple properties of a value to another
@@ -15025,10 +14381,7 @@ module.exports = compareMultiple;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_copyArray.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_copyArray.js ***!
-  \*******************************************/
+/***/ 9061:
 /***/ ((module) => {
 
 /**
@@ -15055,14 +14408,11 @@ module.exports = copyArray;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_copyObject.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_copyObject.js ***!
-  \********************************************/
+/***/ 8113:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var assignValue = __webpack_require__(/*! ./_assignValue */ "./node_modules/lodash/_assignValue.js"),
-    baseAssignValue = __webpack_require__(/*! ./_baseAssignValue */ "./node_modules/lodash/_baseAssignValue.js");
+var assignValue = __webpack_require__(6645),
+    baseAssignValue = __webpack_require__(9330);
 
 /**
  * Copies properties of `source` to `object`.
@@ -15105,14 +14455,11 @@ module.exports = copyObject;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_copySymbols.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_copySymbols.js ***!
-  \*********************************************/
+/***/ 709:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var copyObject = __webpack_require__(/*! ./_copyObject */ "./node_modules/lodash/_copyObject.js"),
-    getSymbols = __webpack_require__(/*! ./_getSymbols */ "./node_modules/lodash/_getSymbols.js");
+var copyObject = __webpack_require__(8113),
+    getSymbols = __webpack_require__(6806);
 
 /**
  * Copies own symbols of `source` to `object`.
@@ -15131,14 +14478,11 @@ module.exports = copySymbols;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_copySymbolsIn.js":
-/*!***********************************************!*\
-  !*** ./node_modules/lodash/_copySymbolsIn.js ***!
-  \***********************************************/
+/***/ 8038:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var copyObject = __webpack_require__(/*! ./_copyObject */ "./node_modules/lodash/_copyObject.js"),
-    getSymbolsIn = __webpack_require__(/*! ./_getSymbolsIn */ "./node_modules/lodash/_getSymbolsIn.js");
+var copyObject = __webpack_require__(8113),
+    getSymbolsIn = __webpack_require__(6337);
 
 /**
  * Copies own and inherited symbols of `source` to `object`.
@@ -15157,13 +14501,10 @@ module.exports = copySymbolsIn;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_coreJsData.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_coreJsData.js ***!
-  \********************************************/
+/***/ 3887:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var root = __webpack_require__(/*! ./_root */ "./node_modules/lodash/_root.js");
+var root = __webpack_require__(9107);
 
 /** Used to detect overreaching core-js shims. */
 var coreJsData = root['__core-js_shared__'];
@@ -15173,13 +14514,10 @@ module.exports = coreJsData;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_createBaseEach.js":
-/*!************************************************!*\
-  !*** ./node_modules/lodash/_createBaseEach.js ***!
-  \************************************************/
+/***/ 3679:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var isArrayLike = __webpack_require__(/*! ./isArrayLike */ "./node_modules/lodash/isArrayLike.js");
+var isArrayLike = __webpack_require__(6316);
 
 /**
  * Creates a `baseEach` or `baseEachRight` function.
@@ -15215,10 +14553,7 @@ module.exports = createBaseEach;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_createBaseFor.js":
-/*!***********************************************!*\
-  !*** ./node_modules/lodash/_createBaseFor.js ***!
-  \***********************************************/
+/***/ 951:
 /***/ ((module) => {
 
 /**
@@ -15250,15 +14585,12 @@ module.exports = createBaseFor;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_createFind.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_createFind.js ***!
-  \********************************************/
+/***/ 7216:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseIteratee = __webpack_require__(/*! ./_baseIteratee */ "./node_modules/lodash/_baseIteratee.js"),
-    isArrayLike = __webpack_require__(/*! ./isArrayLike */ "./node_modules/lodash/isArrayLike.js"),
-    keys = __webpack_require__(/*! ./keys */ "./node_modules/lodash/keys.js");
+var baseIteratee = __webpack_require__(7675),
+    isArrayLike = __webpack_require__(6316),
+    keys = __webpack_require__(5304);
 
 /**
  * Creates a `_.find` or `_.findLast` function.
@@ -15285,13 +14617,10 @@ module.exports = createFind;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_defineProperty.js":
-/*!************************************************!*\
-  !*** ./node_modules/lodash/_defineProperty.js ***!
-  \************************************************/
+/***/ 3009:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var getNative = __webpack_require__(/*! ./_getNative */ "./node_modules/lodash/_getNative.js");
+var getNative = __webpack_require__(3984);
 
 var defineProperty = (function() {
   try {
@@ -15306,15 +14635,12 @@ module.exports = defineProperty;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_equalArrays.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_equalArrays.js ***!
-  \*********************************************/
+/***/ 1505:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var SetCache = __webpack_require__(/*! ./_SetCache */ "./node_modules/lodash/_SetCache.js"),
-    arraySome = __webpack_require__(/*! ./_arraySome */ "./node_modules/lodash/_arraySome.js"),
-    cacheHas = __webpack_require__(/*! ./_cacheHas */ "./node_modules/lodash/_cacheHas.js");
+var SetCache = __webpack_require__(1641),
+    arraySome = __webpack_require__(9854),
+    cacheHas = __webpack_require__(7585);
 
 /** Used to compose bitmasks for value comparisons. */
 var COMPARE_PARTIAL_FLAG = 1,
@@ -15400,18 +14726,15 @@ module.exports = equalArrays;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_equalByTag.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_equalByTag.js ***!
-  \********************************************/
+/***/ 9620:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Symbol = __webpack_require__(/*! ./_Symbol */ "./node_modules/lodash/_Symbol.js"),
-    Uint8Array = __webpack_require__(/*! ./_Uint8Array */ "./node_modules/lodash/_Uint8Array.js"),
-    eq = __webpack_require__(/*! ./eq */ "./node_modules/lodash/eq.js"),
-    equalArrays = __webpack_require__(/*! ./_equalArrays */ "./node_modules/lodash/_equalArrays.js"),
-    mapToArray = __webpack_require__(/*! ./_mapToArray */ "./node_modules/lodash/_mapToArray.js"),
-    setToArray = __webpack_require__(/*! ./_setToArray */ "./node_modules/lodash/_setToArray.js");
+var Symbol = __webpack_require__(6711),
+    Uint8Array = __webpack_require__(9282),
+    eq = __webpack_require__(8330),
+    equalArrays = __webpack_require__(1505),
+    mapToArray = __webpack_require__(5483),
+    setToArray = __webpack_require__(5841);
 
 /** Used to compose bitmasks for value comparisons. */
 var COMPARE_PARTIAL_FLAG = 1,
@@ -15522,13 +14845,10 @@ module.exports = equalByTag;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_equalObjects.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_equalObjects.js ***!
-  \**********************************************/
+/***/ 439:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var getAllKeys = __webpack_require__(/*! ./_getAllKeys */ "./node_modules/lodash/_getAllKeys.js");
+var getAllKeys = __webpack_require__(5760);
 
 /** Used to compose bitmasks for value comparisons. */
 var COMPARE_PARTIAL_FLAG = 1;
@@ -15622,13 +14942,10 @@ module.exports = equalObjects;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_escapeHtmlChar.js":
-/*!************************************************!*\
-  !*** ./node_modules/lodash/_escapeHtmlChar.js ***!
-  \************************************************/
+/***/ 9025:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var basePropertyOf = __webpack_require__(/*! ./_basePropertyOf */ "./node_modules/lodash/_basePropertyOf.js");
+var basePropertyOf = __webpack_require__(9390);
 
 /** Used to map characters to HTML entities. */
 var htmlEscapes = {
@@ -15653,10 +14970,7 @@ module.exports = escapeHtmlChar;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_freeGlobal.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_freeGlobal.js ***!
-  \********************************************/
+/***/ 2718:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 /** Detect free variable `global` from Node.js. */
@@ -15667,15 +14981,12 @@ module.exports = freeGlobal;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_getAllKeys.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_getAllKeys.js ***!
-  \********************************************/
+/***/ 5760:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseGetAllKeys = __webpack_require__(/*! ./_baseGetAllKeys */ "./node_modules/lodash/_baseGetAllKeys.js"),
-    getSymbols = __webpack_require__(/*! ./_getSymbols */ "./node_modules/lodash/_getSymbols.js"),
-    keys = __webpack_require__(/*! ./keys */ "./node_modules/lodash/keys.js");
+var baseGetAllKeys = __webpack_require__(8821),
+    getSymbols = __webpack_require__(6806),
+    keys = __webpack_require__(5304);
 
 /**
  * Creates an array of own enumerable property names and symbols of `object`.
@@ -15693,15 +15004,12 @@ module.exports = getAllKeys;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_getAllKeysIn.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_getAllKeysIn.js ***!
-  \**********************************************/
+/***/ 3183:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseGetAllKeys = __webpack_require__(/*! ./_baseGetAllKeys */ "./node_modules/lodash/_baseGetAllKeys.js"),
-    getSymbolsIn = __webpack_require__(/*! ./_getSymbolsIn */ "./node_modules/lodash/_getSymbolsIn.js"),
-    keysIn = __webpack_require__(/*! ./keysIn */ "./node_modules/lodash/keysIn.js");
+var baseGetAllKeys = __webpack_require__(8821),
+    getSymbolsIn = __webpack_require__(6337),
+    keysIn = __webpack_require__(7495);
 
 /**
  * Creates an array of own and inherited enumerable property names and
@@ -15720,13 +15028,10 @@ module.exports = getAllKeysIn;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_getMapData.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_getMapData.js ***!
-  \********************************************/
+/***/ 6929:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var isKeyable = __webpack_require__(/*! ./_isKeyable */ "./node_modules/lodash/_isKeyable.js");
+var isKeyable = __webpack_require__(9732);
 
 /**
  * Gets the data for `map`.
@@ -15748,14 +15053,11 @@ module.exports = getMapData;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_getMatchData.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_getMatchData.js ***!
-  \**********************************************/
+/***/ 8418:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var isStrictComparable = __webpack_require__(/*! ./_isStrictComparable */ "./node_modules/lodash/_isStrictComparable.js"),
-    keys = __webpack_require__(/*! ./keys */ "./node_modules/lodash/keys.js");
+var isStrictComparable = __webpack_require__(7030),
+    keys = __webpack_require__(5304);
 
 /**
  * Gets the property names, values, and compare flags of `object`.
@@ -15782,14 +15084,11 @@ module.exports = getMatchData;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_getNative.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_getNative.js ***!
-  \*******************************************/
+/***/ 3984:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseIsNative = __webpack_require__(/*! ./_baseIsNative */ "./node_modules/lodash/_baseIsNative.js"),
-    getValue = __webpack_require__(/*! ./_getValue */ "./node_modules/lodash/_getValue.js");
+var baseIsNative = __webpack_require__(2249),
+    getValue = __webpack_require__(1074);
 
 /**
  * Gets the native function at `key` of `object`.
@@ -15809,13 +15108,10 @@ module.exports = getNative;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_getPrototype.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_getPrototype.js ***!
-  \**********************************************/
+/***/ 5425:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var overArg = __webpack_require__(/*! ./_overArg */ "./node_modules/lodash/_overArg.js");
+var overArg = __webpack_require__(889);
 
 /** Built-in value references. */
 var getPrototype = overArg(Object.getPrototypeOf, Object);
@@ -15825,13 +15121,10 @@ module.exports = getPrototype;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_getRawTag.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_getRawTag.js ***!
-  \*******************************************/
+/***/ 905:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Symbol = __webpack_require__(/*! ./_Symbol */ "./node_modules/lodash/_Symbol.js");
+var Symbol = __webpack_require__(6711);
 
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
@@ -15881,14 +15174,11 @@ module.exports = getRawTag;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_getSymbols.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_getSymbols.js ***!
-  \********************************************/
+/***/ 6806:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayFilter = __webpack_require__(/*! ./_arrayFilter */ "./node_modules/lodash/_arrayFilter.js"),
-    stubArray = __webpack_require__(/*! ./stubArray */ "./node_modules/lodash/stubArray.js");
+var arrayFilter = __webpack_require__(3928),
+    stubArray = __webpack_require__(119);
 
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
@@ -15921,16 +15211,13 @@ module.exports = getSymbols;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_getSymbolsIn.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_getSymbolsIn.js ***!
-  \**********************************************/
+/***/ 6337:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayPush = __webpack_require__(/*! ./_arrayPush */ "./node_modules/lodash/_arrayPush.js"),
-    getPrototype = __webpack_require__(/*! ./_getPrototype */ "./node_modules/lodash/_getPrototype.js"),
-    getSymbols = __webpack_require__(/*! ./_getSymbols */ "./node_modules/lodash/_getSymbols.js"),
-    stubArray = __webpack_require__(/*! ./stubArray */ "./node_modules/lodash/stubArray.js");
+var arrayPush = __webpack_require__(562),
+    getPrototype = __webpack_require__(5425),
+    getSymbols = __webpack_require__(6806),
+    stubArray = __webpack_require__(119);
 
 /* Built-in method references for those with the same name as other `lodash` methods. */
 var nativeGetSymbols = Object.getOwnPropertySymbols;
@@ -15956,19 +15243,16 @@ module.exports = getSymbolsIn;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_getTag.js":
-/*!****************************************!*\
-  !*** ./node_modules/lodash/_getTag.js ***!
-  \****************************************/
+/***/ 695:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var DataView = __webpack_require__(/*! ./_DataView */ "./node_modules/lodash/_DataView.js"),
-    Map = __webpack_require__(/*! ./_Map */ "./node_modules/lodash/_Map.js"),
-    Promise = __webpack_require__(/*! ./_Promise */ "./node_modules/lodash/_Promise.js"),
-    Set = __webpack_require__(/*! ./_Set */ "./node_modules/lodash/_Set.js"),
-    WeakMap = __webpack_require__(/*! ./_WeakMap */ "./node_modules/lodash/_WeakMap.js"),
-    baseGetTag = __webpack_require__(/*! ./_baseGetTag */ "./node_modules/lodash/_baseGetTag.js"),
-    toSource = __webpack_require__(/*! ./_toSource */ "./node_modules/lodash/_toSource.js");
+var DataView = __webpack_require__(7230),
+    Map = __webpack_require__(5661),
+    Promise = __webpack_require__(9102),
+    Set = __webpack_require__(5963),
+    WeakMap = __webpack_require__(2850),
+    baseGetTag = __webpack_require__(6522),
+    toSource = __webpack_require__(1543);
 
 /** `Object#toString` result references. */
 var mapTag = '[object Map]',
@@ -16024,10 +15308,7 @@ module.exports = getTag;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_getValue.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_getValue.js ***!
-  \******************************************/
+/***/ 1074:
 /***/ ((module) => {
 
 /**
@@ -16047,18 +15328,15 @@ module.exports = getValue;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_hasPath.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/_hasPath.js ***!
-  \*****************************************/
+/***/ 2248:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var castPath = __webpack_require__(/*! ./_castPath */ "./node_modules/lodash/_castPath.js"),
-    isArguments = __webpack_require__(/*! ./isArguments */ "./node_modules/lodash/isArguments.js"),
-    isArray = __webpack_require__(/*! ./isArray */ "./node_modules/lodash/isArray.js"),
-    isIndex = __webpack_require__(/*! ./_isIndex */ "./node_modules/lodash/_isIndex.js"),
-    isLength = __webpack_require__(/*! ./isLength */ "./node_modules/lodash/isLength.js"),
-    toKey = __webpack_require__(/*! ./_toKey */ "./node_modules/lodash/_toKey.js");
+var castPath = __webpack_require__(4275),
+    isArguments = __webpack_require__(2382),
+    isArray = __webpack_require__(2003),
+    isIndex = __webpack_require__(2615),
+    isLength = __webpack_require__(7164),
+    toKey = __webpack_require__(8059);
 
 /**
  * Checks if `path` exists on `object`.
@@ -16096,13 +15374,10 @@ module.exports = hasPath;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_hashClear.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_hashClear.js ***!
-  \*******************************************/
+/***/ 6890:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var nativeCreate = __webpack_require__(/*! ./_nativeCreate */ "./node_modules/lodash/_nativeCreate.js");
+var nativeCreate = __webpack_require__(6060);
 
 /**
  * Removes all key-value entries from the hash.
@@ -16121,10 +15396,7 @@ module.exports = hashClear;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_hashDelete.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_hashDelete.js ***!
-  \********************************************/
+/***/ 9484:
 /***/ ((module) => {
 
 /**
@@ -16148,13 +15420,10 @@ module.exports = hashDelete;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_hashGet.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/_hashGet.js ***!
-  \*****************************************/
+/***/ 7215:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var nativeCreate = __webpack_require__(/*! ./_nativeCreate */ "./node_modules/lodash/_nativeCreate.js");
+var nativeCreate = __webpack_require__(6060);
 
 /** Used to stand-in for `undefined` hash values. */
 var HASH_UNDEFINED = '__lodash_hash_undefined__';
@@ -16188,13 +15457,10 @@ module.exports = hashGet;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_hashHas.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/_hashHas.js ***!
-  \*****************************************/
+/***/ 7811:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var nativeCreate = __webpack_require__(/*! ./_nativeCreate */ "./node_modules/lodash/_nativeCreate.js");
+var nativeCreate = __webpack_require__(6060);
 
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
@@ -16221,13 +15487,10 @@ module.exports = hashHas;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_hashSet.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/_hashSet.js ***!
-  \*****************************************/
+/***/ 747:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var nativeCreate = __webpack_require__(/*! ./_nativeCreate */ "./node_modules/lodash/_nativeCreate.js");
+var nativeCreate = __webpack_require__(6060);
 
 /** Used to stand-in for `undefined` hash values. */
 var HASH_UNDEFINED = '__lodash_hash_undefined__';
@@ -16254,10 +15517,7 @@ module.exports = hashSet;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_initCloneArray.js":
-/*!************************************************!*\
-  !*** ./node_modules/lodash/_initCloneArray.js ***!
-  \************************************************/
+/***/ 9303:
 /***/ ((module) => {
 
 /** Used for built-in method references. */
@@ -16290,17 +15550,14 @@ module.exports = initCloneArray;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_initCloneByTag.js":
-/*!************************************************!*\
-  !*** ./node_modules/lodash/_initCloneByTag.js ***!
-  \************************************************/
+/***/ 5385:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var cloneArrayBuffer = __webpack_require__(/*! ./_cloneArrayBuffer */ "./node_modules/lodash/_cloneArrayBuffer.js"),
-    cloneDataView = __webpack_require__(/*! ./_cloneDataView */ "./node_modules/lodash/_cloneDataView.js"),
-    cloneRegExp = __webpack_require__(/*! ./_cloneRegExp */ "./node_modules/lodash/_cloneRegExp.js"),
-    cloneSymbol = __webpack_require__(/*! ./_cloneSymbol */ "./node_modules/lodash/_cloneSymbol.js"),
-    cloneTypedArray = __webpack_require__(/*! ./_cloneTypedArray */ "./node_modules/lodash/_cloneTypedArray.js");
+var cloneArrayBuffer = __webpack_require__(1987),
+    cloneDataView = __webpack_require__(3931),
+    cloneRegExp = __webpack_require__(1259),
+    cloneSymbol = __webpack_require__(6878),
+    cloneTypedArray = __webpack_require__(3859);
 
 /** `Object#toString` result references. */
 var boolTag = '[object Boolean]',
@@ -16377,15 +15634,12 @@ module.exports = initCloneByTag;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_initCloneObject.js":
-/*!*************************************************!*\
-  !*** ./node_modules/lodash/_initCloneObject.js ***!
-  \*************************************************/
+/***/ 3991:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseCreate = __webpack_require__(/*! ./_baseCreate */ "./node_modules/lodash/_baseCreate.js"),
-    getPrototype = __webpack_require__(/*! ./_getPrototype */ "./node_modules/lodash/_getPrototype.js"),
-    isPrototype = __webpack_require__(/*! ./_isPrototype */ "./node_modules/lodash/_isPrototype.js");
+var baseCreate = __webpack_require__(3962),
+    getPrototype = __webpack_require__(5425),
+    isPrototype = __webpack_require__(6165);
 
 /**
  * Initializes an object clone.
@@ -16405,15 +15659,12 @@ module.exports = initCloneObject;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_isFlattenable.js":
-/*!***********************************************!*\
-  !*** ./node_modules/lodash/_isFlattenable.js ***!
-  \***********************************************/
+/***/ 4385:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Symbol = __webpack_require__(/*! ./_Symbol */ "./node_modules/lodash/_Symbol.js"),
-    isArguments = __webpack_require__(/*! ./isArguments */ "./node_modules/lodash/isArguments.js"),
-    isArray = __webpack_require__(/*! ./isArray */ "./node_modules/lodash/isArray.js");
+var Symbol = __webpack_require__(6711),
+    isArguments = __webpack_require__(2382),
+    isArray = __webpack_require__(2003);
 
 /** Built-in value references. */
 var spreadableSymbol = Symbol ? Symbol.isConcatSpreadable : undefined;
@@ -16435,10 +15686,7 @@ module.exports = isFlattenable;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_isIndex.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/_isIndex.js ***!
-  \*****************************************/
+/***/ 2615:
 /***/ ((module) => {
 
 /** Used as references for various `Number` constants. */
@@ -16470,16 +15718,13 @@ module.exports = isIndex;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_isIterateeCall.js":
-/*!************************************************!*\
-  !*** ./node_modules/lodash/_isIterateeCall.js ***!
-  \************************************************/
+/***/ 5934:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var eq = __webpack_require__(/*! ./eq */ "./node_modules/lodash/eq.js"),
-    isArrayLike = __webpack_require__(/*! ./isArrayLike */ "./node_modules/lodash/isArrayLike.js"),
-    isIndex = __webpack_require__(/*! ./_isIndex */ "./node_modules/lodash/_isIndex.js"),
-    isObject = __webpack_require__(/*! ./isObject */ "./node_modules/lodash/isObject.js");
+var eq = __webpack_require__(8330),
+    isArrayLike = __webpack_require__(6316),
+    isIndex = __webpack_require__(2615),
+    isObject = __webpack_require__(5603);
 
 /**
  * Checks if the given arguments are from an iteratee call.
@@ -16510,14 +15755,11 @@ module.exports = isIterateeCall;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_isKey.js":
-/*!***************************************!*\
-  !*** ./node_modules/lodash/_isKey.js ***!
-  \***************************************/
+/***/ 5456:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var isArray = __webpack_require__(/*! ./isArray */ "./node_modules/lodash/isArray.js"),
-    isSymbol = __webpack_require__(/*! ./isSymbol */ "./node_modules/lodash/isSymbol.js");
+var isArray = __webpack_require__(2003),
+    isSymbol = __webpack_require__(6596);
 
 /** Used to match property names within property paths. */
 var reIsDeepProp = /\.|\[(?:[^[\]]*|(["'])(?:(?!\1)[^\\]|\\.)*?\1)\]/,
@@ -16549,10 +15791,7 @@ module.exports = isKey;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_isKeyable.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_isKeyable.js ***!
-  \*******************************************/
+/***/ 9732:
 /***/ ((module) => {
 
 /**
@@ -16574,13 +15813,10 @@ module.exports = isKeyable;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_isMasked.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_isMasked.js ***!
-  \******************************************/
+/***/ 1398:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var coreJsData = __webpack_require__(/*! ./_coreJsData */ "./node_modules/lodash/_coreJsData.js");
+var coreJsData = __webpack_require__(3887);
 
 /** Used to detect methods masquerading as native. */
 var maskSrcKey = (function() {
@@ -16604,10 +15840,7 @@ module.exports = isMasked;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_isPrototype.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_isPrototype.js ***!
-  \*********************************************/
+/***/ 6165:
 /***/ ((module) => {
 
 /** Used for built-in method references. */
@@ -16632,13 +15865,10 @@ module.exports = isPrototype;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_isStrictComparable.js":
-/*!****************************************************!*\
-  !*** ./node_modules/lodash/_isStrictComparable.js ***!
-  \****************************************************/
+/***/ 7030:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var isObject = __webpack_require__(/*! ./isObject */ "./node_modules/lodash/isObject.js");
+var isObject = __webpack_require__(5603);
 
 /**
  * Checks if `value` is suitable for strict equality comparisons, i.e. `===`.
@@ -16657,10 +15887,7 @@ module.exports = isStrictComparable;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_listCacheClear.js":
-/*!************************************************!*\
-  !*** ./node_modules/lodash/_listCacheClear.js ***!
-  \************************************************/
+/***/ 4412:
 /***/ ((module) => {
 
 /**
@@ -16680,13 +15907,10 @@ module.exports = listCacheClear;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_listCacheDelete.js":
-/*!*************************************************!*\
-  !*** ./node_modules/lodash/_listCacheDelete.js ***!
-  \*************************************************/
+/***/ 8522:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var assocIndexOf = __webpack_require__(/*! ./_assocIndexOf */ "./node_modules/lodash/_assocIndexOf.js");
+var assocIndexOf = __webpack_require__(4767);
 
 /** Used for built-in method references. */
 var arrayProto = Array.prototype;
@@ -16725,13 +15949,10 @@ module.exports = listCacheDelete;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_listCacheGet.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_listCacheGet.js ***!
-  \**********************************************/
+/***/ 469:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var assocIndexOf = __webpack_require__(/*! ./_assocIndexOf */ "./node_modules/lodash/_assocIndexOf.js");
+var assocIndexOf = __webpack_require__(4767);
 
 /**
  * Gets the list cache value for `key`.
@@ -16754,13 +15975,10 @@ module.exports = listCacheGet;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_listCacheHas.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_listCacheHas.js ***!
-  \**********************************************/
+/***/ 1161:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var assocIndexOf = __webpack_require__(/*! ./_assocIndexOf */ "./node_modules/lodash/_assocIndexOf.js");
+var assocIndexOf = __webpack_require__(4767);
 
 /**
  * Checks if a list cache value for `key` exists.
@@ -16780,13 +15998,10 @@ module.exports = listCacheHas;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_listCacheSet.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_listCacheSet.js ***!
-  \**********************************************/
+/***/ 1441:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var assocIndexOf = __webpack_require__(/*! ./_assocIndexOf */ "./node_modules/lodash/_assocIndexOf.js");
+var assocIndexOf = __webpack_require__(4767);
 
 /**
  * Sets the list cache `key` to `value`.
@@ -16816,15 +16031,12 @@ module.exports = listCacheSet;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_mapCacheClear.js":
-/*!***********************************************!*\
-  !*** ./node_modules/lodash/_mapCacheClear.js ***!
-  \***********************************************/
+/***/ 8206:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var Hash = __webpack_require__(/*! ./_Hash */ "./node_modules/lodash/_Hash.js"),
-    ListCache = __webpack_require__(/*! ./_ListCache */ "./node_modules/lodash/_ListCache.js"),
-    Map = __webpack_require__(/*! ./_Map */ "./node_modules/lodash/_Map.js");
+var Hash = __webpack_require__(3435),
+    ListCache = __webpack_require__(5217),
+    Map = __webpack_require__(5661);
 
 /**
  * Removes all key-value entries from the map.
@@ -16847,13 +16059,10 @@ module.exports = mapCacheClear;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_mapCacheDelete.js":
-/*!************************************************!*\
-  !*** ./node_modules/lodash/_mapCacheDelete.js ***!
-  \************************************************/
+/***/ 9768:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var getMapData = __webpack_require__(/*! ./_getMapData */ "./node_modules/lodash/_getMapData.js");
+var getMapData = __webpack_require__(6929);
 
 /**
  * Removes `key` and its value from the map.
@@ -16875,13 +16084,10 @@ module.exports = mapCacheDelete;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_mapCacheGet.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_mapCacheGet.js ***!
-  \*********************************************/
+/***/ 6827:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var getMapData = __webpack_require__(/*! ./_getMapData */ "./node_modules/lodash/_getMapData.js");
+var getMapData = __webpack_require__(6929);
 
 /**
  * Gets the map value for `key`.
@@ -16901,13 +16107,10 @@ module.exports = mapCacheGet;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_mapCacheHas.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_mapCacheHas.js ***!
-  \*********************************************/
+/***/ 663:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var getMapData = __webpack_require__(/*! ./_getMapData */ "./node_modules/lodash/_getMapData.js");
+var getMapData = __webpack_require__(6929);
 
 /**
  * Checks if a map value for `key` exists.
@@ -16927,13 +16130,10 @@ module.exports = mapCacheHas;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_mapCacheSet.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_mapCacheSet.js ***!
-  \*********************************************/
+/***/ 5135:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var getMapData = __webpack_require__(/*! ./_getMapData */ "./node_modules/lodash/_getMapData.js");
+var getMapData = __webpack_require__(6929);
 
 /**
  * Sets the map `key` to `value`.
@@ -16959,10 +16159,7 @@ module.exports = mapCacheSet;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_mapToArray.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_mapToArray.js ***!
-  \********************************************/
+/***/ 5483:
 /***/ ((module) => {
 
 /**
@@ -16987,10 +16184,7 @@ module.exports = mapToArray;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_matchesStrictComparable.js":
-/*!*********************************************************!*\
-  !*** ./node_modules/lodash/_matchesStrictComparable.js ***!
-  \*********************************************************/
+/***/ 3591:
 /***/ ((module) => {
 
 /**
@@ -17017,13 +16211,10 @@ module.exports = matchesStrictComparable;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_memoizeCapped.js":
-/*!***********************************************!*\
-  !*** ./node_modules/lodash/_memoizeCapped.js ***!
-  \***********************************************/
+/***/ 874:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var memoize = __webpack_require__(/*! ./memoize */ "./node_modules/lodash/memoize.js");
+var memoize = __webpack_require__(9513);
 
 /** Used as the maximum memoize cache size. */
 var MAX_MEMOIZE_SIZE = 500;
@@ -17053,13 +16244,10 @@ module.exports = memoizeCapped;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_nativeCreate.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_nativeCreate.js ***!
-  \**********************************************/
+/***/ 6060:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var getNative = __webpack_require__(/*! ./_getNative */ "./node_modules/lodash/_getNative.js");
+var getNative = __webpack_require__(3984);
 
 /* Built-in method references that are verified to be native. */
 var nativeCreate = getNative(Object, 'create');
@@ -17069,13 +16257,10 @@ module.exports = nativeCreate;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_nativeKeys.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_nativeKeys.js ***!
-  \********************************************/
+/***/ 6132:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var overArg = __webpack_require__(/*! ./_overArg */ "./node_modules/lodash/_overArg.js");
+var overArg = __webpack_require__(889);
 
 /* Built-in method references for those with the same name as other `lodash` methods. */
 var nativeKeys = overArg(Object.keys, Object);
@@ -17085,10 +16270,7 @@ module.exports = nativeKeys;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_nativeKeysIn.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_nativeKeysIn.js ***!
-  \**********************************************/
+/***/ 4555:
 /***/ ((module) => {
 
 /**
@@ -17115,14 +16297,11 @@ module.exports = nativeKeysIn;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_nodeUtil.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_nodeUtil.js ***!
-  \******************************************/
+/***/ 8315:
 /***/ ((module, exports, __webpack_require__) => {
 
 /* module decorator */ module = __webpack_require__.nmd(module);
-var freeGlobal = __webpack_require__(/*! ./_freeGlobal */ "./node_modules/lodash/_freeGlobal.js");
+var freeGlobal = __webpack_require__(2718);
 
 /** Detect free variable `exports`. */
 var freeExports =  true && exports && !exports.nodeType && exports;
@@ -17156,10 +16335,7 @@ module.exports = nodeUtil;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_objectToString.js":
-/*!************************************************!*\
-  !*** ./node_modules/lodash/_objectToString.js ***!
-  \************************************************/
+/***/ 2588:
 /***/ ((module) => {
 
 /** Used for built-in method references. */
@@ -17188,10 +16364,7 @@ module.exports = objectToString;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_overArg.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/_overArg.js ***!
-  \*****************************************/
+/***/ 889:
 /***/ ((module) => {
 
 /**
@@ -17213,13 +16386,10 @@ module.exports = overArg;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_overRest.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_overRest.js ***!
-  \******************************************/
+/***/ 5683:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var apply = __webpack_require__(/*! ./_apply */ "./node_modules/lodash/_apply.js");
+var apply = __webpack_require__(807);
 
 /* Built-in method references for those with the same name as other `lodash` methods. */
 var nativeMax = Math.max;
@@ -17259,13 +16429,10 @@ module.exports = overRest;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_root.js":
-/*!**************************************!*\
-  !*** ./node_modules/lodash/_root.js ***!
-  \**************************************/
+/***/ 9107:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var freeGlobal = __webpack_require__(/*! ./_freeGlobal */ "./node_modules/lodash/_freeGlobal.js");
+var freeGlobal = __webpack_require__(2718);
 
 /** Detect free variable `self`. */
 var freeSelf = typeof self == 'object' && self && self.Object === Object && self;
@@ -17278,10 +16445,7 @@ module.exports = root;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_setCacheAdd.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_setCacheAdd.js ***!
-  \*********************************************/
+/***/ 2486:
 /***/ ((module) => {
 
 /** Used to stand-in for `undefined` hash values. */
@@ -17307,10 +16471,7 @@ module.exports = setCacheAdd;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_setCacheHas.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_setCacheHas.js ***!
-  \*********************************************/
+/***/ 9361:
 /***/ ((module) => {
 
 /**
@@ -17331,10 +16492,7 @@ module.exports = setCacheHas;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_setToArray.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_setToArray.js ***!
-  \********************************************/
+/***/ 5841:
 /***/ ((module) => {
 
 /**
@@ -17359,14 +16517,11 @@ module.exports = setToArray;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_setToString.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_setToString.js ***!
-  \*********************************************/
+/***/ 6391:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseSetToString = __webpack_require__(/*! ./_baseSetToString */ "./node_modules/lodash/_baseSetToString.js"),
-    shortOut = __webpack_require__(/*! ./_shortOut */ "./node_modules/lodash/_shortOut.js");
+var baseSetToString = __webpack_require__(7880),
+    shortOut = __webpack_require__(9437);
 
 /**
  * Sets the `toString` method of `func` to return `string`.
@@ -17383,10 +16538,7 @@ module.exports = setToString;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_shortOut.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_shortOut.js ***!
-  \******************************************/
+/***/ 9437:
 /***/ ((module) => {
 
 /** Used to detect hot functions by number of calls within a span of milliseconds. */
@@ -17430,13 +16582,10 @@ module.exports = shortOut;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_stackClear.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_stackClear.js ***!
-  \********************************************/
+/***/ 8658:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var ListCache = __webpack_require__(/*! ./_ListCache */ "./node_modules/lodash/_ListCache.js");
+var ListCache = __webpack_require__(5217);
 
 /**
  * Removes all key-value entries from the stack.
@@ -17455,10 +16604,7 @@ module.exports = stackClear;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_stackDelete.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_stackDelete.js ***!
-  \*********************************************/
+/***/ 3844:
 /***/ ((module) => {
 
 /**
@@ -17483,10 +16629,7 @@ module.exports = stackDelete;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_stackGet.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_stackGet.js ***!
-  \******************************************/
+/***/ 6503:
 /***/ ((module) => {
 
 /**
@@ -17507,10 +16650,7 @@ module.exports = stackGet;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_stackHas.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_stackHas.js ***!
-  \******************************************/
+/***/ 1563:
 /***/ ((module) => {
 
 /**
@@ -17531,15 +16671,12 @@ module.exports = stackHas;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_stackSet.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_stackSet.js ***!
-  \******************************************/
+/***/ 259:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var ListCache = __webpack_require__(/*! ./_ListCache */ "./node_modules/lodash/_ListCache.js"),
-    Map = __webpack_require__(/*! ./_Map */ "./node_modules/lodash/_Map.js"),
-    MapCache = __webpack_require__(/*! ./_MapCache */ "./node_modules/lodash/_MapCache.js");
+var ListCache = __webpack_require__(5217),
+    Map = __webpack_require__(5661),
+    MapCache = __webpack_require__(3287);
 
 /** Used as the size to enable large array optimizations. */
 var LARGE_ARRAY_SIZE = 200;
@@ -17575,10 +16712,7 @@ module.exports = stackSet;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_strictIndexOf.js":
-/*!***********************************************!*\
-  !*** ./node_modules/lodash/_strictIndexOf.js ***!
-  \***********************************************/
+/***/ 5957:
 /***/ ((module) => {
 
 /**
@@ -17608,13 +16742,10 @@ module.exports = strictIndexOf;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_stringToPath.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_stringToPath.js ***!
-  \**********************************************/
+/***/ 5240:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var memoizeCapped = __webpack_require__(/*! ./_memoizeCapped */ "./node_modules/lodash/_memoizeCapped.js");
+var memoizeCapped = __webpack_require__(874);
 
 /** Used to match property names within property paths. */
 var rePropName = /[^.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|$))/g;
@@ -17645,13 +16776,10 @@ module.exports = stringToPath;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_toKey.js":
-/*!***************************************!*\
-  !*** ./node_modules/lodash/_toKey.js ***!
-  \***************************************/
+/***/ 8059:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var isSymbol = __webpack_require__(/*! ./isSymbol */ "./node_modules/lodash/isSymbol.js");
+var isSymbol = __webpack_require__(6596);
 
 /** Used as references for various `Number` constants. */
 var INFINITY = 1 / 0;
@@ -17676,10 +16804,7 @@ module.exports = toKey;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_toSource.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_toSource.js ***!
-  \******************************************/
+/***/ 1543:
 /***/ ((module) => {
 
 /** Used for built-in method references. */
@@ -17712,10 +16837,7 @@ module.exports = toSource;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_trimmedEndIndex.js":
-/*!*************************************************!*\
-  !*** ./node_modules/lodash/_trimmedEndIndex.js ***!
-  \*************************************************/
+/***/ 8882:
 /***/ ((module) => {
 
 /** Used to match a single whitespace character. */
@@ -17741,13 +16863,10 @@ module.exports = trimmedEndIndex;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/before.js":
-/*!***************************************!*\
-  !*** ./node_modules/lodash/before.js ***!
-  \***************************************/
+/***/ 163:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var toInteger = __webpack_require__(/*! ./toInteger */ "./node_modules/lodash/toInteger.js");
+var toInteger = __webpack_require__(8007);
 
 /** Error message constants. */
 var FUNC_ERROR_TEXT = 'Expected a function';
@@ -17791,13 +16910,10 @@ module.exports = before;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/clone.js":
-/*!**************************************!*\
-  !*** ./node_modules/lodash/clone.js ***!
-  \**************************************/
+/***/ 63:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseClone = __webpack_require__(/*! ./_baseClone */ "./node_modules/lodash/_baseClone.js");
+var baseClone = __webpack_require__(1937);
 
 /** Used to compose bitmasks for cloning. */
 var CLONE_SYMBOLS_FLAG = 4;
@@ -17837,10 +16953,7 @@ module.exports = clone;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/constant.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/constant.js ***!
-  \*****************************************/
+/***/ 7660:
 /***/ ((module) => {
 
 /**
@@ -17873,21 +16986,15 @@ module.exports = constant;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/each.js":
-/*!*************************************!*\
-  !*** ./node_modules/lodash/each.js ***!
-  \*************************************/
+/***/ 5757:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-module.exports = __webpack_require__(/*! ./forEach */ "./node_modules/lodash/forEach.js");
+module.exports = __webpack_require__(9760);
 
 
 /***/ }),
 
-/***/ "./node_modules/lodash/eq.js":
-/*!***********************************!*\
-  !*** ./node_modules/lodash/eq.js ***!
-  \***********************************/
+/***/ 8330:
 /***/ ((module) => {
 
 /**
@@ -17931,14 +17038,11 @@ module.exports = eq;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/escape.js":
-/*!***************************************!*\
-  !*** ./node_modules/lodash/escape.js ***!
-  \***************************************/
+/***/ 3131:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var escapeHtmlChar = __webpack_require__(/*! ./_escapeHtmlChar */ "./node_modules/lodash/_escapeHtmlChar.js"),
-    toString = __webpack_require__(/*! ./toString */ "./node_modules/lodash/toString.js");
+var escapeHtmlChar = __webpack_require__(9025),
+    toString = __webpack_require__(7060);
 
 /** Used to match HTML entities and HTML characters. */
 var reUnescapedHtml = /[&<>"']/g,
@@ -17984,16 +17088,13 @@ module.exports = escape;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/filter.js":
-/*!***************************************!*\
-  !*** ./node_modules/lodash/filter.js ***!
-  \***************************************/
+/***/ 9214:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayFilter = __webpack_require__(/*! ./_arrayFilter */ "./node_modules/lodash/_arrayFilter.js"),
-    baseFilter = __webpack_require__(/*! ./_baseFilter */ "./node_modules/lodash/_baseFilter.js"),
-    baseIteratee = __webpack_require__(/*! ./_baseIteratee */ "./node_modules/lodash/_baseIteratee.js"),
-    isArray = __webpack_require__(/*! ./isArray */ "./node_modules/lodash/isArray.js");
+var arrayFilter = __webpack_require__(3928),
+    baseFilter = __webpack_require__(4384),
+    baseIteratee = __webpack_require__(7675),
+    isArray = __webpack_require__(2003);
 
 /**
  * Iterates over elements of `collection`, returning an array of all elements
@@ -18046,14 +17147,11 @@ module.exports = filter;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/find.js":
-/*!*************************************!*\
-  !*** ./node_modules/lodash/find.js ***!
-  \*************************************/
+/***/ 4455:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var createFind = __webpack_require__(/*! ./_createFind */ "./node_modules/lodash/_createFind.js"),
-    findIndex = __webpack_require__(/*! ./findIndex */ "./node_modules/lodash/findIndex.js");
+var createFind = __webpack_require__(7216),
+    findIndex = __webpack_require__(9339);
 
 /**
  * Iterates over elements of `collection`, returning the first element
@@ -18098,15 +17196,12 @@ module.exports = find;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/findIndex.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/findIndex.js ***!
-  \******************************************/
+/***/ 9339:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseFindIndex = __webpack_require__(/*! ./_baseFindIndex */ "./node_modules/lodash/_baseFindIndex.js"),
-    baseIteratee = __webpack_require__(/*! ./_baseIteratee */ "./node_modules/lodash/_baseIteratee.js"),
-    toInteger = __webpack_require__(/*! ./toInteger */ "./node_modules/lodash/toInteger.js");
+var baseFindIndex = __webpack_require__(6917),
+    baseIteratee = __webpack_require__(7675),
+    toInteger = __webpack_require__(8007);
 
 /* Built-in method references for those with the same name as other `lodash` methods. */
 var nativeMax = Math.max;
@@ -18163,13 +17258,10 @@ module.exports = findIndex;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/flatten.js":
-/*!****************************************!*\
-  !*** ./node_modules/lodash/flatten.js ***!
-  \****************************************/
+/***/ 4176:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseFlatten = __webpack_require__(/*! ./_baseFlatten */ "./node_modules/lodash/_baseFlatten.js");
+var baseFlatten = __webpack_require__(4958);
 
 /**
  * Flattens `array` a single level deep.
@@ -18195,16 +17287,13 @@ module.exports = flatten;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/forEach.js":
-/*!****************************************!*\
-  !*** ./node_modules/lodash/forEach.js ***!
-  \****************************************/
+/***/ 9760:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayEach = __webpack_require__(/*! ./_arrayEach */ "./node_modules/lodash/_arrayEach.js"),
-    baseEach = __webpack_require__(/*! ./_baseEach */ "./node_modules/lodash/_baseEach.js"),
-    castFunction = __webpack_require__(/*! ./_castFunction */ "./node_modules/lodash/_castFunction.js"),
-    isArray = __webpack_require__(/*! ./isArray */ "./node_modules/lodash/isArray.js");
+var arrayEach = __webpack_require__(3643),
+    baseEach = __webpack_require__(7587),
+    castFunction = __webpack_require__(2072),
+    isArray = __webpack_require__(2003);
 
 /**
  * Iterates over elements of `collection` and invokes `iteratee` for each element.
@@ -18246,13 +17335,10 @@ module.exports = forEach;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/get.js":
-/*!************************************!*\
-  !*** ./node_modules/lodash/get.js ***!
-  \************************************/
+/***/ 1214:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseGet = __webpack_require__(/*! ./_baseGet */ "./node_modules/lodash/_baseGet.js");
+var baseGet = __webpack_require__(384);
 
 /**
  * Gets the value at `path` of `object`. If the resolved value is
@@ -18289,14 +17375,11 @@ module.exports = get;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/has.js":
-/*!************************************!*\
-  !*** ./node_modules/lodash/has.js ***!
-  \************************************/
+/***/ 5930:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseHas = __webpack_require__(/*! ./_baseHas */ "./node_modules/lodash/_baseHas.js"),
-    hasPath = __webpack_require__(/*! ./_hasPath */ "./node_modules/lodash/_hasPath.js");
+var baseHas = __webpack_require__(8772),
+    hasPath = __webpack_require__(2248);
 
 /**
  * Checks if `path` is a direct property of `object`.
@@ -18334,14 +17417,11 @@ module.exports = has;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/hasIn.js":
-/*!**************************************!*\
-  !*** ./node_modules/lodash/hasIn.js ***!
-  \**************************************/
+/***/ 8765:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseHasIn = __webpack_require__(/*! ./_baseHasIn */ "./node_modules/lodash/_baseHasIn.js"),
-    hasPath = __webpack_require__(/*! ./_hasPath */ "./node_modules/lodash/_hasPath.js");
+var baseHasIn = __webpack_require__(6571),
+    hasPath = __webpack_require__(2248);
 
 /**
  * Checks if `path` is a direct or inherited property of `object`.
@@ -18378,10 +17458,7 @@ module.exports = hasIn;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/identity.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/identity.js ***!
-  \*****************************************/
+/***/ 1686:
 /***/ ((module) => {
 
 /**
@@ -18409,17 +17486,14 @@ module.exports = identity;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/includes.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/includes.js ***!
-  \*****************************************/
+/***/ 5193:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseIndexOf = __webpack_require__(/*! ./_baseIndexOf */ "./node_modules/lodash/_baseIndexOf.js"),
-    isArrayLike = __webpack_require__(/*! ./isArrayLike */ "./node_modules/lodash/isArrayLike.js"),
-    isString = __webpack_require__(/*! ./isString */ "./node_modules/lodash/isString.js"),
-    toInteger = __webpack_require__(/*! ./toInteger */ "./node_modules/lodash/toInteger.js"),
-    values = __webpack_require__(/*! ./values */ "./node_modules/lodash/values.js");
+var baseIndexOf = __webpack_require__(8357),
+    isArrayLike = __webpack_require__(6316),
+    isString = __webpack_require__(3085),
+    toInteger = __webpack_require__(8007),
+    values = __webpack_require__(2);
 
 /* Built-in method references for those with the same name as other `lodash` methods. */
 var nativeMax = Math.max;
@@ -18472,16 +17546,13 @@ module.exports = includes;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/intersection.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/intersection.js ***!
-  \*********************************************/
+/***/ 4225:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayMap = __webpack_require__(/*! ./_arrayMap */ "./node_modules/lodash/_arrayMap.js"),
-    baseIntersection = __webpack_require__(/*! ./_baseIntersection */ "./node_modules/lodash/_baseIntersection.js"),
-    baseRest = __webpack_require__(/*! ./_baseRest */ "./node_modules/lodash/_baseRest.js"),
-    castArrayLikeObject = __webpack_require__(/*! ./_castArrayLikeObject */ "./node_modules/lodash/_castArrayLikeObject.js");
+var arrayMap = __webpack_require__(14),
+    baseIntersection = __webpack_require__(739),
+    baseRest = __webpack_require__(3408),
+    castArrayLikeObject = __webpack_require__(9471);
 
 /**
  * Creates an array of unique values that are included in all given arrays
@@ -18512,14 +17583,11 @@ module.exports = intersection;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/isArguments.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/isArguments.js ***!
-  \********************************************/
+/***/ 2382:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseIsArguments = __webpack_require__(/*! ./_baseIsArguments */ "./node_modules/lodash/_baseIsArguments.js"),
-    isObjectLike = __webpack_require__(/*! ./isObjectLike */ "./node_modules/lodash/isObjectLike.js");
+var baseIsArguments = __webpack_require__(2744),
+    isObjectLike = __webpack_require__(2620);
 
 /** Used for built-in method references. */
 var objectProto = Object.prototype;
@@ -18558,10 +17626,7 @@ module.exports = isArguments;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/isArray.js":
-/*!****************************************!*\
-  !*** ./node_modules/lodash/isArray.js ***!
-  \****************************************/
+/***/ 2003:
 /***/ ((module) => {
 
 /**
@@ -18594,14 +17659,11 @@ module.exports = isArray;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/isArrayLike.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/isArrayLike.js ***!
-  \********************************************/
+/***/ 6316:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var isFunction = __webpack_require__(/*! ./isFunction */ "./node_modules/lodash/isFunction.js"),
-    isLength = __webpack_require__(/*! ./isLength */ "./node_modules/lodash/isLength.js");
+var isFunction = __webpack_require__(8148),
+    isLength = __webpack_require__(7164);
 
 /**
  * Checks if `value` is array-like. A value is considered array-like if it's
@@ -18637,14 +17699,11 @@ module.exports = isArrayLike;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/isArrayLikeObject.js":
-/*!**************************************************!*\
-  !*** ./node_modules/lodash/isArrayLikeObject.js ***!
-  \**************************************************/
+/***/ 1899:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var isArrayLike = __webpack_require__(/*! ./isArrayLike */ "./node_modules/lodash/isArrayLike.js"),
-    isObjectLike = __webpack_require__(/*! ./isObjectLike */ "./node_modules/lodash/isObjectLike.js");
+var isArrayLike = __webpack_require__(6316),
+    isObjectLike = __webpack_require__(2620);
 
 /**
  * This method is like `_.isArrayLike` except that it also checks if `value`
@@ -18680,15 +17739,12 @@ module.exports = isArrayLikeObject;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/isBuffer.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/isBuffer.js ***!
-  \*****************************************/
+/***/ 1262:
 /***/ ((module, exports, __webpack_require__) => {
 
 /* module decorator */ module = __webpack_require__.nmd(module);
-var root = __webpack_require__(/*! ./_root */ "./node_modules/lodash/_root.js"),
-    stubFalse = __webpack_require__(/*! ./stubFalse */ "./node_modules/lodash/stubFalse.js");
+var root = __webpack_require__(9107),
+    stubFalse = __webpack_require__(2125);
 
 /** Detect free variable `exports`. */
 var freeExports =  true && exports && !exports.nodeType && exports;
@@ -18729,14 +17785,11 @@ module.exports = isBuffer;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/isFunction.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/isFunction.js ***!
-  \*******************************************/
+/***/ 8148:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseGetTag = __webpack_require__(/*! ./_baseGetTag */ "./node_modules/lodash/_baseGetTag.js"),
-    isObject = __webpack_require__(/*! ./isObject */ "./node_modules/lodash/isObject.js");
+var baseGetTag = __webpack_require__(6522),
+    isObject = __webpack_require__(5603);
 
 /** `Object#toString` result references. */
 var asyncTag = '[object AsyncFunction]',
@@ -18776,10 +17829,7 @@ module.exports = isFunction;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/isLength.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/isLength.js ***!
-  \*****************************************/
+/***/ 7164:
 /***/ ((module) => {
 
 /** Used as references for various `Number` constants. */
@@ -18821,15 +17871,12 @@ module.exports = isLength;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/isMap.js":
-/*!**************************************!*\
-  !*** ./node_modules/lodash/isMap.js ***!
-  \**************************************/
+/***/ 5652:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseIsMap = __webpack_require__(/*! ./_baseIsMap */ "./node_modules/lodash/_baseIsMap.js"),
-    baseUnary = __webpack_require__(/*! ./_baseUnary */ "./node_modules/lodash/_baseUnary.js"),
-    nodeUtil = __webpack_require__(/*! ./_nodeUtil */ "./node_modules/lodash/_nodeUtil.js");
+var baseIsMap = __webpack_require__(8742),
+    baseUnary = __webpack_require__(2347),
+    nodeUtil = __webpack_require__(8315);
 
 /* Node.js helper references. */
 var nodeIsMap = nodeUtil && nodeUtil.isMap;
@@ -18858,10 +17905,7 @@ module.exports = isMap;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/isObject.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/isObject.js ***!
-  \*****************************************/
+/***/ 5603:
 /***/ ((module) => {
 
 /**
@@ -18899,10 +17943,7 @@ module.exports = isObject;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/isObjectLike.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/isObjectLike.js ***!
-  \*********************************************/
+/***/ 2620:
 /***/ ((module) => {
 
 /**
@@ -18938,15 +17979,12 @@ module.exports = isObjectLike;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/isSet.js":
-/*!**************************************!*\
-  !*** ./node_modules/lodash/isSet.js ***!
-  \**************************************/
+/***/ 9318:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseIsSet = __webpack_require__(/*! ./_baseIsSet */ "./node_modules/lodash/_baseIsSet.js"),
-    baseUnary = __webpack_require__(/*! ./_baseUnary */ "./node_modules/lodash/_baseUnary.js"),
-    nodeUtil = __webpack_require__(/*! ./_nodeUtil */ "./node_modules/lodash/_nodeUtil.js");
+var baseIsSet = __webpack_require__(5476),
+    baseUnary = __webpack_require__(2347),
+    nodeUtil = __webpack_require__(8315);
 
 /* Node.js helper references. */
 var nodeIsSet = nodeUtil && nodeUtil.isSet;
@@ -18975,15 +18013,12 @@ module.exports = isSet;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/isString.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/isString.js ***!
-  \*****************************************/
+/***/ 3085:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseGetTag = __webpack_require__(/*! ./_baseGetTag */ "./node_modules/lodash/_baseGetTag.js"),
-    isArray = __webpack_require__(/*! ./isArray */ "./node_modules/lodash/isArray.js"),
-    isObjectLike = __webpack_require__(/*! ./isObjectLike */ "./node_modules/lodash/isObjectLike.js");
+var baseGetTag = __webpack_require__(6522),
+    isArray = __webpack_require__(2003),
+    isObjectLike = __webpack_require__(2620);
 
 /** `Object#toString` result references. */
 var stringTag = '[object String]';
@@ -19015,14 +18050,11 @@ module.exports = isString;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/isSymbol.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/isSymbol.js ***!
-  \*****************************************/
+/***/ 6596:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseGetTag = __webpack_require__(/*! ./_baseGetTag */ "./node_modules/lodash/_baseGetTag.js"),
-    isObjectLike = __webpack_require__(/*! ./isObjectLike */ "./node_modules/lodash/isObjectLike.js");
+var baseGetTag = __webpack_require__(6522),
+    isObjectLike = __webpack_require__(2620);
 
 /** `Object#toString` result references. */
 var symbolTag = '[object Symbol]';
@@ -19054,15 +18086,12 @@ module.exports = isSymbol;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/isTypedArray.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/isTypedArray.js ***!
-  \*********************************************/
+/***/ 9221:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseIsTypedArray = __webpack_require__(/*! ./_baseIsTypedArray */ "./node_modules/lodash/_baseIsTypedArray.js"),
-    baseUnary = __webpack_require__(/*! ./_baseUnary */ "./node_modules/lodash/_baseUnary.js"),
-    nodeUtil = __webpack_require__(/*! ./_nodeUtil */ "./node_modules/lodash/_nodeUtil.js");
+var baseIsTypedArray = __webpack_require__(5387),
+    baseUnary = __webpack_require__(2347),
+    nodeUtil = __webpack_require__(8315);
 
 /* Node.js helper references. */
 var nodeIsTypedArray = nodeUtil && nodeUtil.isTypedArray;
@@ -19091,15 +18120,12 @@ module.exports = isTypedArray;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/keys.js":
-/*!*************************************!*\
-  !*** ./node_modules/lodash/keys.js ***!
-  \*************************************/
+/***/ 5304:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayLikeKeys = __webpack_require__(/*! ./_arrayLikeKeys */ "./node_modules/lodash/_arrayLikeKeys.js"),
-    baseKeys = __webpack_require__(/*! ./_baseKeys */ "./node_modules/lodash/_baseKeys.js"),
-    isArrayLike = __webpack_require__(/*! ./isArrayLike */ "./node_modules/lodash/isArrayLike.js");
+var arrayLikeKeys = __webpack_require__(7137),
+    baseKeys = __webpack_require__(6794),
+    isArrayLike = __webpack_require__(6316);
 
 /**
  * Creates an array of the own enumerable property names of `object`.
@@ -19138,15 +18164,12 @@ module.exports = keys;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/keysIn.js":
-/*!***************************************!*\
-  !*** ./node_modules/lodash/keysIn.js ***!
-  \***************************************/
+/***/ 7495:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayLikeKeys = __webpack_require__(/*! ./_arrayLikeKeys */ "./node_modules/lodash/_arrayLikeKeys.js"),
-    baseKeysIn = __webpack_require__(/*! ./_baseKeysIn */ "./node_modules/lodash/_baseKeysIn.js"),
-    isArrayLike = __webpack_require__(/*! ./isArrayLike */ "./node_modules/lodash/isArrayLike.js");
+var arrayLikeKeys = __webpack_require__(7137),
+    baseKeysIn = __webpack_require__(8157),
+    isArrayLike = __webpack_require__(6316);
 
 /**
  * Creates an array of the own and inherited enumerable property names of `object`.
@@ -19180,10 +18203,7 @@ module.exports = keysIn;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/last.js":
-/*!*************************************!*\
-  !*** ./node_modules/lodash/last.js ***!
-  \*************************************/
+/***/ 6456:
 /***/ ((module) => {
 
 /**
@@ -19210,13 +18230,10 @@ module.exports = last;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/memoize.js":
-/*!****************************************!*\
-  !*** ./node_modules/lodash/memoize.js ***!
-  \****************************************/
+/***/ 9513:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var MapCache = __webpack_require__(/*! ./_MapCache */ "./node_modules/lodash/_MapCache.js");
+var MapCache = __webpack_require__(3287);
 
 /** Error message constants. */
 var FUNC_ERROR_TEXT = 'Expected a function';
@@ -19293,10 +18310,7 @@ module.exports = memoize;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/noop.js":
-/*!*************************************!*\
-  !*** ./node_modules/lodash/noop.js ***!
-  \*************************************/
+/***/ 1700:
 /***/ ((module) => {
 
 /**
@@ -19320,13 +18334,10 @@ module.exports = noop;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/once.js":
-/*!*************************************!*\
-  !*** ./node_modules/lodash/once.js ***!
-  \*************************************/
+/***/ 8921:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var before = __webpack_require__(/*! ./before */ "./node_modules/lodash/before.js");
+var before = __webpack_require__(163);
 
 /**
  * Creates a function that is restricted to invoking `func` once. Repeat calls
@@ -19355,16 +18366,13 @@ module.exports = once;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/property.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/property.js ***!
-  \*****************************************/
+/***/ 7093:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseProperty = __webpack_require__(/*! ./_baseProperty */ "./node_modules/lodash/_baseProperty.js"),
-    basePropertyDeep = __webpack_require__(/*! ./_basePropertyDeep */ "./node_modules/lodash/_basePropertyDeep.js"),
-    isKey = __webpack_require__(/*! ./_isKey */ "./node_modules/lodash/_isKey.js"),
-    toKey = __webpack_require__(/*! ./_toKey */ "./node_modules/lodash/_toKey.js");
+var baseProperty = __webpack_require__(1171),
+    basePropertyDeep = __webpack_require__(4589),
+    isKey = __webpack_require__(5456),
+    toKey = __webpack_require__(8059);
 
 /**
  * Creates a function that returns the value at `path` of a given object.
@@ -19397,16 +18405,13 @@ module.exports = property;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/sortBy.js":
-/*!***************************************!*\
-  !*** ./node_modules/lodash/sortBy.js ***!
-  \***************************************/
+/***/ 3281:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseFlatten = __webpack_require__(/*! ./_baseFlatten */ "./node_modules/lodash/_baseFlatten.js"),
-    baseOrderBy = __webpack_require__(/*! ./_baseOrderBy */ "./node_modules/lodash/_baseOrderBy.js"),
-    baseRest = __webpack_require__(/*! ./_baseRest */ "./node_modules/lodash/_baseRest.js"),
-    isIterateeCall = __webpack_require__(/*! ./_isIterateeCall */ "./node_modules/lodash/_isIterateeCall.js");
+var baseFlatten = __webpack_require__(4958),
+    baseOrderBy = __webpack_require__(3729),
+    baseRest = __webpack_require__(3408),
+    isIterateeCall = __webpack_require__(5934);
 
 /**
  * Creates an array of elements, sorted in ascending order by the results of
@@ -19455,16 +18460,13 @@ module.exports = sortBy;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/startsWith.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/startsWith.js ***!
-  \*******************************************/
+/***/ 7013:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseClamp = __webpack_require__(/*! ./_baseClamp */ "./node_modules/lodash/_baseClamp.js"),
-    baseToString = __webpack_require__(/*! ./_baseToString */ "./node_modules/lodash/_baseToString.js"),
-    toInteger = __webpack_require__(/*! ./toInteger */ "./node_modules/lodash/toInteger.js"),
-    toString = __webpack_require__(/*! ./toString */ "./node_modules/lodash/toString.js");
+var baseClamp = __webpack_require__(9631),
+    baseToString = __webpack_require__(8354),
+    toInteger = __webpack_require__(8007),
+    toString = __webpack_require__(7060);
 
 /**
  * Checks if `string` starts with the given target string.
@@ -19504,10 +18506,7 @@ module.exports = startsWith;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/stubArray.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/stubArray.js ***!
-  \******************************************/
+/***/ 119:
 /***/ ((module) => {
 
 /**
@@ -19537,10 +18536,7 @@ module.exports = stubArray;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/stubFalse.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/stubFalse.js ***!
-  \******************************************/
+/***/ 2125:
 /***/ ((module) => {
 
 /**
@@ -19565,13 +18561,10 @@ module.exports = stubFalse;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/toFinite.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/toFinite.js ***!
-  \*****************************************/
+/***/ 3950:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var toNumber = __webpack_require__(/*! ./toNumber */ "./node_modules/lodash/toNumber.js");
+var toNumber = __webpack_require__(3920);
 
 /** Used as references for various `Number` constants. */
 var INFINITY = 1 / 0,
@@ -19617,13 +18610,10 @@ module.exports = toFinite;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/toInteger.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/toInteger.js ***!
-  \******************************************/
+/***/ 8007:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var toFinite = __webpack_require__(/*! ./toFinite */ "./node_modules/lodash/toFinite.js");
+var toFinite = __webpack_require__(3950);
 
 /**
  * Converts `value` to an integer.
@@ -19663,15 +18653,12 @@ module.exports = toInteger;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/toNumber.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/toNumber.js ***!
-  \*****************************************/
+/***/ 3920:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseTrim = __webpack_require__(/*! ./_baseTrim */ "./node_modules/lodash/_baseTrim.js"),
-    isObject = __webpack_require__(/*! ./isObject */ "./node_modules/lodash/isObject.js"),
-    isSymbol = __webpack_require__(/*! ./isSymbol */ "./node_modules/lodash/isSymbol.js");
+var baseTrim = __webpack_require__(9070),
+    isObject = __webpack_require__(5603),
+    isSymbol = __webpack_require__(6596);
 
 /** Used as references for various `Number` constants. */
 var NAN = 0 / 0;
@@ -19737,13 +18724,10 @@ module.exports = toNumber;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/toString.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/toString.js ***!
-  \*****************************************/
+/***/ 7060:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseToString = __webpack_require__(/*! ./_baseToString */ "./node_modules/lodash/_baseToString.js");
+var baseToString = __webpack_require__(8354);
 
 /**
  * Converts `value` to a string. An empty string is returned for `null`
@@ -19775,14 +18759,11 @@ module.exports = toString;
 
 /***/ }),
 
-/***/ "./node_modules/lodash/values.js":
-/*!***************************************!*\
-  !*** ./node_modules/lodash/values.js ***!
-  \***************************************/
+/***/ 2:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var baseValues = __webpack_require__(/*! ./_baseValues */ "./node_modules/lodash/_baseValues.js"),
-    keys = __webpack_require__(/*! ./keys */ "./node_modules/lodash/keys.js");
+var baseValues = __webpack_require__(4956),
+    keys = __webpack_require__(5304);
 
 /**
  * Creates an array of the own enumerable string keyed property values of `object`.
@@ -19819,81 +18800,17 @@ module.exports = values;
 
 /***/ }),
 
-/***/ "./node_modules/map-indexed-xf/js/index.js":
-/*!*************************************************!*\
-  !*** ./node_modules/map-indexed-xf/js/index.js ***!
-  \*************************************************/
-/***/ ((module, exports, __webpack_require__) => {
-
-"use strict";
-
-
-var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ "./node_modules/@babel/runtime/helpers/interopRequireDefault.js");
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = mapIndexed;
-
-var _classCallCheck2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/classCallCheck */ "./node_modules/@babel/runtime/helpers/classCallCheck.js"));
-
-var _createClass2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/createClass */ "./node_modules/@babel/runtime/helpers/createClass.js"));
-
-var MapIndexed =
-/*#__PURE__*/
-function () {
-  function MapIndexed(f, xform) {
-    (0, _classCallCheck2.default)(this, MapIndexed);
-    this.f = f;
-    this.xform = xform;
-    this.i = -1;
-  }
-
-  (0, _createClass2.default)(MapIndexed, [{
-    key: '@@transducer/init',
-    value: function transducerInit() {
-      return this.xform['@@transducer/init']();
-    }
-  }, {
-    key: '@@transducer/result',
-    value: function transducerResult(v) {
-      return this.xform['@@transducer/result'](v);
-    }
-  }, {
-    key: '@@transducer/step',
-    value: function transducerStep(res, input) {
-      this.i++;
-      return this.xform['@@transducer/step'](res, this.f(input, this.i));
-    }
-  }]);
-  return MapIndexed;
-}();
-
-function mapIndexed(f) {
-  return function (xform) {
-    return new MapIndexed(f, xform);
-  };
-}
-
-module.exports = exports.default;
-module.exports["default"] = exports.default;
-
-
-/***/ }),
-
-/***/ "./node_modules/pdelay/js/index.js":
-/*!*****************************************!*\
-  !*** ./node_modules/pdelay/js/index.js ***!
-  \*****************************************/
+/***/ 8498:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
+var __webpack_unused_export__;
 
 
-Object.defineProperty(exports, "__esModule", ({
+__webpack_unused_export__ = ({
   value: true
-}));
-exports["default"] = delay;
+});
+exports.A = delay;
 
 function delay(time, value) {
   return new Promise(function (resolve) {
@@ -19906,10 +18823,7 @@ function delay(time, value) {
 
 /***/ }),
 
-/***/ "./node_modules/querystring-es3/decode.js":
-/*!************************************************!*\
-  !*** ./node_modules/querystring-es3/decode.js ***!
-  \************************************************/
+/***/ 1892:
 /***/ ((module) => {
 
 "use strict";
@@ -20001,10 +18915,7 @@ var isArray = Array.isArray || function (xs) {
 
 /***/ }),
 
-/***/ "./node_modules/querystring-es3/encode.js":
-/*!************************************************!*\
-  !*** ./node_modules/querystring-es3/encode.js ***!
-  \************************************************/
+/***/ 5052:
 /***/ ((module) => {
 
 "use strict";
@@ -20097,25 +19008,19 @@ var objectKeys = Object.keys || function (obj) {
 
 /***/ }),
 
-/***/ "./node_modules/querystring-es3/index.js":
-/*!***********************************************!*\
-  !*** ./node_modules/querystring-es3/index.js ***!
-  \***********************************************/
+/***/ 6448:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 
-exports.decode = exports.parse = __webpack_require__(/*! ./decode */ "./node_modules/querystring-es3/decode.js");
-exports.encode = exports.stringify = __webpack_require__(/*! ./encode */ "./node_modules/querystring-es3/encode.js");
+exports.decode = exports.parse = __webpack_require__(1892);
+exports.encode = exports.stringify = __webpack_require__(5052);
 
 
 /***/ }),
 
-/***/ "./node_modules/transducers.js/transducers.js":
-/*!****************************************************!*\
-  !*** ./node_modules/transducers.js/transducers.js ***!
-  \****************************************************/
+/***/ 6046:
 /***/ ((module) => {
 
 
@@ -21088,24 +19993,22 @@ module.exports = {
 
 /***/ }),
 
-/***/ "./node_modules/ud/js/index.js":
-/*!*************************************!*\
-  !*** ./node_modules/ud/js/index.js ***!
-  \*************************************/
+/***/ 7332:
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
+var __webpack_unused_export__;
 
 
-Object.defineProperty(exports, "__esModule", ({
+__webpack_unused_export__ = ({
   value: true
-}));
+});
 exports.defn = defn;
-exports.defobj = defobj;
-exports.defonce = defonce;
-exports.markReloadable = markReloadable;
-var range = __webpack_require__(/*! array-range */ "./node_modules/array-range/index.js");
-var zipObject = __webpack_require__(/*! zip-object */ "./node_modules/zip-object/index.js");
+__webpack_unused_export__ = defobj;
+__webpack_unused_export__ = defonce;
+__webpack_unused_export__ = markReloadable;
+var range = __webpack_require__(9060);
+var zipObject = __webpack_require__(2118);
 var moduleUsedUdKeys = new WeakMap();
 function markReloadable(module) {
   if (module.hot) {
@@ -21212,10 +20115,7 @@ function defn(module, fn) {
 
 /***/ }),
 
-/***/ "./node_modules/zip-object/index.js":
-/*!******************************************!*\
-  !*** ./node_modules/zip-object/index.js ***!
-  \******************************************/
+/***/ 2118:
 /***/ ((module) => {
 
 var zipObject = function (keys, values) {
@@ -21238,10 +20138,7 @@ module.exports = zipObject;
 
 /***/ }),
 
-/***/ "./node_modules/@babel/runtime/helpers/arrayLikeToArray.js":
-/*!*****************************************************************!*\
-  !*** ./node_modules/@babel/runtime/helpers/arrayLikeToArray.js ***!
-  \*****************************************************************/
+/***/ 8915:
 /***/ ((module) => {
 
 function _arrayLikeToArray(arr, len) {
@@ -21253,13 +20150,10 @@ module.exports = _arrayLikeToArray, module.exports.__esModule = true, module.exp
 
 /***/ }),
 
-/***/ "./node_modules/@babel/runtime/helpers/arrayWithoutHoles.js":
-/*!******************************************************************!*\
-  !*** ./node_modules/@babel/runtime/helpers/arrayWithoutHoles.js ***!
-  \******************************************************************/
+/***/ 4233:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayLikeToArray = __webpack_require__(/*! ./arrayLikeToArray.js */ "./node_modules/@babel/runtime/helpers/arrayLikeToArray.js");
+var arrayLikeToArray = __webpack_require__(8915);
 function _arrayWithoutHoles(arr) {
   if (Array.isArray(arr)) return arrayLikeToArray(arr);
 }
@@ -21267,53 +20161,7 @@ module.exports = _arrayWithoutHoles, module.exports.__esModule = true, module.ex
 
 /***/ }),
 
-/***/ "./node_modules/@babel/runtime/helpers/classCallCheck.js":
-/*!***************************************************************!*\
-  !*** ./node_modules/@babel/runtime/helpers/classCallCheck.js ***!
-  \***************************************************************/
-/***/ ((module) => {
-
-function _classCallCheck(instance, Constructor) {
-  if (!(instance instanceof Constructor)) {
-    throw new TypeError("Cannot call a class as a function");
-  }
-}
-module.exports = _classCallCheck, module.exports.__esModule = true, module.exports["default"] = module.exports;
-
-/***/ }),
-
-/***/ "./node_modules/@babel/runtime/helpers/createClass.js":
-/*!************************************************************!*\
-  !*** ./node_modules/@babel/runtime/helpers/createClass.js ***!
-  \************************************************************/
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-var toPropertyKey = __webpack_require__(/*! ./toPropertyKey.js */ "./node_modules/@babel/runtime/helpers/toPropertyKey.js");
-function _defineProperties(target, props) {
-  for (var i = 0; i < props.length; i++) {
-    var descriptor = props[i];
-    descriptor.enumerable = descriptor.enumerable || false;
-    descriptor.configurable = true;
-    if ("value" in descriptor) descriptor.writable = true;
-    Object.defineProperty(target, toPropertyKey(descriptor.key), descriptor);
-  }
-}
-function _createClass(Constructor, protoProps, staticProps) {
-  if (protoProps) _defineProperties(Constructor.prototype, protoProps);
-  if (staticProps) _defineProperties(Constructor, staticProps);
-  Object.defineProperty(Constructor, "prototype", {
-    writable: false
-  });
-  return Constructor;
-}
-module.exports = _createClass, module.exports.__esModule = true, module.exports["default"] = module.exports;
-
-/***/ }),
-
-/***/ "./node_modules/@babel/runtime/helpers/interopRequireDefault.js":
-/*!**********************************************************************!*\
-  !*** ./node_modules/@babel/runtime/helpers/interopRequireDefault.js ***!
-  \**********************************************************************/
+/***/ 1654:
 /***/ ((module) => {
 
 function _interopRequireDefault(obj) {
@@ -21325,10 +20173,7 @@ module.exports = _interopRequireDefault, module.exports.__esModule = true, modul
 
 /***/ }),
 
-/***/ "./node_modules/@babel/runtime/helpers/iterableToArray.js":
-/*!****************************************************************!*\
-  !*** ./node_modules/@babel/runtime/helpers/iterableToArray.js ***!
-  \****************************************************************/
+/***/ 6135:
 /***/ ((module) => {
 
 function _iterableToArray(iter) {
@@ -21338,10 +20183,7 @@ module.exports = _iterableToArray, module.exports.__esModule = true, module.expo
 
 /***/ }),
 
-/***/ "./node_modules/@babel/runtime/helpers/nonIterableSpread.js":
-/*!******************************************************************!*\
-  !*** ./node_modules/@babel/runtime/helpers/nonIterableSpread.js ***!
-  \******************************************************************/
+/***/ 2449:
 /***/ ((module) => {
 
 function _nonIterableSpread() {
@@ -21351,16 +20193,13 @@ module.exports = _nonIterableSpread, module.exports.__esModule = true, module.ex
 
 /***/ }),
 
-/***/ "./node_modules/@babel/runtime/helpers/toConsumableArray.js":
-/*!******************************************************************!*\
-  !*** ./node_modules/@babel/runtime/helpers/toConsumableArray.js ***!
-  \******************************************************************/
+/***/ 1752:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayWithoutHoles = __webpack_require__(/*! ./arrayWithoutHoles.js */ "./node_modules/@babel/runtime/helpers/arrayWithoutHoles.js");
-var iterableToArray = __webpack_require__(/*! ./iterableToArray.js */ "./node_modules/@babel/runtime/helpers/iterableToArray.js");
-var unsupportedIterableToArray = __webpack_require__(/*! ./unsupportedIterableToArray.js */ "./node_modules/@babel/runtime/helpers/unsupportedIterableToArray.js");
-var nonIterableSpread = __webpack_require__(/*! ./nonIterableSpread.js */ "./node_modules/@babel/runtime/helpers/nonIterableSpread.js");
+var arrayWithoutHoles = __webpack_require__(4233);
+var iterableToArray = __webpack_require__(6135);
+var unsupportedIterableToArray = __webpack_require__(6030);
+var nonIterableSpread = __webpack_require__(2449);
 function _toConsumableArray(arr) {
   return arrayWithoutHoles(arr) || iterableToArray(arr) || unsupportedIterableToArray(arr) || nonIterableSpread();
 }
@@ -21368,47 +20207,7 @@ module.exports = _toConsumableArray, module.exports.__esModule = true, module.ex
 
 /***/ }),
 
-/***/ "./node_modules/@babel/runtime/helpers/toPrimitive.js":
-/*!************************************************************!*\
-  !*** ./node_modules/@babel/runtime/helpers/toPrimitive.js ***!
-  \************************************************************/
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-var _typeof = (__webpack_require__(/*! ./typeof.js */ "./node_modules/@babel/runtime/helpers/typeof.js")["default"]);
-function _toPrimitive(input, hint) {
-  if (_typeof(input) !== "object" || input === null) return input;
-  var prim = input[Symbol.toPrimitive];
-  if (prim !== undefined) {
-    var res = prim.call(input, hint || "default");
-    if (_typeof(res) !== "object") return res;
-    throw new TypeError("@@toPrimitive must return a primitive value.");
-  }
-  return (hint === "string" ? String : Number)(input);
-}
-module.exports = _toPrimitive, module.exports.__esModule = true, module.exports["default"] = module.exports;
-
-/***/ }),
-
-/***/ "./node_modules/@babel/runtime/helpers/toPropertyKey.js":
-/*!**************************************************************!*\
-  !*** ./node_modules/@babel/runtime/helpers/toPropertyKey.js ***!
-  \**************************************************************/
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-var _typeof = (__webpack_require__(/*! ./typeof.js */ "./node_modules/@babel/runtime/helpers/typeof.js")["default"]);
-var toPrimitive = __webpack_require__(/*! ./toPrimitive.js */ "./node_modules/@babel/runtime/helpers/toPrimitive.js");
-function _toPropertyKey(arg) {
-  var key = toPrimitive(arg, "string");
-  return _typeof(key) === "symbol" ? key : String(key);
-}
-module.exports = _toPropertyKey, module.exports.__esModule = true, module.exports["default"] = module.exports;
-
-/***/ }),
-
-/***/ "./node_modules/@babel/runtime/helpers/typeof.js":
-/*!*******************************************************!*\
-  !*** ./node_modules/@babel/runtime/helpers/typeof.js ***!
-  \*******************************************************/
+/***/ 2990:
 /***/ ((module) => {
 
 function _typeof(o) {
@@ -21424,13 +20223,10 @@ module.exports = _typeof, module.exports.__esModule = true, module.exports["defa
 
 /***/ }),
 
-/***/ "./node_modules/@babel/runtime/helpers/unsupportedIterableToArray.js":
-/*!***************************************************************************!*\
-  !*** ./node_modules/@babel/runtime/helpers/unsupportedIterableToArray.js ***!
-  \***************************************************************************/
+/***/ 6030:
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var arrayLikeToArray = __webpack_require__(/*! ./arrayLikeToArray.js */ "./node_modules/@babel/runtime/helpers/arrayLikeToArray.js");
+var arrayLikeToArray = __webpack_require__(8915);
 function _unsupportedIterableToArray(o, minLen) {
   if (!o) return;
   if (typeof o === "string") return arrayLikeToArray(o, minLen);
@@ -21565,9 +20361,6 @@ module.exports = _unsupportedIterableToArray, module.exports.__esModule = true, 
 var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
-/*!*********************************!*\
-  !*** ./src/injected-js/main.ts ***!
-  \*********************************/
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 // Protections against https://github.com/w3c/webextensions/issues/8 before
@@ -21592,7 +20385,7 @@ if (!document.head?.hasAttribute('data-inboxsdk-script-injected')) {
 }
 if (!__webpack_require__.g.__InboxSDKInjected) {
   __webpack_require__.g.__InboxSDKInjected = true;
-  const logger = __webpack_require__(/*! ./injected-logger */ "./src/injected-js/injected-logger.ts");
+  const logger = __webpack_require__(4530);
   let oldDefine;
   try {
     if ( true && __webpack_require__.amdD && __webpack_require__.amdO) {
@@ -21601,16 +20394,16 @@ if (!__webpack_require__.g.__InboxSDKInjected) {
       oldDefine = __webpack_require__.amdD;
       __webpack_require__.amdD = null;
     }
-    const extCorbWorkaroundPageWorld = __webpack_require__(/*! ext-corb-workaround/dist/src/pageWorld */ "./node_modules/ext-corb-workaround/dist/src/pageWorld.js");
-    const xhrHelper = (__webpack_require__(/*! ./xhr-helper */ "./src/injected-js/xhr-helper.ts")["default"]);
-    const setupDataExposer = (__webpack_require__(/*! ./setup-data-exposer */ "./src/injected-js/setup-data-exposer.ts")["default"]);
-    const setupEventReemitter = (__webpack_require__(/*! ./setup-event-reemitter */ "./src/injected-js/setup-event-reemitter.ts")["default"]);
-    const setupErrorSilencer = (__webpack_require__(/*! ./setup-error-silencer */ "./src/injected-js/setup-error-silencer.ts")["default"]);
-    const setupCustomViewEventAssassin = (__webpack_require__(/*! ./setupCustomViewEventAssassin */ "./src/injected-js/setupCustomViewEventAssassin.ts")["default"]);
-    const setupPushStateListener = (__webpack_require__(/*! ./setupPushStateListener */ "./src/injected-js/setupPushStateListener.ts")["default"]);
-    const setupInboxCustomViewLinkFixer = (__webpack_require__(/*! ./setupInboxCustomViewLinkFixer */ "./src/injected-js/setupInboxCustomViewLinkFixer.ts")["default"]);
-    const gmailInterceptor = (__webpack_require__(/*! ./gmail/setup-gmail-interceptor */ "./src/injected-js/gmail/setup-gmail-interceptor.ts")["default"]);
-    const setupGmonkeyHandler = (__webpack_require__(/*! ./gmail/setup-gmonkey-handler */ "./src/injected-js/gmail/setup-gmonkey-handler.ts")["default"]);
+    const extCorbWorkaroundPageWorld = __webpack_require__(4835);
+    const xhrHelper = (__webpack_require__(284)/* ["default"] */ .A);
+    const setupDataExposer = (__webpack_require__(6465)/* ["default"] */ .A);
+    const setupEventReemitter = (__webpack_require__(9729)/* ["default"] */ .A);
+    const setupErrorSilencer = (__webpack_require__(5915)/* ["default"] */ .A);
+    const setupCustomViewEventAssassin = (__webpack_require__(4630)/* ["default"] */ .A);
+    const setupPushStateListener = (__webpack_require__(3095)/* ["default"] */ .A);
+    const setupInboxCustomViewLinkFixer = (__webpack_require__(9234)/* ["default"] */ .A);
+    const gmailInterceptor = (__webpack_require__(5691)/* ["default"] */ .A);
+    const setupGmonkeyHandler = (__webpack_require__(8809)/* ["default"] */ .A);
     gmailInterceptor();
     setupGmonkeyHandler();
     extCorbWorkaroundPageWorld.init();
