@@ -593,25 +593,129 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     let previewEl = null;
     let overlayEl = null;
 
+    let previewTimeout = null;
+    let isPreviewHovered = false;
+
     const showPreview = (iconEl) => {
+      // Clear any existing timeout
+      if (previewTimeout) {
+        clearTimeout(previewTimeout);
+        previewTimeout = null;
+      }
+
       // Preview remains optional; we use thumbnail url if present
       const docUrl = iconEl.getAttribute('data-doc-url');
+      const thumbUrl = iconEl.getAttribute('data-thumb-url');
       if (!docUrl) return;
       const rect = iconEl.getBoundingClientRect();
       if (!previewEl) {
         previewEl = document.createElement('div');
-        previewEl.style.cssText = 'position:fixed; z-index:2147483646; width:280px; height:210px; background:#fff; box-shadow:0 8px 24px rgba(60,64,67,0.3); border:1px solid #e0e0e0; border-radius:8px; overflow:hidden;';
+        previewEl.style.cssText = 'position:fixed; z-index:2147483646; width:360px; height:280px; background:#fff; box-shadow:0 20px 40px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.05); border:none; border-radius:16px; overflow:hidden; backdrop-filter:blur(12px); transform:scale(1); transition:all 0.2s ease;';
+        
         document.body.appendChild(previewEl);
+        
+        // Add hover events to the preview element itself
+        previewEl.addEventListener('mouseenter', () => {
+          isPreviewHovered = true;
+          if (previewTimeout) {
+            clearTimeout(previewTimeout);
+            previewTimeout = null;
+          }
+        });
+        
+        previewEl.addEventListener('mouseleave', () => {
+          isPreviewHovered = false;
+          // Add a small delay before hiding to allow moving between icon and preview
+          previewTimeout = setTimeout(() => {
+            if (!isPreviewHovered) {
+              previewEl.style.display = 'none';
+            }
+          }, 100);
+        });
       }
-      previewEl.innerHTML = `<iframe src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1" style="width:100%;height:100%;border:0;" loading="eager"></iframe>`;
-      const rectLeft = Math.max(8, rect.left - 40);
-      previewEl.style.top = `${Math.round(rect.bottom + 8)}px`;
+      
+      // Enhanced preview with thumbnail fallback
+      const previewContent = thumbUrl ? 
+        `<div style="display:flex; flex-direction:column; height:100%; background:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+           <div style="flex:1; background:url('${thumbUrl}') center/cover; display:flex; align-items:center; justify-content:center; background-color:#4CAF50; border-radius:12px 12px 0 0; position:relative; min-height:160px;">
+             <div style="text-align:center; color:#fff; font-size:16px; background:rgba(0,0,0,0.1); padding:20px; border-radius:12px; backdrop-filter:blur(4px); border:1px solid rgba(255,255,255,0.2);">
+               <div style="font-size:32px; margin-bottom:12px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));">📄</div>
+               <div style="font-weight:700; margin-bottom:6px; font-size:18px; text-shadow:0 1px 2px rgba(0,0,0,0.3);">Sample Invoice</div>
+               <div style="font-size:13px; opacity:0.9; font-weight:500;">Sample Document Preview</div>
+               <div style="font-size:11px; opacity:0.8; margin-top:4px;">Click to open full document</div>
+             </div>
+           </div>
+           <div style="padding:16px; background:#f8f9fa; border-top:1px solid #e0e0e0; text-align:center; border-radius:0 0 12px 12px;">
+             <button id="preview-open-doc-btn" data-doc-url="${docUrl}" style="background:linear-gradient(135deg, #1a73e8 0%, #1557b0 100%); color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease; box-shadow:0 2px 8px rgba(26,115,232,0.3); min-width:140px;">Open Document</button>
+           </div>
+         </div>` :
+        `<iframe src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1" style="width:100%;height:100%;border:0;" loading="eager"></iframe>`;
+      
+      previewEl.innerHTML = previewContent;
+      
+      // Add event listener for the open document button
+      const openDocBtn = previewEl.querySelector('#preview-open-doc-btn');
+      if (openDocBtn) {
+        openDocBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const docUrl = openDocBtn.getAttribute('data-doc-url');
+          if (docUrl) {
+            window.open(docUrl, '_blank');
+          }
+        });
+        
+        // Add hover effects
+        openDocBtn.addEventListener('mouseenter', () => {
+          openDocBtn.style.background = 'linear-gradient(135deg, #1557b0 0%, #0d47a1 100%)';
+          openDocBtn.style.transform = 'translateY(-2px) scale(1.02)';
+          openDocBtn.style.boxShadow = '0 4px 12px rgba(26,115,232,0.4)';
+        });
+        
+        openDocBtn.addEventListener('mouseleave', () => {
+          openDocBtn.style.background = 'linear-gradient(135deg, #1a73e8 0%, #1557b0 100%)';
+          openDocBtn.style.transform = 'translateY(0) scale(1)';
+          openDocBtn.style.boxShadow = '0 2px 8px rgba(26,115,232,0.3)';
+        });
+      }
+      
+      // Add a small invisible bridge to make it easier to move mouse between icon and preview
+      const bridge = document.createElement('div');
+      bridge.style.cssText = 'position:absolute; z-index:2147483645; width:20px; height:8px; background:transparent; top:-8px; left:10px;';
+      previewEl.appendChild(bridge);
+      
+      // Add hover events to the bridge as well
+      bridge.addEventListener('mouseenter', () => {
+        isPreviewHovered = true;
+        if (previewTimeout) {
+          clearTimeout(previewTimeout);
+          previewTimeout = null;
+        }
+      });
+      
+      // Position the preview closer to the icon with a small gap
+      const rectLeft = Math.max(8, rect.left - 20);
+      previewEl.style.top = `${Math.round(rect.bottom + 4)}px`;
       previewEl.style.left = `${Math.round(rectLeft)}px`;
       previewEl.style.display = 'block';
+      
+      // Add entrance animation
+      previewEl.style.opacity = '0';
+      previewEl.style.transform = 'scale(0.9) translateY(10px)';
+      requestAnimationFrame(() => {
+        previewEl.style.transition = 'all 0.2s ease';
+        previewEl.style.opacity = '1';
+        previewEl.style.transform = 'scale(1) translateY(0)';
+      });
     };
 
     const hidePreview = () => {
-      if (previewEl) previewEl.style.display = 'none';
+      // Add a small delay to allow moving between icon and preview
+      previewTimeout = setTimeout(() => {
+        if (!isPreviewHovered && previewEl) {
+          previewEl.style.display = 'none';
+        }
+      }, 150);
     };
 
     const ensureOverlay = () => {
@@ -1010,6 +1114,7 @@ function transformDataForSpreadsheet(invoices) {
 
     // Document icon with click-to-open behavior (always render; disabled if missing identifiers)
     const hasDoc = !!(docThreadId && docName);
+    const hasSampleDoc = !!(docUrl && docUrl.includes('w3.org')); // Check if it's our sample document
     const docIcon = `
       <span class="doc-preview-icon" 
             data-doc-url="${docUrl}"
@@ -1017,8 +1122,14 @@ function transformDataForSpreadsheet(invoices) {
             data-has-doc="${hasDoc ? '1' : '0'}"
             data-thread-id="${docThreadId}"
             data-doc-name="${docName}"
-            title="${hasDoc ? 'Preview document' : 'No document available'}"
-            style="${hasDoc ? 'cursor: pointer; color: #5f6368;' : 'cursor: not-allowed; color: #c0c0c0;'} font-size: 14px; padding: 2px; margin: 0; line-height: 1; height: 20px; width: 20px; display: flex; align-items: center; justify-content: center; user-select: none;">📄</span>
+            title="${hasDoc ? (hasSampleDoc ? 'Sample Document - Preview available' : 'Preview document') : 'No document available'}"
+            style="${hasDoc ? 
+              (hasSampleDoc ? 
+                'cursor: pointer; color: #1a73e8; background: #e8f0fe; border: 1px solid #dadce0; border-radius: 4px;' : 
+                'cursor: pointer; color: #5f6368;'
+              ) : 
+              'cursor: not-allowed; color: #c0c0c0;'
+            } font-size: 14px; padding: 4px; margin: 0; line-height: 1; height: 24px; width: 24px; display: flex; align-items: center; justify-content: center; user-select: none; transition: all 0.2s ease;">${hasSampleDoc ? '📋' : '📄'}</span>
     `;
 
     // Gmail popout icon should use document IDs (thread_id/message_id)
@@ -1309,6 +1420,8 @@ function generateMockData() {
         message_id: 'msg_001',
         document_name: 'invoice_001.pdf',
         content_hash: 'hash_001',
+        url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+        thumbnailUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjNGNhZjUwIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlNhbXBsZSBJbnZvaWNlPC90ZXh0Pgo8L3N2Zz4K',
         details: {
           invoiceNumber: 'INV-2024-001',
           entityName: 'Acme Corporation',
@@ -1321,7 +1434,9 @@ function generateMockData() {
           dueDate: '2024-02-15',
           paymentTerms: 'Net 30',
           approvalStatus: 'PENDING',
-          notes: 'Annual software license renewal'
+          notes: 'Annual software license renewal',
+          documentUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+          thumbnailUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjNGNhZjUwIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlNhbXBsZSBJbnZvaWNlPC90ZXh0Pgo8L3N2Zz4K'
         }
       },
       vendor: { name: 'Tech Solutions Inc.' },

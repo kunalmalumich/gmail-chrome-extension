@@ -72537,9 +72537,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         type: "html",
         readOnly: true,
         fieldName: null,
-        editable: false,
-        filter: false
-        // No filter for icon column
+        editable: false
       },
       {
         title: "Invoice #",
@@ -72548,7 +72546,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         fieldName: "invoiceNumber",
         editable: true,
         filter: true
-        // Enable filter for Invoice Number
       },
       {
         title: "Entity Name",
@@ -72557,7 +72554,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         fieldName: "entityName",
         editable: true,
         filter: true
-        // Enable filter for Entity Name
       },
       {
         title: "Vendor Name",
@@ -72566,7 +72562,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         fieldName: "vendor.name",
         editable: true,
         filter: true
-        // Enable filter for Vendor Name
       },
       {
         title: "Invoice Description",
@@ -72575,7 +72570,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         fieldName: "description",
         editable: true,
         filter: true
-        // Enable filter for Description
       },
       {
         title: "Period",
@@ -72584,7 +72578,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         fieldName: "period",
         editable: true,
         filter: true
-        // Enable filter for Period
       },
       {
         title: "Amount",
@@ -72594,7 +72587,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         fieldName: "amount",
         editable: true,
         filter: true
-        // Enable filter for Amount
       },
       {
         title: "Currency",
@@ -72604,7 +72596,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         fieldName: "currency",
         editable: true,
         filter: true,
-        // Enable filter for Currency
         options: {
           type: "default",
           placeholder: "Select Currency"
@@ -72618,7 +72609,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         fieldName: "issueDate",
         editable: true,
         filter: true
-        // Enable filter for Issue Date
       },
       {
         title: "Due Date",
@@ -72628,7 +72618,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         fieldName: "dueDate",
         editable: true,
         filter: true
-        // Enable filter for Due Date
       },
       {
         title: "Terms",
@@ -72637,7 +72626,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         fieldName: "paymentTerms",
         editable: true,
         filter: true
-        // Enable filter for Terms
       },
       {
         title: "Status",
@@ -72647,7 +72635,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         fieldName: "status",
         editable: true,
         filter: true
-        // Enable filter for Status
       },
       {
         title: "\u{1F4E4}",
@@ -72656,9 +72643,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         type: "html",
         readOnly: true,
         fieldName: null,
-        editable: false,
-        filter: false
-        // No filter for icon column
+        editable: false
       },
       {
         title: "Approver",
@@ -72668,7 +72653,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         fieldName: "approvalStatus",
         editable: true,
         filter: true,
-        // Enable filter for Approver
         options: {
           type: "default",
           placeholder: "Select Status"
@@ -72681,7 +72665,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         fieldName: "notes",
         editable: true,
         filter: true
-        // Enable filter for Notes
       },
       {
         title: "Actions",
@@ -72689,9 +72672,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         type: "html",
         readOnly: true,
         fieldName: null,
-        editable: false,
-        filter: false
-        // No filter for Actions column
+        editable: false
       }
     ];
     const pdfCache = /* @__PURE__ */ new Map();
@@ -72723,9 +72704,11 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         // Show 10 rows per page
         paginationOptions: [10, 25, 50, 100],
         // Available page size options
+        showPagination: true,
+        // Ensure pagination controls are visible
         // === SEARCH CONFIGURATION ===
-        search: 1,
-        // Enable search functionality (jspreadsheet-ce v5.0.3 expects 1, not true)
+        search: true,
+        // Enable search functionality
         // === USE JSPREADSHEET DEFAULTS ===
         allowComments: true,
         tableOverflow: true,
@@ -72740,24 +72723,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         columnSorting: true,
         columnResize: true,
         rowResize: true,
-        filters: true,
-        // Enable global filters
-        // === FILTER CONFIGURATION ===
-        // Filter events for enhanced functionality
-        onbeforefilter: function(worksheet, terms, rowNumbers) {
-          console.log("[FILTER] Before filter applied:", { terms, rowNumbers });
-          return true;
-        },
-        onfilter: function(worksheet, terms, rowNumbers) {
-          console.log("[FILTER] Filter applied:", { terms, rowNumbers });
-          const totalRows = worksheet.getData().length;
-          const filteredRows = rowNumbers ? rowNumbers.length : totalRows;
-          console.log(`[FILTER] Showing ${filteredRows} of ${totalRows} rows`);
-        },
-        onopenfilter: function(worksheet, column, options) {
-          console.log("[FILTER] Opening filter for column:", column, "options:", options);
-          return options;
-        }
+        filters: true
       }],
       // === SEARCH EVENT HANDLERS ===
       // Let jspreadsheet handle search natively
@@ -73001,72 +72967,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           console.warn("[SEARCH] Sheet or updateSearch method not available");
         }
       },
-      // === FILTER CONTROL METHODS ===
-      // Apply filters programmatically to a specific column
-      setFilter: (columnNumber, values) => {
-        console.log("[FILTER] Setting filter for column:", columnNumber, "values:", values);
-        if (sheet && sheet.setFilter) {
-          sheet.setFilter(columnNumber, values);
-        } else {
-          console.warn("[FILTER] Sheet or setFilter method not available");
-        }
-      },
-      // Get currently applied filters
-      getFilter: (columnNumber) => {
-        console.log("[FILTER] Getting filter for column:", columnNumber);
-        if (sheet && sheet.getFilter) {
-          return sheet.getFilter(columnNumber);
-        } else {
-          console.warn("[FILTER] Sheet or getFilter method not available");
-          return null;
-        }
-      },
-      // Open filter input for a specific column
-      openFilter: (columnNumber, getAsSets) => {
-        console.log("[FILTER] Opening filter for column:", columnNumber);
-        if (sheet && sheet.openFilter) {
-          sheet.openFilter(columnNumber, getAsSets);
-        } else {
-          console.warn("[FILTER] Sheet or openFilter method not available");
-        }
-      },
-      // Close filter input
-      closeFilter: () => {
-        console.log("[FILTER] Closing filter input");
-        if (sheet && sheet.closeFilter) {
-          sheet.closeFilter();
-        } else {
-          console.warn("[FILTER] Sheet or closeFilter method not available");
-        }
-      },
-      // Reset all filters
-      resetFilters: (columnNumber, destroy) => {
-        console.log("[FILTER] Resetting filters for column:", columnNumber);
-        if (sheet && sheet.resetFilters) {
-          sheet.resetFilters(columnNumber, destroy);
-        } else {
-          console.warn("[FILTER] Sheet or resetFilters method not available");
-        }
-      },
-      // Show filter icon for one or all columns
-      showFilter: (columnOrCellRange) => {
-        console.log("[FILTER] Showing filter for:", columnOrCellRange);
-        if (sheet && sheet.showFilter) {
-          sheet.showFilter(columnOrCellRange);
-        } else {
-          console.warn("[FILTER] Sheet or showFilter method not available");
-        }
-      },
-      // Hide filter for a specific column
-      hideFilter: (columnNumber) => {
-        console.log("[FILTER] Hiding filter for column:", columnNumber);
-        if (sheet && sheet.hideFilter) {
-          sheet.hideFilter(columnNumber);
-        } else {
-          console.warn("[FILTER] Sheet or hideFilter method not available");
-        }
-      },
-      // Debug method to check search and filter functionality
+      // Debug method to check search functionality
       debugSearch: () => {
         console.log("[SEARCH DEBUG] Sheet available:", !!sheet);
         console.log("[SEARCH DEBUG] Sheet methods:", sheet ? Object.getOwnPropertyNames(sheet) : "N/A");
@@ -73076,15 +72977,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         console.log("[SEARCH DEBUG] All filter containers:", document.querySelectorAll(".jss_filter"));
         console.log("[SEARCH DEBUG] Sheet element:", sheet ? sheet.element : "N/A");
         console.log("[SEARCH DEBUG] Sheet search method:", sheet ? typeof sheet.search : "N/A");
-        console.log("[FILTER DEBUG] Sheet filter methods:", sheet ? {
-          setFilter: typeof sheet.setFilter,
-          getFilter: typeof sheet.getFilter,
-          openFilter: typeof sheet.openFilter,
-          closeFilter: typeof sheet.closeFilter,
-          resetFilters: typeof sheet.resetFilters,
-          showFilter: typeof sheet.showFilter,
-          hideFilter: typeof sheet.hideFilter
-        } : "N/A");
         if (sheet && sheet.element) {
           const searchInSheet = sheet.element.querySelector(".jss_search");
           console.log("[SEARCH DEBUG] Search input in sheet element:", !!searchInSheet);
@@ -73121,23 +73013,100 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       });
       let previewEl = null;
       let overlayEl = null;
+      let previewTimeout = null;
+      let isPreviewHovered = false;
       const showPreview = (iconEl) => {
+        if (previewTimeout) {
+          clearTimeout(previewTimeout);
+          previewTimeout = null;
+        }
         const docUrl = iconEl.getAttribute("data-doc-url");
+        const thumbUrl = iconEl.getAttribute("data-thumb-url");
         if (!docUrl) return;
         const rect = iconEl.getBoundingClientRect();
         if (!previewEl) {
           previewEl = document.createElement("div");
-          previewEl.style.cssText = "position:fixed; z-index:2147483646; width:280px; height:210px; background:#fff; box-shadow:0 8px 24px rgba(60,64,67,0.3); border:1px solid #e0e0e0; border-radius:8px; overflow:hidden;";
+          previewEl.style.cssText = "position:fixed; z-index:2147483646; width:360px; height:280px; background:#fff; box-shadow:0 20px 40px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.05); border:none; border-radius:16px; overflow:hidden; backdrop-filter:blur(12px); transform:scale(1); transition:all 0.2s ease;";
           document.body.appendChild(previewEl);
+          previewEl.addEventListener("mouseenter", () => {
+            isPreviewHovered = true;
+            if (previewTimeout) {
+              clearTimeout(previewTimeout);
+              previewTimeout = null;
+            }
+          });
+          previewEl.addEventListener("mouseleave", () => {
+            isPreviewHovered = false;
+            previewTimeout = setTimeout(() => {
+              if (!isPreviewHovered) {
+                previewEl.style.display = "none";
+              }
+            }, 100);
+          });
         }
-        previewEl.innerHTML = `<iframe src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1" style="width:100%;height:100%;border:0;" loading="eager"></iframe>`;
-        const rectLeft = Math.max(8, rect.left - 40);
-        previewEl.style.top = `${Math.round(rect.bottom + 8)}px`;
+        const previewContent = thumbUrl ? `<div style="display:flex; flex-direction:column; height:100%; background:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+           <div style="flex:1; background:url('${thumbUrl}') center/cover; display:flex; align-items:center; justify-content:center; background-color:#4CAF50; border-radius:12px 12px 0 0; position:relative; min-height:160px;">
+             <div style="text-align:center; color:#fff; font-size:16px; background:rgba(0,0,0,0.1); padding:20px; border-radius:12px; backdrop-filter:blur(4px); border:1px solid rgba(255,255,255,0.2);">
+               <div style="font-size:32px; margin-bottom:12px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));">\u{1F4C4}</div>
+               <div style="font-weight:700; margin-bottom:6px; font-size:18px; text-shadow:0 1px 2px rgba(0,0,0,0.3);">Sample Invoice</div>
+               <div style="font-size:13px; opacity:0.9; font-weight:500;">Sample Document Preview</div>
+               <div style="font-size:11px; opacity:0.8; margin-top:4px;">Click to open full document</div>
+             </div>
+           </div>
+           <div style="padding:16px; background:#f8f9fa; border-top:1px solid #e0e0e0; text-align:center; border-radius:0 0 12px 12px;">
+             <button id="preview-open-doc-btn" data-doc-url="${docUrl}" style="background:linear-gradient(135deg, #1a73e8 0%, #1557b0 100%); color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease; box-shadow:0 2px 8px rgba(26,115,232,0.3); min-width:140px;">Open Document</button>
+           </div>
+         </div>` : `<iframe src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1" style="width:100%;height:100%;border:0;" loading="eager"></iframe>`;
+        previewEl.innerHTML = previewContent;
+        const openDocBtn = previewEl.querySelector("#preview-open-doc-btn");
+        if (openDocBtn) {
+          openDocBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const docUrl2 = openDocBtn.getAttribute("data-doc-url");
+            if (docUrl2) {
+              window.open(docUrl2, "_blank");
+            }
+          });
+          openDocBtn.addEventListener("mouseenter", () => {
+            openDocBtn.style.background = "linear-gradient(135deg, #1557b0 0%, #0d47a1 100%)";
+            openDocBtn.style.transform = "translateY(-2px) scale(1.02)";
+            openDocBtn.style.boxShadow = "0 4px 12px rgba(26,115,232,0.4)";
+          });
+          openDocBtn.addEventListener("mouseleave", () => {
+            openDocBtn.style.background = "linear-gradient(135deg, #1a73e8 0%, #1557b0 100%)";
+            openDocBtn.style.transform = "translateY(0) scale(1)";
+            openDocBtn.style.boxShadow = "0 2px 8px rgba(26,115,232,0.3)";
+          });
+        }
+        const bridge = document.createElement("div");
+        bridge.style.cssText = "position:absolute; z-index:2147483645; width:20px; height:8px; background:transparent; top:-8px; left:10px;";
+        previewEl.appendChild(bridge);
+        bridge.addEventListener("mouseenter", () => {
+          isPreviewHovered = true;
+          if (previewTimeout) {
+            clearTimeout(previewTimeout);
+            previewTimeout = null;
+          }
+        });
+        const rectLeft = Math.max(8, rect.left - 20);
+        previewEl.style.top = `${Math.round(rect.bottom + 4)}px`;
         previewEl.style.left = `${Math.round(rectLeft)}px`;
         previewEl.style.display = "block";
+        previewEl.style.opacity = "0";
+        previewEl.style.transform = "scale(0.9) translateY(10px)";
+        requestAnimationFrame(() => {
+          previewEl.style.transition = "all 0.2s ease";
+          previewEl.style.opacity = "1";
+          previewEl.style.transform = "scale(1) translateY(0)";
+        });
       };
       const hidePreview = () => {
-        if (previewEl) previewEl.style.display = "none";
+        previewTimeout = setTimeout(() => {
+          if (!isPreviewHovered && previewEl) {
+            previewEl.style.display = "none";
+          }
+        }, 150);
       };
       const ensureOverlay = () => {
         if (!overlayEl) {
@@ -73389,36 +73358,25 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       .jexcel .highlight, .jspreadsheet .highlight { background: #f3f4f6; }
       .jss_highlight { background: #fef3c7 !important; border: 1px solid #f59e0b !important; }
       
-      /* Pagination and Search Controls Styling */
-      .jspreadsheet-pagination, .jspreadsheet-search {
-        margin: 10px 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 14px;
-        color: #374151;
+      /* Minimal Pagination and Search Controls Styling */
+      .jss_filter, .jss_pagination {
+        margin: 8px 0;
       }
-      .jspreadsheet-pagination select, .jspreadsheet-search input {
-        padding: 4px 8px;
+      .jss_filter input, .jss_pagination select {
         border: 1px solid #d1d5db;
         border-radius: 4px;
+        padding: 4px 6px;
         font-size: 14px;
       }
-      .jspreadsheet-pagination button {
-        padding: 4px 8px;
+      .jss_pagination > div > div {
         border: 1px solid #d1d5db;
         border-radius: 4px;
-        background: #f9fafb;
         cursor: pointer;
-        font-size: 14px;
       }
-      .jspreadsheet-pagination button:hover {
-        background: #f3f4f6;
-      }
-      .jspreadsheet-pagination button.active {
-        background: #3b82f6;
+      .jss_page_selected {
+        background: #10b981;
         color: white;
-        border-color: #3b82f6;
+        border-color: #10b981;
       }
     `;
       shadowRoot.appendChild(style);
@@ -73471,6 +73429,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       const docUrl = details.documentUrl || details.document_url || invoice.document?.url || "";
       const thumbUrl = details.thumbnailUrl || details.thumbnail_url || invoice.document?.thumbnailUrl || invoice.document?.thumbnail_url || "";
       const hasDoc = !!(docThreadId && docName);
+      const hasSampleDoc = !!(docUrl && docUrl.includes("w3.org"));
       const docIcon = `
       <span class="doc-preview-icon" 
             data-doc-url="${docUrl}"
@@ -73478,8 +73437,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             data-has-doc="${hasDoc ? "1" : "0"}"
             data-thread-id="${docThreadId}"
             data-doc-name="${docName}"
-            title="${hasDoc ? "Preview document" : "No document available"}"
-            style="${hasDoc ? "cursor: pointer; color: #5f6368;" : "cursor: not-allowed; color: #c0c0c0;"} font-size: 14px; padding: 2px; margin: 0; line-height: 1; height: 20px; width: 20px; display: flex; align-items: center; justify-content: center; user-select: none;">\u{1F4C4}</span>
+            title="${hasDoc ? hasSampleDoc ? "Sample Document - Preview available" : "Preview document" : "No document available"}"
+            style="${hasDoc ? hasSampleDoc ? "cursor: pointer; color: #1a73e8; background: #e8f0fe; border: 1px solid #dadce0; border-radius: 4px;" : "cursor: pointer; color: #5f6368;" : "cursor: not-allowed; color: #c0c0c0;"} font-size: 14px; padding: 4px; margin: 0; line-height: 1; height: 24px; width: 24px; display: flex; align-items: center; justify-content: center; user-select: none; transition: all 0.2s ease;">${hasSampleDoc ? "\u{1F4CB}" : "\u{1F4C4}"}</span>
     `;
       const popoutIcon = invoice.document?.thread_id || invoice.document?.message_id ? `<span class="gmail-popout-icon" 
             data-thread-id="${invoice.document?.thread_id || ""}" 
@@ -73614,6 +73573,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           message_id: "msg_001",
           document_name: "invoice_001.pdf",
           content_hash: "hash_001",
+          url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+          thumbnailUrl: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjNGNhZjUwIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlNhbXBsZSBJbnZvaWNlPC90ZXh0Pgo8L3N2Zz4K",
           details: {
             invoiceNumber: "INV-2024-001",
             entityName: "Acme Corporation",
@@ -73626,7 +73587,9 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             dueDate: "2024-02-15",
             paymentTerms: "Net 30",
             approvalStatus: "PENDING",
-            notes: "Annual software license renewal"
+            notes: "Annual software license renewal",
+            documentUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+            thumbnailUrl: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjNGNhZjUwIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlNhbXBsZSBJbnZvaWNlPC90ZXh0Pgo8L3N2Zz4K"
           }
         },
         vendor: { name: "Tech Solutions Inc." },
