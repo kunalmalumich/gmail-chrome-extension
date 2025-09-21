@@ -90,7 +90,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       source: ['USD', 'INR', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CNY', 'OTHER'],
       fieldName: 'currency',
       editable: true,
-      filter: true,
+      filter: false, // Data editing dropdown - no filter functionality
       options: {
         type: 'default',
         placeholder: 'Select Currency'
@@ -129,7 +129,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       source: [ 'pending', 'approved', 'rejected', 'paid', 'on_hold', 'requires_review', 'partially_approved', 'ready_for_payment', 'duplicate', 'unknown' ],
       fieldName: 'status',
       editable: true,
-      filter: true
+      filter: false // Data editing dropdown - no filter functionality
     },
     {
       title: '📤', // Gmail icon column (moved next to Status)
@@ -146,7 +146,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       source: ['PENDING', 'APPROVED', 'REJECTED'],
       fieldName: 'approvalStatus',
       editable: true,
-      filter: true,
+      filter: false, // Data editing dropdown - no filter functionality
       options: {
         type: 'default',
         placeholder: 'Select Status'
@@ -233,6 +233,19 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     // Search functionality (keeping existing search logic)
     console.log('[SEARCH] oncreateworksheet event fired!');
     console.log('[SEARCH] Worksheet element:', worksheet.element);
+    
+    // === TWO-PANE FILTER FUNCTIONALITY ===
+    console.log('[FILTER] Setting up two-pane filter functionality');
+    console.log('[FILTER] Worksheet object:', worksheet);
+    console.log('[FILTER] Worksheet element:', worksheet.element);
+    
+    // Call the filter setup function
+    if (typeof setupTwoPaneFilters === 'function') {
+      console.log('[FILTER] setupTwoPaneFilters function exists, calling it');
+      setupTwoPaneFilters(worksheet);
+    } else {
+      console.error('[FILTER] setupTwoPaneFilters function not found!');
+    }
     
     // Wait for jspreadsheet to create its search input
     setTimeout(() => {
@@ -376,6 +389,17 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   console.log('[SEARCH DEBUG] Search method available:', typeof sheet?.search);
   console.log('[SEARCH DEBUG] ResetSearch method available:', typeof sheet?.resetSearch);
   console.log('[SEARCH DEBUG] ShowSearch method available:', typeof sheet?.showSearch);
+  
+  // === IMMEDIATE FILTER SETUP DEBUG ===
+  console.log('[FILTER] Immediate setup - checking if oncreateworksheet fired');
+  console.log('[FILTER] Sheet element:', sheet.element);
+  console.log('[FILTER] Sheet element HTML:', sheet.element.outerHTML.substring(0, 200) + '...');
+  
+  // Try to set up filters immediately
+  setTimeout(() => {
+    console.log('[FILTER] Immediate setup - attempting direct filter setup');
+    setupTwoPaneFilters(sheet);
+  }, 1000);
   
   // FALLBACK: Enhance existing search or create custom one
   setTimeout(() => {
@@ -589,72 +613,248 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       }
     });
 
-    // Document hover preview (thumbnail) and click to open inline overlay
-    let previewEl = null;
-    let overlayEl = null;
+    // Right-side preview panel
+    let rightPreviewPanel = null;
+    let currentPreviewData = null;
 
-    let previewTimeout = null;
-    let isPreviewHovered = false;
-
-    const showPreview = (iconEl) => {
-      // Clear any existing timeout
-      if (previewTimeout) {
-        clearTimeout(previewTimeout);
-        previewTimeout = null;
-      }
-
-      // Preview remains optional; we use thumbnail url if present
+    const showRightPreview = (iconEl) => {
       const docUrl = iconEl.getAttribute('data-doc-url');
       const thumbUrl = iconEl.getAttribute('data-thumb-url');
-      if (!docUrl) return;
-      const rect = iconEl.getBoundingClientRect();
-      if (!previewEl) {
-        previewEl = document.createElement('div');
-        previewEl.style.cssText = 'position:fixed; z-index:2147483646; width:360px; height:280px; background:#fff; box-shadow:0 20px 40px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.05); border:none; border-radius:16px; overflow:hidden; backdrop-filter:blur(12px); transform:scale(1); transition:all 0.2s ease;';
-        
-        document.body.appendChild(previewEl);
-        
-        // Add hover events to the preview element itself
-        previewEl.addEventListener('mouseenter', () => {
-          isPreviewHovered = true;
-          if (previewTimeout) {
-            clearTimeout(previewTimeout);
-            previewTimeout = null;
-          }
-        });
-        
-        previewEl.addEventListener('mouseleave', () => {
-          isPreviewHovered = false;
-          // Add a small delay before hiding to allow moving between icon and preview
-          previewTimeout = setTimeout(() => {
-            if (!isPreviewHovered) {
-              previewEl.style.display = 'none';
-            }
-          }, 100);
-        });
+      const docName = iconEl.getAttribute('data-doc-name') || 'Document';
+      
+      console.log('[PREVIEW] Document data:', { docUrl, thumbUrl, docName });
+      
+      if (!docUrl) {
+        console.warn('[PREVIEW] No document URL found');
+        return;
       }
       
-      // Enhanced preview with thumbnail fallback
-      const previewContent = thumbUrl ? 
-        `<div style="display:flex; flex-direction:column; height:100%; background:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-           <div style="flex:1; background:url('${thumbUrl}') center/cover; display:flex; align-items:center; justify-content:center; background-color:#4CAF50; border-radius:12px 12px 0 0; position:relative; min-height:160px;">
-             <div style="text-align:center; color:#fff; font-size:16px; background:rgba(0,0,0,0.1); padding:20px; border-radius:12px; backdrop-filter:blur(4px); border:1px solid rgba(255,255,255,0.2);">
-               <div style="font-size:32px; margin-bottom:12px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));">📄</div>
-               <div style="font-weight:700; margin-bottom:6px; font-size:18px; text-shadow:0 1px 2px rgba(0,0,0,0.3);">Sample Invoice</div>
-               <div style="font-size:13px; opacity:0.9; font-weight:500;">Sample Document Preview</div>
-               <div style="font-size:11px; opacity:0.8; margin-top:4px;">Click to open full document</div>
-             </div>
-           </div>
-           <div style="padding:16px; background:#f8f9fa; border-top:1px solid #e0e0e0; text-align:center; border-radius:0 0 12px 12px;">
-             <button id="preview-open-doc-btn" data-doc-url="${docUrl}" style="background:linear-gradient(135deg, #1a73e8 0%, #1557b0 100%); color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease; box-shadow:0 2px 8px rgba(26,115,232,0.3); min-width:140px;">Open Document</button>
-           </div>
-         </div>` :
-        `<iframe src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1" style="width:100%;height:100%;border:0;" loading="eager"></iframe>`;
+      console.log('[PREVIEW] Document URL is:', docUrl);
+      console.log('[PREVIEW] Document name is:', docName);
+
+      // Create or update the right preview panel
+      if (!rightPreviewPanel) {
+        rightPreviewPanel = document.createElement('div');
+        rightPreviewPanel.id = 'stamp-right-preview-panel';
+        rightPreviewPanel.style.cssText = `
+          position: fixed;
+          top: 0;
+          right: 0;
+          width: 400px;
+          height: 100vh;
+          background: #ffffff;
+          border-left: 1px solid #e0e0e0;
+          box-shadow: -4px 0 12px rgba(0,0,0,0.1);
+          z-index: 1000;
+          display: flex;
+          flex-direction: column;
+          transform: translateX(100%);
+          transition: transform 0.3s ease;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        `;
+        
+        // Add close button
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '×';
+        closeBtn.style.cssText = `
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          width: 32px;
+          height: 32px;
+          border: none;
+          background: #f5f5f5;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 18px;
+          font-weight: bold;
+          color: #666;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1001;
+        `;
+        
+        closeBtn.addEventListener('click', () => {
+          hideRightPreview();
+        });
+        
+        rightPreviewPanel.appendChild(closeBtn);
+        document.body.appendChild(rightPreviewPanel);
+      }
+
+      // Update preview content
+      const previewContent = `
+        <div style="flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto;">
+          <div style="margin-bottom: 20px;">
+            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #1f2937;">Document Preview</h3>
+            <p style="margin: 0; font-size: 14px; color: #6b7280;">${docName}</p>
+          </div>
+          
+          <div style="flex: 1; display: flex; flex-direction: column; background: #f8f9fa; border-radius: 8px; overflow: hidden; margin-bottom: 20px; position: relative;">
+            ${docUrl ? `
+              <div style="flex: 1; min-height: 300px; position: relative; background: #f8f9fa; border-radius: 8px 8px 0 0; overflow: hidden;">
+                <!-- PDF Viewer Container -->
+                <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #fff;">
+                  <div id="pdf-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">
+                    <div style="font-size: 24px; margin-bottom: 12px;">📄</div>
+                    <div style="font-size: 16px; font-weight: 500;">Loading PDF...</div>
+                    <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Please wait</div>
+                  </div>
+                  <div id="pdf-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #dc2626;">
+                    <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
+                    <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
+                    <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View PDF" to open in new tab</div>
+                  </div>
+                  <iframe id="pdf-iframe" 
+                    src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
+                    style="width: 100%; height: 100%; border: none; display: none;">
+                  </iframe>
+                </div>
+                
+                <!-- Document Info Card -->
+                <div style="background: #f8f9fa; padding: 16px; border-top: 1px solid #e5e7eb;">
+                  <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #374151;">Document Details</div>
+                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;"><strong>File:</strong> ${docName}</div>
+                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;"><strong>Type:</strong> PDF Document</div>
+                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;"><strong>Status:</strong> <span id="pdf-status">Loading...</span></div>
+                  
+                  <!-- Quick Actions -->
+                  <div style="display: flex; gap: 8px; margin-top: 12px; justify-content: center;">
+                    <button id="preview-quick-view-btn" data-doc-url="${docUrl}" style="
+                      padding: 6px 12px; 
+                      background: #1a73e8; 
+                      color: white; 
+                      border: none; 
+                      border-radius: 4px; 
+                      cursor: pointer; 
+                      font-size: 11px; 
+                      font-weight: 500;
+                      transition: all 0.2s ease;
+                    ">
+                      View PDF
+                    </button>
+                    <button id="preview-quick-download-btn" data-doc-url="${docUrl}" data-doc-name="${docName}" style="
+                      padding: 6px 12px; 
+                      background: #34a853; 
+                      color: white; 
+                      border: none; 
+                      border-radius: 4px; 
+                      cursor: pointer; 
+                      font-size: 11px; 
+                      font-weight: 500;
+                      transition: all 0.2s ease;
+                    ">
+                      Download
+                    </button>
+                    <button id="preview-quick-copy-btn" data-doc-url="${docUrl}" style="
+                      padding: 6px 12px; 
+                      background: #ea4335; 
+                      color: white; 
+                      border: none; 
+                      border-radius: 4px; 
+                      cursor: pointer; 
+                      font-size: 11px; 
+                      font-weight: 500;
+                      transition: all 0.2s ease;
+                    ">
+                      Copy Link
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ` : `
+              <div style="flex: 1; display: flex; align-items: center; justify-content: center; background: #f5f5f5; min-height: 200px;">
+                <div style="text-align: center; color: #666;">
+                  <div style="font-size: 48px; margin-bottom: 12px;">📄</div>
+                  <div style="font-size: 16px; font-weight: 500;">Document Preview</div>
+                  <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">No document available</div>
+                </div>
+              </div>
+            `}
+          </div>
+          
+          <div style="display: flex; gap: 12px;">
+            <button id="preview-open-doc-btn" data-doc-url="${docUrl}" style="
+              flex: 1;
+              padding: 12px 20px;
+              background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+              color: white;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 600;
+              transition: all 0.2s ease;
+              box-shadow: 0 2px 8px rgba(26,115,232,0.3);
+            ">Open Document</button>
+            <button id="preview-download-btn" data-doc-url="${docUrl}" style="
+              padding: 12px 16px;
+              background: #f8f9fa;
+              color: #374151;
+              border: 1px solid #d1d5db;
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 500;
+              transition: all 0.2s ease;
+            ">Download</button>
+          </div>
+        </div>
+      `;
       
-      previewEl.innerHTML = previewContent;
+      rightPreviewPanel.innerHTML = previewContent;
       
-      // Add event listener for the open document button
-      const openDocBtn = previewEl.querySelector('#preview-open-doc-btn');
+      // Add PDF loading handlers
+      const pdfIframe = rightPreviewPanel.querySelector('#pdf-iframe');
+      const pdfLoading = rightPreviewPanel.querySelector('#pdf-loading');
+      const pdfError = rightPreviewPanel.querySelector('#pdf-error');
+      const pdfStatus = rightPreviewPanel.querySelector('#pdf-status');
+      
+      if (pdfIframe) {
+        const handlePdfLoad = () => {
+          console.log('[PREVIEW] PDF loaded successfully');
+          if (pdfLoading) pdfLoading.style.display = 'none';
+          if (pdfError) pdfError.style.display = 'none';
+          if (pdfIframe) pdfIframe.style.display = 'block';
+          if (pdfStatus) pdfStatus.textContent = 'Ready to View';
+        };
+        
+        const handlePdfError = () => {
+          console.log('[PREVIEW] PDF failed to load - likely due to CSP restrictions');
+          if (pdfLoading) pdfLoading.style.display = 'none';
+          if (pdfError) pdfError.style.display = 'block';
+          if (pdfIframe) pdfIframe.style.display = 'none';
+          if (pdfStatus) pdfStatus.textContent = 'Cannot Embed - Click "View PDF"';
+        };
+        
+        // Set up event listeners
+        pdfIframe.addEventListener('load', handlePdfLoad);
+        pdfIframe.addEventListener('error', handlePdfError);
+        
+        // Timeout fallback
+        setTimeout(() => {
+          if (pdfLoading && pdfLoading.style.display !== 'none') {
+            console.log('[PREVIEW] PDF loading timeout - likely CSP issue');
+            handlePdfError();
+          }
+        }, 5000); // 5 second timeout for CSP issues
+        
+        // Check for CSP errors in console
+        const originalError = console.error;
+        console.error = function(...args) {
+          if (args[0] && args[0].includes && args[0].includes('Refused to frame')) {
+            console.log('[PREVIEW] Detected CSP frame error');
+            setTimeout(() => handlePdfError(), 1000);
+          }
+          originalError.apply(console, args);
+        };
+      }
+      
+      // Add event listeners for main buttons
+      const openDocBtn = rightPreviewPanel.querySelector('#preview-open-doc-btn');
+      const downloadBtn = rightPreviewPanel.querySelector('#preview-download-btn');
+      
       if (openDocBtn) {
         openDocBtn.addEventListener('click', (e) => {
           e.preventDefault();
@@ -668,54 +868,190 @@ export async function buildSpreadsheet(container, data, opts = {}) {
         // Add hover effects
         openDocBtn.addEventListener('mouseenter', () => {
           openDocBtn.style.background = 'linear-gradient(135deg, #1557b0 0%, #0d47a1 100%)';
-          openDocBtn.style.transform = 'translateY(-2px) scale(1.02)';
+          openDocBtn.style.transform = 'translateY(-1px)';
           openDocBtn.style.boxShadow = '0 4px 12px rgba(26,115,232,0.4)';
         });
         
         openDocBtn.addEventListener('mouseleave', () => {
           openDocBtn.style.background = 'linear-gradient(135deg, #1a73e8 0%, #1557b0 100%)';
-          openDocBtn.style.transform = 'translateY(0) scale(1)';
+          openDocBtn.style.transform = 'translateY(0)';
           openDocBtn.style.boxShadow = '0 2px 8px rgba(26,115,232,0.3)';
         });
       }
       
-      // Add a small invisible bridge to make it easier to move mouse between icon and preview
-      const bridge = document.createElement('div');
-      bridge.style.cssText = 'position:absolute; z-index:2147483645; width:20px; height:8px; background:transparent; top:-8px; left:10px;';
-      previewEl.appendChild(bridge);
+      if (downloadBtn) {
+        downloadBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const docUrl = downloadBtn.getAttribute('data-doc-url');
+          if (docUrl) {
+            const link = document.createElement('a');
+            link.href = docUrl;
+            link.download = docName;
+            link.click();
+          }
+        });
+        
+        // Add hover effects
+        downloadBtn.addEventListener('mouseenter', () => {
+          downloadBtn.style.background = '#e5e7eb';
+          downloadBtn.style.borderColor = '#9ca3af';
+        });
+        
+        downloadBtn.addEventListener('mouseleave', () => {
+          downloadBtn.style.background = '#f8f9fa';
+          downloadBtn.style.borderColor = '#d1d5db';
+        });
+      }
       
-      // Add hover events to the bridge as well
-      bridge.addEventListener('mouseenter', () => {
-        isPreviewHovered = true;
-        if (previewTimeout) {
-          clearTimeout(previewTimeout);
-          previewTimeout = null;
+      // Add event listeners for quick action buttons
+      const quickViewBtn = rightPreviewPanel.querySelector('#preview-quick-view-btn');
+      const quickDownloadBtn = rightPreviewPanel.querySelector('#preview-quick-download-btn');
+      const quickCopyBtn = rightPreviewPanel.querySelector('#preview-quick-copy-btn');
+      
+      if (quickViewBtn) {
+        quickViewBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const docUrl = quickViewBtn.getAttribute('data-doc-url');
+          if (docUrl) {
+            window.open(docUrl, '_blank');
+          }
+        });
+        
+        // Add hover effects
+        quickViewBtn.addEventListener('mouseenter', () => {
+          quickViewBtn.style.background = 'rgba(255,255,255,0.3)';
+        });
+        
+        quickViewBtn.addEventListener('mouseleave', () => {
+          quickViewBtn.style.background = 'rgba(255,255,255,0.2)';
+        });
+      }
+      
+      if (quickDownloadBtn) {
+        quickDownloadBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const docUrl = quickDownloadBtn.getAttribute('data-doc-url');
+          const docName = quickDownloadBtn.getAttribute('data-doc-name');
+          if (docUrl) {
+            const link = document.createElement('a');
+            link.href = docUrl;
+            link.download = docName || 'document.pdf';
+            link.click();
+          }
+        });
+        
+        // Add hover effects
+        quickDownloadBtn.addEventListener('mouseenter', () => {
+          quickDownloadBtn.style.background = 'rgba(255,255,255,0.3)';
+        });
+        
+        quickDownloadBtn.addEventListener('mouseleave', () => {
+          quickDownloadBtn.style.background = 'rgba(255,255,255,0.2)';
+        });
+      }
+      
+      if (quickCopyBtn) {
+        quickCopyBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const docUrl = quickCopyBtn.getAttribute('data-doc-url');
+          if (docUrl) {
+            window.copyDocumentLink(docUrl);
+          }
+        });
+        
+        // Add hover effects
+        quickCopyBtn.addEventListener('mouseenter', () => {
+          quickCopyBtn.style.background = 'rgba(255,255,255,0.3)';
+        });
+        
+        quickCopyBtn.addEventListener('mouseleave', () => {
+          quickCopyBtn.style.background = 'rgba(255,255,255,0.2)';
+        });
+      }
+      
+      // Add global download function
+      window.downloadDocument = function(url, filename) {
+        console.log('[PREVIEW] Downloading document:', { url, filename });
+        try {
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = filename || 'document.pdf';
+          link.target = '_blank';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } catch (error) {
+          console.error('[PREVIEW] Download failed:', error);
+          // Fallback: open in new tab
+          window.open(url, '_blank');
         }
-      });
+      };
       
-      // Position the preview closer to the icon with a small gap
-      const rectLeft = Math.max(8, rect.left - 20);
-      previewEl.style.top = `${Math.round(rect.bottom + 4)}px`;
-      previewEl.style.left = `${Math.round(rectLeft)}px`;
-      previewEl.style.display = 'block';
+      // Add global copy link function
+      window.copyDocumentLink = function(url) {
+        console.log('[PREVIEW] Copying document link:', url);
+        try {
+          navigator.clipboard.writeText(url).then(() => {
+            // Show a temporary success message
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background: #10b981;
+              color: white;
+              padding: 12px 20px;
+              border-radius: 8px;
+              font-size: 14px;
+              font-weight: 500;
+              z-index: 10000;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            `;
+            notification.textContent = 'Link copied to clipboard!';
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+              document.body.removeChild(notification);
+            }, 3000);
+          }).catch(() => {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = url;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            alert('Link copied to clipboard!');
+          });
+        } catch (error) {
+          console.error('[PREVIEW] Copy failed:', error);
+          alert('Failed to copy link. Please copy manually: ' + url);
+        }
+      };
       
-      // Add entrance animation
-      previewEl.style.opacity = '0';
-      previewEl.style.transform = 'scale(0.9) translateY(10px)';
-      requestAnimationFrame(() => {
-        previewEl.style.transition = 'all 0.2s ease';
-        previewEl.style.opacity = '1';
-        previewEl.style.transform = 'scale(1) translateY(0)';
-      });
+      // Show the panel with animation
+      console.log('[PREVIEW] Showing right preview panel');
+      rightPreviewPanel.style.display = 'flex';
+      rightPreviewPanel.style.transform = 'translateX(0)';
+      currentPreviewData = { docUrl, thumbUrl, docName };
+      console.log('[PREVIEW] Panel should now be visible');
     };
 
-    const hidePreview = () => {
-      // Add a small delay to allow moving between icon and preview
-      previewTimeout = setTimeout(() => {
-        if (!isPreviewHovered && previewEl) {
-          previewEl.style.display = 'none';
-        }
-      }, 150);
+    const hideRightPreview = () => {
+      if (rightPreviewPanel) {
+        rightPreviewPanel.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (rightPreviewPanel) {
+            rightPreviewPanel.style.display = 'none';
+          }
+        }, 300);
+        currentPreviewData = null;
+      }
     };
 
     const ensureOverlay = () => {
@@ -817,55 +1153,22 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       el.style.display = 'flex';
     };
 
-    cleanContainer.addEventListener('mouseover', (e) => {
-      const icon = e.target.closest('.doc-preview-icon');
-      if (icon && icon.getAttribute('data-has-doc') === '1') showPreview(icon);
-    });
-
-    cleanContainer.addEventListener('mouseout', (e) => {
-      const icon = e.target.closest('.doc-preview-icon');
-      if (icon) hidePreview();
-    });
-
     cleanContainer.addEventListener('click', async (e) => {
+      console.log('[DOC] Click detected on:', e.target);
       const icon = e.target.closest('.doc-preview-icon');
+      console.log('[DOC] Found doc icon:', icon);
+      
       if (!icon) return;
+      
       const hasDoc = icon.getAttribute('data-has-doc') === '1';
+      console.log('[DOC] Has document:', hasDoc);
+      
       if (!hasDoc) return;
 
-      const threadId = icon.getAttribute('data-thread-id');
-      const documentName = icon.getAttribute('data-doc-name');
-      const cacheKey = `${threadId}|${documentName}`;
-
-      // Try cache first
-      let objectUrl = pdfCache.get(cacheKey);
-      if (objectUrl) {
-        console.log('[DOC] Cache hit for', cacheKey);
-        openOverlayUrl(objectUrl);
-        return;
-      }
-
-      // No cache: fetch via authenticated client hook
-      try {
-        console.log('[DOC] Cache miss. Fetching PDF via hook for', { threadId, documentName });
-        if (!opts.fetchPdf) {
-          console.warn('[DOC] No fetchPdf hook provided. Cannot stream PDF.');
-          return;
-        }
-        const blob = await opts.fetchPdf({ threadId, documentName });
-        objectUrl = URL.createObjectURL(blob);
-        // Small LRU: cap at 25 items
-        if (pdfCache.size > 25) {
-          const firstKey = pdfCache.keys().next().value;
-          const oldUrl = pdfCache.get(firstKey);
-          if (oldUrl) URL.revokeObjectURL(oldUrl);
-          pdfCache.delete(firstKey);
-        }
-        pdfCache.set(cacheKey, objectUrl);
-        openOverlayUrl(objectUrl);
-      } catch (err) {
-        console.error('[DOC] Failed to fetch PDF:', err);
-      }
+      console.log('[DOC] Document icon clicked, showing right preview panel');
+      
+      // Show the right-side preview panel
+      showRightPreview(icon);
     });
   }, 500);
 
@@ -876,8 +1179,327 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     searchControls,
     cleanup: () => {
       console.log('[CLEANUP] Spreadsheet cleanup called');
+      // Hide the right preview panel when cleaning up
+      if (rightPreviewPanel) {
+        hideRightPreview();
+      }
     }
   };
+  
+  // === FALLBACK FILTER SETUP ===
+  // Also try to set up filters directly after spreadsheet creation
+  console.log('[FILTER] Setting up filters as fallback after spreadsheet creation');
+  setTimeout(() => {
+    if (spreadsheet && spreadsheet.sheets && spreadsheet.sheets[0]) {
+      console.log('[FILTER] Fallback: Setting up filters on first sheet');
+      setupTwoPaneFilters(spreadsheet.sheets[0]);
+    } else if (Array.isArray(spreadsheet) && spreadsheet[0]) {
+      console.log('[FILTER] Fallback: Setting up filters on array spreadsheet');
+      setupTwoPaneFilters(spreadsheet[0]);
+    } else {
+      console.log('[FILTER] Fallback: No valid spreadsheet found for filter setup');
+    }
+  }, 2000);
+  
+  // === CUSTOMIZE DEFAULT DROPDOWN ===
+  // Transform jspreadsheet's default filter dropdown into two-pane design
+  setTimeout(() => {
+    console.log('[FILTER] Setting up default dropdown customization');
+    
+    // Function to customize existing jspreadsheet filter dropdowns
+    function customizeFilterDropdowns() {
+      const existingDropdowns = document.querySelectorAll('.jdropdown-content, .jdropdown-picker, [class*="dropdown"]');
+      console.log('[FILTER] Found dropdowns to customize:', existingDropdowns.length);
+      
+      existingDropdowns.forEach(dropdown => {
+        // Check if this is a filter-related dropdown
+        const isFilterDropdown = dropdown.closest('.jss_filter, .jexcel_filter') || 
+                                dropdown.querySelector('.jdropdown-option') ||
+                                dropdown.textContent.includes('Search') ||
+                                dropdown.textContent.includes('Contains') ||
+                                dropdown.textContent.includes('Acme Corporation') ||
+                                dropdown.textContent.includes('Global Enterprises');
+        
+        if (isFilterDropdown && !dropdown.classList.contains('jss_customized')) {
+          console.log('[FILTER] Customizing filter dropdown:', dropdown);
+          console.log('[FILTER] Dropdown content:', dropdown.innerHTML);
+          
+          // Find the associated input field
+          const input = findAssociatedInput(dropdown);
+          if (input) {
+            console.log('[FILTER] Found associated input:', input);
+            customizeDropdownToTwoPane(dropdown, input);
+          } else {
+            console.log('[FILTER] No associated input found, customizing dropdown directly');
+            customizeDropdownToTwoPane(dropdown);
+          }
+          
+          dropdown.classList.add('jss_customized');
+        }
+      });
+    }
+    
+    // Function to find the input field associated with a dropdown
+    function findAssociatedInput(dropdown) {
+      // Try to find input in the same td
+      const parentTd = dropdown.closest('td');
+      if (parentTd) {
+        const input = parentTd.querySelector('input[type="text"]');
+        if (input) return input;
+      }
+      
+      // Try to find input in the filter row
+      const filterRow = dropdown.closest('.jss_filter, .jexcel_filter');
+      if (filterRow) {
+        const inputs = filterRow.querySelectorAll('input[type="text"]');
+        if (inputs.length > 0) {
+          // Find the input that's closest to this dropdown
+          let closestInput = inputs[0];
+          let minDistance = Infinity;
+          
+          inputs.forEach(input => {
+            const inputRect = input.getBoundingClientRect();
+            const dropdownRect = dropdown.getBoundingClientRect();
+            const distance = Math.abs(inputRect.left - dropdownRect.left);
+            if (distance < minDistance) {
+              minDistance = distance;
+              closestInput = input;
+            }
+          });
+          
+          return closestInput;
+        }
+      }
+      
+      return null;
+    }
+    
+    // Also try to find dropdowns in the worksheet specifically
+    function customizeWorksheetDropdowns() {
+      const worksheet = spreadsheet.sheets ? spreadsheet.sheets[0] : spreadsheet;
+      if (worksheet && worksheet.element) {
+        const worksheetDropdowns = worksheet.element.querySelectorAll('.jdropdown-content, .jdropdown-picker, [class*="dropdown"]');
+        console.log('[FILTER] Found worksheet dropdowns:', worksheetDropdowns.length);
+        
+        worksheetDropdowns.forEach(dropdown => {
+          if (!dropdown.classList.contains('jss_customized')) {
+            console.log('[FILTER] Customizing worksheet dropdown:', dropdown);
+            customizeDropdownToTwoPane(dropdown);
+            dropdown.classList.add('jss_customized');
+          }
+        });
+      }
+    }
+    
+    // Function to transform a dropdown into two-pane design
+    function customizeDropdownToTwoPane(dropdown, input = null) {
+      // Store original content
+      const originalContent = dropdown.innerHTML;
+      
+      // If we have an input, position the dropdown relative to it
+      if (input) {
+        const inputRect = input.getBoundingClientRect();
+        const inputParent = input.closest('td');
+        
+        if (inputParent) {
+          inputParent.style.position = 'relative';
+          console.log('[FILTER] Set input parent td position to relative:', inputParent);
+          
+          // Position dropdown relative to the input's parent td
+          dropdown.style.position = 'absolute';
+          dropdown.style.top = '100%';
+          dropdown.style.left = '0';
+          dropdown.style.zIndex = '1002';
+          dropdown.style.transform = 'none';
+          dropdown.style.margin = '0';
+          
+          // Move the dropdown to be a child of the input's parent td
+          inputParent.appendChild(dropdown);
+          console.log('[FILTER] Moved dropdown to input parent td');
+        }
+      } else {
+        // Fallback positioning
+        dropdown.style.position = 'absolute';
+        dropdown.style.top = '100%';
+        dropdown.style.left = '0';
+        dropdown.style.zIndex = '1002';
+        dropdown.style.transform = 'none';
+        dropdown.style.margin = '0';
+        
+        // Find the parent td to ensure relative positioning
+        const parentTd = dropdown.closest('td');
+        if (parentTd) {
+          parentTd.style.position = 'relative';
+          console.log('[FILTER] Set parent td position to relative:', parentTd);
+        }
+      }
+      
+      // Create two-pane structure
+      dropdown.innerHTML = `
+        <div class="jss_filter_panel" style="display: flex; flex-direction: row; min-width: 400px; max-width: 500px;">
+          <!-- Left Panel - Value Selection -->
+          <div class="jss_filter_values" style="flex: 1; padding: 16px; border-right: 1px solid #e5e7eb; min-width: 200px;">
+            <input type="text" class="jss_filter_search" placeholder="Search" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; background: #ffffff; color: #1f2937; margin-bottom: 12px;">
+            <div class="jss_filter_options" style="max-height: 200px; overflow-y: auto; margin-bottom: 0;">
+              <div class="jss_filter_option" style="display: flex; align-items: center; padding: 8px 0; font-size: 14px; color: #1f2937; cursor: pointer; border-bottom: 1px solid #f3f4f6;">
+                <input type="checkbox" style="margin-right: 12px; width: 16px; height: 16px; accent-color: #3b82f6; cursor: pointer;" checked>
+                <span>(Select all)</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Right Panel - Condition Selection -->
+          <div class="jss_filter_conditions" style="flex: 1; padding: 16px; min-width: 200px;">
+            <select class="jss_filter_condition" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; background: #ffffff; color: #1f2937; margin-bottom: 12px; cursor: pointer;">
+              <option value="contains">Contains</option>
+              <option value="does_not_contain">Does not contain</option>
+              <option value="begins_with">Begins with</option>
+              <option value="ends_with">Ends with</option>
+              <option value="equal">Equal</option>
+              <option value="not_equal">Not equal</option>
+              <option value="greater_than">Greater than</option>
+              <option value="lower_than">Lower than</option>
+            </select>
+            
+            <div class="jss_filter_actions" style="display: flex; gap: 8px; justify-content: flex-end; padding: 12px 0; border-top: 1px solid #e5e7eb; background: #f8fafc; border-radius: 0 0 6px 6px; margin-top: 12px;">
+              <button class="jss_filter_button primary" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500;">Ok</button>
+              <button class="jss_filter_button" style="padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500;">Cancel</button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Add event listeners for the customized dropdown
+      setupCustomizedDropdownEvents(dropdown);
+    }
+    
+    // Function to set up events for customized dropdown
+    function setupCustomizedDropdownEvents(dropdown) {
+      const searchInput = dropdown.querySelector('.jss_filter_search');
+      const valueOptions = dropdown.querySelector('.jss_filter_options');
+      const conditionSelect = dropdown.querySelector('.jss_filter_condition');
+      const okButton = dropdown.querySelector('.jss_filter_button.primary');
+      const cancelButton = dropdown.querySelector('.jss_filter_button:not(.primary)');
+      
+      // Search functionality
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          const searchTerm = e.target.value.toLowerCase();
+          const options = valueOptions.querySelectorAll('.jss_filter_option');
+          options.forEach(option => {
+            const text = option.textContent.toLowerCase();
+            option.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+          });
+        });
+      }
+      
+      // Cancel button
+      if (cancelButton) {
+        cancelButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropdown.style.display = 'none';
+        });
+      }
+      
+      // Ok button
+      if (okButton) {
+        okButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          // Apply filter logic here
+          console.log('[FILTER] Applying filter with selected values and condition');
+          dropdown.style.display = 'none';
+        });
+      }
+    }
+    
+    // Initial customization - try multiple times
+    customizeFilterDropdowns();
+    customizeWorksheetDropdowns();
+    
+    // Try again after a delay
+    setTimeout(() => {
+      customizeFilterDropdowns();
+      customizeWorksheetDropdowns();
+    }, 1000);
+    
+    // Try again after another delay
+    setTimeout(() => {
+      customizeFilterDropdowns();
+      customizeWorksheetDropdowns();
+    }, 3000);
+    
+    // Set up mutation observer to catch dynamically created dropdowns
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === 1) { // Element node
+              if (node.matches && (node.matches('.jdropdown-content, .jdropdown-picker, [class*="dropdown"]') ||
+                  node.querySelector('.jdropdown-content, .jdropdown-picker, [class*="dropdown"]'))) {
+                console.log('[FILTER] New dropdown detected, customizing:', node);
+                setTimeout(() => {
+                  customizeFilterDropdowns();
+                  customizeWorksheetDropdowns();
+                }, 100);
+              }
+            }
+          });
+        }
+      });
+    });
+    
+    // Start observing
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
+    // Also add a click listener to catch when dropdowns are opened
+    document.addEventListener('click', (e) => {
+      if (e.target.matches('input[type="text"]') && 
+          e.target.closest('.jss_filter, .jexcel_filter')) {
+        console.log('[FILTER] Filter input clicked, checking for dropdowns');
+        setTimeout(() => {
+          customizeFilterDropdowns();
+          customizeWorksheetDropdowns();
+        }, 200);
+      }
+    });
+    
+    // Add a more aggressive approach - check every 500ms for new dropdowns
+    setInterval(() => {
+      const newDropdowns = document.querySelectorAll('.jdropdown-content:not(.jss_customized), .jdropdown-picker:not(.jss_customized)');
+      if (newDropdowns.length > 0) {
+        console.log('[FILTER] Found new uncustomized dropdowns:', newDropdowns.length);
+        customizeFilterDropdowns();
+        customizeWorksheetDropdowns();
+      }
+    }, 500);
+    
+    // Override jspreadsheet's filter functionality to intercept dropdown creation
+    const worksheet = spreadsheet.sheets ? spreadsheet.sheets[0] : spreadsheet;
+    if (worksheet && worksheet.openFilter) {
+      const originalOpenFilter = worksheet.openFilter;
+      worksheet.openFilter = function(columnNumber, getAsSets) {
+        console.log('[FILTER] Intercepted openFilter call for column:', columnNumber);
+        
+        // Call the original function
+        const result = originalOpenFilter.call(this, columnNumber, getAsSets);
+        
+        // Wait a bit for the dropdown to be created, then customize it
+        setTimeout(() => {
+          console.log('[FILTER] Customizing dropdown after openFilter');
+          customizeFilterDropdowns();
+          customizeWorksheetDropdowns();
+        }, 100);
+        
+        return result;
+      };
+      console.log('[FILTER] Overrode openFilter method');
+    }
+  }, 3000);
 }
 
 // Create a Shadow DOM container for complete CSS isolation
@@ -1420,7 +2042,7 @@ function generateMockData() {
         message_id: 'msg_001',
         document_name: 'invoice_001.pdf',
         content_hash: 'hash_001',
-        url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+        url: 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf',
         thumbnailUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjNGNhZjUwIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlNhbXBsZSBJbnZvaWNlPC90ZXh0Pgo8L3N2Zz4K',
         details: {
           invoiceNumber: 'INV-2024-001',
@@ -1435,7 +2057,7 @@ function generateMockData() {
           paymentTerms: 'Net 30',
           approvalStatus: 'PENDING',
           notes: 'Annual software license renewal',
-          documentUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+          documentUrl: 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf',
           thumbnailUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjNGNhZjUwIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlNhbXBsZSBJbnZvaWNlPC90ZXh0Pgo8L3N2Zz4K'
         }
       },
@@ -1825,6 +2447,634 @@ function generateMockData() {
 
   console.log('[MOCK DATA] Generated', mockInvoices.length, 'mock invoices');
   return mockInvoices;
+}
+
+// === TWO-PANE FILTER FUNCTIONALITY ===
+function setupTwoPaneFilters(worksheet) {
+  console.log('[FILTER] Setting up two-pane filters for worksheet');
+  console.log('[FILTER] Worksheet element:', worksheet.element);
+  
+  // Wait for jspreadsheet to create the filter row
+  setTimeout(() => {
+    console.log('[FILTER] Looking for filter row...');
+    
+    // Look for the filter row specifically
+    const filterRow = worksheet.element.querySelector('.jss_worksheet > thead > tr.jss_filter') ||
+                     worksheet.element.querySelector('tr.jss_filter') || 
+                     worksheet.element.querySelector('.jss_filter');
+    console.log('[FILTER] Filter row found:', !!filterRow);
+    
+    if (filterRow) {
+      console.log('[FILTER] Setting up custom filter panels on filter row');
+      setupFiltersOnRow(filterRow, worksheet);
+    } else {
+      console.log('[FILTER] No filter row found, looking for filter inputs in thead');
+      // Only look for inputs in thead (header area) to avoid data cell inputs
+      const filterInputs = worksheet.element.querySelectorAll('thead input[type="text"]');
+      console.log('[FILTER] Found filter inputs in thead:', filterInputs.length);
+      
+      filterInputs.forEach((input, index) => {
+        if (input && input.parentElement) {
+          // Check if this input is in a column that has filter enabled
+          const columnIndex = Array.from(input.closest('tr').children).indexOf(input.closest('td'));
+          const column = worksheet.options.columns[columnIndex];
+          
+          if (column && column.filter === true) {
+            console.log(`[FILTER] Setting up filter panel for input ${index} (column: ${column.title})`);
+            setupFilterPanel(input, index, worksheet);
+          } else {
+            console.log(`[FILTER] Skipping input ${index} - column does not have filter enabled`);
+          }
+        }
+      });
+    }
+    
+  }, 1500);
+}
+
+function setupFiltersOnRow(filterRow, worksheet) {
+  console.log('[FILTER] Setting up filters on row:', filterRow);
+  
+  // Get all filter input fields - try multiple selectors
+  const filterInputs = filterRow.querySelectorAll('td > input, input[type="text"], input');
+  console.log('[FILTER] Found filter inputs:', filterInputs.length);
+  
+  // Also try to find inputs in all td elements
+  const allTds = filterRow.querySelectorAll('td');
+  console.log('[FILTER] Found td elements:', allTds.length);
+  
+  allTds.forEach((td, index) => {
+    console.log(`[FILTER] TD ${index}:`, td);
+    console.log(`[FILTER] TD ${index} innerHTML:`, td.innerHTML);
+    
+    // Look for any input in this td
+    const input = td.querySelector('input');
+    if (input) {
+      console.log(`[FILTER] Found input in TD ${index}:`, input);
+      setupFilterPanel(input, index, worksheet);
+    } else {
+      // If no input found, maybe we need to create one or the structure is different
+      console.log(`[FILTER] No input found in TD ${index}, checking if it's a filter column`);
+      
+      // Check if this column has filter enabled
+      const column = worksheet.options.columns[index];
+      if (column && column.filter === true) {
+        console.log(`[FILTER] Column ${index} (${column.title}) has filter enabled, creating input`);
+        
+        // Create an input if none exists
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = `Filter ${column.title}`;
+        input.style.cssText = `
+          width: 100%;
+          height: 100%;
+          border: 1px solid #d1d5db;
+          border-radius: 4px;
+          padding: 4px 24px 4px 8px;
+          font-size: 12px;
+          background: #ffffff;
+          color: #1f2937;
+          position: relative;
+        `;
+        
+        td.appendChild(input);
+        setupFilterPanel(input, index, worksheet);
+      }
+    }
+  });
+  
+  filterInputs.forEach((input, index) => {
+    console.log(`[FILTER] Setting up filter panel for input ${index}:`, input);
+    if (input && input.parentElement) {
+      setupFilterPanel(input, index, worksheet);
+    }
+  });
+}
+
+function setupFilterPanel(input, columnIndex, worksheet) {
+  console.log(`[FILTER] Setting up filter panel for column ${columnIndex}`);
+  
+  // Create the filter panel container
+  const filterPanel = document.createElement('div');
+  filterPanel.className = 'jss_custom_filter_panel';
+  filterPanel.style.cssText = `
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 0;
+    min-width: 400px;
+    max-width: 500px;
+    z-index: 1002;
+    display: none;
+    flex-direction: row;
+  `;
+  
+  // Left Panel - Value Selection
+  const leftPanel = document.createElement('div');
+  leftPanel.className = 'jss_filter_values';
+  leftPanel.style.cssText = `
+    flex: 1;
+    padding: 16px;
+    border-right: 1px solid #e5e7eb;
+    min-width: 200px;
+  `;
+  
+  // Search input
+  const searchInput = document.createElement('input');
+  searchInput.type = 'text';
+  searchInput.placeholder = 'Search';
+  searchInput.className = 'jss_filter_search';
+  searchInput.style.cssText = `
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+    background: #ffffff;
+    color: #1f2937;
+    margin-bottom: 12px;
+  `;
+  
+  // Value list container
+  const valueList = document.createElement('div');
+  valueList.className = 'jss_filter_options';
+  valueList.style.cssText = `
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 0;
+  `;
+  
+  // Right Panel - Condition Selection
+  const rightPanel = document.createElement('div');
+  rightPanel.className = 'jss_filter_conditions';
+  rightPanel.style.cssText = `
+    flex: 1;
+    padding: 16px;
+    min-width: 200px;
+  `;
+  
+  // Condition dropdown
+  const conditionSelect = document.createElement('select');
+  conditionSelect.className = 'jss_filter_condition';
+  conditionSelect.style.cssText = `
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+    background: #ffffff;
+    color: #1f2937;
+    margin-bottom: 12px;
+    cursor: pointer;
+  `;
+  
+  // Add condition options
+  const conditions = [
+    'Contains',
+    'Does not contain', 
+    'Begins with',
+    'Ends with',
+    'Equal',
+    'Not equal',
+    'Greater than',
+    'Lower than'
+  ];
+  
+  conditions.forEach(condition => {
+    const option = document.createElement('option');
+    option.value = condition.toLowerCase().replace(/\s+/g, '_');
+    option.textContent = condition;
+    conditionSelect.appendChild(option);
+  });
+  
+  // Action buttons
+  const buttonContainer = document.createElement('div');
+  buttonContainer.style.cssText = `
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  `;
+  
+  const okButton = document.createElement('button');
+  okButton.textContent = 'Ok';
+  okButton.style.cssText = `
+    flex: 1;
+    padding: 8px 16px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  `;
+  
+  const cancelButton = document.createElement('button');
+  cancelButton.textContent = 'Cancel';
+  cancelButton.style.cssText = `
+    flex: 1;
+    padding: 8px 16px;
+    background: #6b7280;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  `;
+  
+  // Assemble the panels
+  leftPanel.appendChild(searchInput);
+  leftPanel.appendChild(valueList);
+  rightPanel.appendChild(conditionSelect);
+  rightPanel.appendChild(buttonContainer);
+  buttonContainer.appendChild(okButton);
+  buttonContainer.appendChild(cancelButton);
+  
+  filterPanel.appendChild(leftPanel);
+  filterPanel.appendChild(rightPanel);
+  
+  // Position the panel relative to the input
+  input.parentElement.style.position = 'relative';
+  input.parentElement.appendChild(filterPanel);
+  
+  // Get unique values for this column
+  const uniqueValues = getUniqueValuesForColumn(columnIndex, worksheet);
+  populateValueList(valueList, uniqueValues);
+  
+  // Event handlers
+  input.addEventListener('click', (e) => {
+    console.log('[FILTER] Input clicked, toggling panel');
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFilterPanel(filterPanel);
+  });
+  
+  // Also add click handler to the filter icon area
+  input.addEventListener('focus', (e) => {
+    console.log('[FILTER] Input focused, showing panel');
+    e.preventDefault();
+    e.stopPropagation();
+    filterPanel.style.display = 'flex';
+  });
+  
+  searchInput.addEventListener('input', (e) => {
+    filterValueList(valueList, e.target.value);
+  });
+  
+  okButton.addEventListener('click', () => {
+    applyFilter(columnIndex, valueList, conditionSelect.value, worksheet);
+    filterPanel.style.display = 'none';
+  });
+  
+  cancelButton.addEventListener('click', () => {
+    filterPanel.style.display = 'none';
+  });
+  
+  // Close panel when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!filterPanel.contains(e.target) && !input.contains(e.target)) {
+      filterPanel.style.display = 'none';
+    }
+  });
+}
+
+function toggleFilterPanel(panel) {
+  const isVisible = panel.style.display === 'flex';
+  console.log('[FILTER] Toggling panel, currently visible:', isVisible);
+  panel.style.display = isVisible ? 'none' : 'flex';
+  console.log('[FILTER] Panel display set to:', panel.style.display);
+}
+
+function getUniqueValuesForColumn(columnIndex, worksheet) {
+  const values = new Set();
+  const dataRows = worksheet.element.querySelectorAll('.jss_worksheet > tbody > tr');
+  
+  dataRows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    if (cells[columnIndex]) {
+      const value = cells[columnIndex].textContent.trim();
+      if (value) {
+        values.add(value);
+      }
+    }
+  });
+  
+  return Array.from(values).sort();
+}
+
+function populateValueList(container, values) {
+  container.innerHTML = '';
+  
+  // Add "Select all" option
+  const selectAllItem = document.createElement('div');
+  selectAllItem.className = 'jss_filter_option';
+  selectAllItem.style.cssText = `
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    font-size: 14px;
+    color: #1f2937;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f4f6;
+  `;
+  
+  const selectAllCheckbox = document.createElement('input');
+  selectAllCheckbox.type = 'checkbox';
+  selectAllCheckbox.checked = true;
+  selectAllCheckbox.style.cssText = `
+    margin-right: 12px;
+    width: 16px;
+    height: 16px;
+    accent-color: #3b82f6;
+    cursor: pointer;
+  `;
+  
+  const selectAllLabel = document.createElement('label');
+  selectAllLabel.textContent = '(Select all)';
+  selectAllLabel.style.cssText = 'cursor: pointer; flex: 1;';
+  
+  selectAllItem.appendChild(selectAllCheckbox);
+  selectAllItem.appendChild(selectAllLabel);
+  container.appendChild(selectAllItem);
+  
+  // Add individual value options
+  values.forEach(value => {
+    const item = document.createElement('div');
+    item.className = 'jss_filter_option';
+    item.style.cssText = `
+      display: flex;
+      align-items: center;
+      padding: 8px 0;
+      font-size: 14px;
+      color: #1f2937;
+      cursor: pointer;
+      border-bottom: 1px solid #f3f4f6;
+    `;
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = true;
+    checkbox.value = value;
+    checkbox.style.cssText = `
+      margin-right: 12px;
+      width: 16px;
+      height: 16px;
+      accent-color: #3b82f6;
+      cursor: pointer;
+    `;
+    
+    const label = document.createElement('label');
+    label.textContent = value;
+    label.style.cssText = 'cursor: pointer; flex: 1;';
+    
+    item.appendChild(checkbox);
+    item.appendChild(label);
+    container.appendChild(item);
+  });
+  
+  // Handle select all functionality
+  selectAllCheckbox.addEventListener('change', (e) => {
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]:not([value=""])');
+    checkboxes.forEach(cb => {
+      cb.checked = e.target.checked;
+    });
+  });
+}
+
+function filterValueList(container, searchTerm) {
+  const options = container.querySelectorAll('.jss_filter_option');
+  const term = searchTerm.toLowerCase();
+  
+  options.forEach(option => {
+    const label = option.querySelector('label');
+    const text = label ? label.textContent.toLowerCase() : '';
+    const shouldShow = text.includes(term);
+    option.style.display = shouldShow ? 'flex' : 'none';
+  });
+}
+
+function applyFilter(columnIndex, valueList, condition, worksheet) {
+  console.log(`[FILTER] Applying filter to column ${columnIndex} with condition: ${condition}`);
+  
+  const selectedValues = Array.from(valueList.querySelectorAll('input[type="checkbox"]:checked'))
+    .map(cb => cb.value)
+    .filter(value => value); // Remove empty values
+  
+  console.log('[FILTER] Selected values:', selectedValues);
+  
+  // Apply the filter using jspreadsheet's API
+  if (selectedValues.length > 0) {
+    worksheet.setFilter(columnIndex, selectedValues);
+  } else {
+    worksheet.resetFilters(columnIndex);
+  }
+}
+
+function replaceExistingDropdown(dropdown, worksheet) {
+  console.log('[FILTER] Replacing existing dropdown:', dropdown);
+  
+  // Hide the original dropdown
+  dropdown.style.display = 'none';
+  
+  // Find the input that triggered this dropdown
+  const input = dropdown.previousElementSibling || dropdown.parentElement.querySelector('input');
+  if (input) {
+    console.log('[FILTER] Found input for dropdown:', input);
+    
+    // Create our custom two-pane filter panel
+    const customPanel = createTwoPaneFilterPanel(input, worksheet);
+    
+    // Replace the dropdown with our custom panel
+    dropdown.parentNode.replaceChild(customPanel, dropdown);
+  }
+}
+
+function createTwoPaneFilterPanel(input, worksheet) {
+  console.log('[FILTER] Creating two-pane filter panel for input:', input);
+  
+  // Create the filter panel container
+  const filterPanel = document.createElement('div');
+  filterPanel.className = 'jss_custom_filter_panel';
+  filterPanel.style.cssText = `
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 0;
+    min-width: 400px;
+    max-width: 500px;
+    z-index: 1002;
+    display: none;
+    flex-direction: row;
+  `;
+  
+  // Left Panel - Value Selection
+  const leftPanel = document.createElement('div');
+  leftPanel.className = 'jss_filter_values';
+  leftPanel.style.cssText = `
+    flex: 1;
+    padding: 16px;
+    border-right: 1px solid #e5e7eb;
+    min-width: 200px;
+  `;
+  
+  // Search input
+  const searchInput = document.createElement('input');
+  searchInput.type = 'text';
+  searchInput.placeholder = 'Search';
+  searchInput.className = 'jss_filter_search';
+  searchInput.style.cssText = `
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+    background: #ffffff;
+    color: #1f2937;
+    margin-bottom: 12px;
+  `;
+  
+  // Value list container
+  const valueList = document.createElement('div');
+  valueList.className = 'jss_filter_options';
+  valueList.style.cssText = `
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 0;
+  `;
+  
+  // Right Panel - Condition Selection
+  const rightPanel = document.createElement('div');
+  rightPanel.className = 'jss_filter_conditions';
+  rightPanel.style.cssText = `
+    flex: 1;
+    padding: 16px;
+    min-width: 200px;
+  `;
+  
+  // Condition dropdown
+  const conditionSelect = document.createElement('select');
+  conditionSelect.className = 'jss_filter_condition';
+  conditionSelect.style.cssText = `
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+    background: #ffffff;
+    color: #1f2937;
+    margin-bottom: 12px;
+    cursor: pointer;
+  `;
+  
+  // Add condition options
+  const conditions = [
+    'Contains',
+    'Does not contain', 
+    'Begins with',
+    'Ends with',
+    'Equal',
+    'Not equal',
+    'Greater than',
+    'Lower than'
+  ];
+  
+  conditions.forEach(condition => {
+    const option = document.createElement('option');
+    option.value = condition.toLowerCase().replace(/\s+/g, '_');
+    option.textContent = condition;
+    conditionSelect.appendChild(option);
+  });
+  
+  // Action buttons
+  const buttonContainer = document.createElement('div');
+  buttonContainer.style.cssText = `
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  `;
+  
+  const okButton = document.createElement('button');
+  okButton.textContent = 'Ok';
+  okButton.style.cssText = `
+    flex: 1;
+    padding: 8px 16px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  `;
+  
+  const cancelButton = document.createElement('button');
+  cancelButton.textContent = 'Cancel';
+  cancelButton.style.cssText = `
+    flex: 1;
+    padding: 8px 16px;
+    background: #6b7280;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  `;
+  
+  // Assemble the panels
+  leftPanel.appendChild(searchInput);
+  leftPanel.appendChild(valueList);
+  rightPanel.appendChild(conditionSelect);
+  rightPanel.appendChild(buttonContainer);
+  buttonContainer.appendChild(okButton);
+  buttonContainer.appendChild(cancelButton);
+  
+  filterPanel.appendChild(leftPanel);
+  filterPanel.appendChild(rightPanel);
+  
+  // Position the panel relative to the input
+  input.parentElement.style.position = 'relative';
+  input.parentElement.appendChild(filterPanel);
+  
+  // Get unique values for this column (try to determine column index)
+  const columnIndex = Array.from(input.parentElement.parentElement.children).indexOf(input.parentElement);
+  const uniqueValues = getUniqueValuesForColumn(columnIndex, worksheet);
+  populateValueList(valueList, uniqueValues);
+  
+  // Event handlers
+  input.addEventListener('click', (e) => {
+    console.log('[FILTER] Input clicked, showing custom panel');
+    e.preventDefault();
+    e.stopPropagation();
+    filterPanel.style.display = 'flex';
+  });
+  
+  searchInput.addEventListener('input', (e) => {
+    filterValueList(valueList, e.target.value);
+  });
+  
+  okButton.addEventListener('click', () => {
+    applyFilter(columnIndex, valueList, conditionSelect.value, worksheet);
+    filterPanel.style.display = 'none';
+  });
+  
+  cancelButton.addEventListener('click', () => {
+    filterPanel.style.display = 'none';
+  });
+  
+  // Close panel when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!filterPanel.contains(e.target) && !input.contains(e.target)) {
+      filterPanel.style.display = 'none';
+    }
+  });
+  
+  return filterPanel;
 }
 
  
