@@ -10,7 +10,7 @@
       "run_at": "document_end"
     },
     {
-      "matches": ["https://*.trystamp.ai/*", "https://*.ngrok.app/*", "https://*.ngrok-free.app/*", "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/*", "http://localhost:*/*", "https://localhost:*/*"],
+      "matches": ["https://*.trystamp.ai/*", "https://*.ngrok.app/*", "https://*.ngrok-free.app/*", "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/*"],
       "js": ["oauth-callback-detector.js"],
       "run_at": "document_end"
     }
@@ -31,18 +31,13 @@
     "https://*.ngrok-free.app/*",
     "https://*.execute-api.us-east-2.amazonaws.com/*",
     "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/*",
-    "https://nmuo25f2da.execute-api.us-east-2.amazonaws.com/*",
-    "http://localhost:*/*",
-    "https://localhost:*/*"
+    "https://nmuo25f2da.execute-api.us-east-2.amazonaws.com/*"
   ],
   "oauth2": {
     "client_id": "759225635526-gs69pgupgap87o4ul9ud9pv8pjrupcgc.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/userinfo.email"
     ]
-  },
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'none'"
   },
   "web_accessible_resources": [
     {
@@ -51,7 +46,6 @@
         "pageWorld.js",
         "pageWorld.js.map",
         "stamp-logo.png",
-        "google-logo.png",
         "jspreadsheet.css",
         "jsuites.css",
         "jsuites.js",

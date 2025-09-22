@@ -2766,7 +2766,7 @@ class UIManager {
           <div id="loading-indicator" style="display: none; padding: 10px; text-align: center; color: #5f6368;">Loading...</div>
           <div id="error-indicator" style="display: none; padding: 10px; text-align: center; color: #d93025; background: #fce8e6; border: 1px solid #f9c6c2; border-radius: 4px; margin-bottom: 16px;"></div>
           <button id="google-signin-btn" style="background-color: #4285F4; color: white; border: none; padding: 10px 24px; font-size: 14px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-weight: 500;">
-            <img src="${chrome.runtime.getURL('google-logo.png')}" alt="Google Logo" style="width: 18px; height: 18px; margin-right: 12px;">
+            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTkuMDAwMDEgMTcuOTk5OEMxMy45NzQ0IDE3Ljk5OTggMTcuOTk5OSAxMy45NzQ0IDE3Ljk5OTkgOS4wMDAwMUMxNy45OTk5IDQuMDI1NTcgMTMuOTc0NCAwIDkuMDAwMDEgMEM0LjAyNTU3IDAgMCA0LjAyNTU3IDAgOS4wMDAwMUMwIDEzLjk3NDQgNC4wMjU1NyAxNy45OTk4IDkuMDAwMDEgMTcuOTk5OFoiIGZpbGw9IiM0Mjg1RjQiLz4KPHBhdGggZD0iTTkuMDAwMDEgMTcuOTk5OEMxMy45NzQ0IDE3Ljk5OTggMTcuOTk5OSAxMy45NzQ0IDE3Ljk5OTkgOS4wMDAwMUMxNy45OTk5IDQuMDI1NTcgMTMuOTc0NCAwIDkuMDAwMDEgMEM0LjAyNTU3IDAgMCA0LjAyNTU3IDAgOS4wMDAwMUMwIDEzLjk3NDQgNC4yNTU3IDE3Ljk5OTggOS4wMDAwMSAxNy45OTk4WiIgZmlsbD0iIzQyODVGNCIvPgo8L3N2Zz4K" alt="Google Logo" style="width: 18px; height: 18px; margin-right: 12px;">
             Sign in with Google
           </button>
         </div>
@@ -3519,7 +3519,7 @@ class UIManager {
 
 // --- MAIN EXECUTION ---
 
-InboxSDK.load(2, 'YOUR_APP_ID_HERE').then((sdk) => {
+InboxSDK.load(2, 'sdk_stamp-extension_0b8df882e1').then((sdk) => {
   console.log("Stamp Extension: InboxSDK loaded successfully.");
   
   // Initialize your core extension components

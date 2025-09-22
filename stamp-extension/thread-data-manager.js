@@ -1,4 +1,4 @@
-import { getMockAllInvoices } from './mock-api.js';
+// Mock API import removed - now using production backend data only
 
 const CACHE_KEY = 'stampThreadCache';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -45,10 +45,9 @@ export class ThreadDataManager {
         
         if (this.apiClient) {
             try {
-                console.log(`[ThreadDataManager] Making API call to /api/finops/threads/batch-analysis with ${threadsToFetch.length} thread IDs`);
-                const response = await this.apiClient.makeAuthenticatedRequest('/api/finops/threads/batch-analysis', {
-                    method: 'POST',
-                    body: JSON.stringify({ threadIds: threadsToFetch })
+                console.log(`[ThreadDataManager] Making API call to /api/thread-status with ${threadsToFetch.length} thread IDs`);
+                const response = await this.apiClient.makeAuthenticatedRequest(`/api/thread-status?threadIds=${threadsToFetch.join(',')}`, {
+                    method: 'GET'
                 });
                 
                 const apiResponse = await response.json();

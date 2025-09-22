@@ -18,10 +18,10 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     console.warn('[CORRECTIONS] No API client provided - corrections will not be sent');
   }
 
-  // Use mock data if no real data is provided
+  // Handle empty data gracefully - show empty spreadsheet instead of mock data
   if (!data || data.length === 0) {
-    console.log('[MOCK DATA] No data provided, using mock data for demonstration');
-    data = generateMockData();
+    console.log('[SPREADSHEET] No data provided, showing empty spreadsheet');
+    data = [];
   }
   
   // Define columns with field mapping metadata for edit tracking
@@ -44,7 +44,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Entity Name', 
-      width: 120, 
+      width: 150, 
       type: 'text',
       fieldName: 'entityName',
       editable: true,
@@ -52,7 +52,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Vendor Name', 
-      width: 120, 
+      width: 150, 
       type: 'text',
       fieldName: 'vendor.name',
       editable: true,
@@ -60,7 +60,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Description', 
-      width: 100, 
+      width: 200, 
       type: 'text',
       fieldName: 'description',
       editable: true,
@@ -76,7 +76,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Amount', 
-      width: 80, 
+      width: 120, 
       type: 'numeric', 
       mask: '$ #,##.00',
       fieldName: 'amount',
@@ -188,6 +188,70 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   // Create the spreadsheet with clean default configuration and field edit handling
   console.log('[JS001] Creating jspreadsheet, data rows:', spreadsheetData.length);
   console.log('[JS001] Column configuration:', columns);
+  
+  // Fix dropdown z-index issues by intercepting dropdown creation
+  const originalAppendChild = document.body.appendChild;
+  const originalInsertBefore = document.body.insertBefore;
+  
+  const applyDropdownFix = (node) => {
+    if (node && node.classList && (
+      node.classList.contains('jdropdown-container') ||
+      node.classList.contains('jdropdown-backdrop') ||
+      node.classList.contains('jcontextmenu') ||
+      node.classList.contains('jdropdown-menu') ||
+      node.classList.contains('jdropdown-content') ||
+      node.classList.contains('jdropdown-item') ||
+      node.classList.contains('jdropdown-header') ||
+      node.classList.contains('jdropdown-searchbar') ||
+      node.className.includes('jdropdown')
+    )) {
+      // Force maximum z-index for dropdowns and ensure they're not clipped
+      node.style.zIndex = '999999';
+      node.style.position = 'fixed';
+      node.style.overflow = 'visible';
+      // Ensure dropdown is positioned relative to viewport, not parent container
+      if (node.classList.contains('jdropdown-container')) {
+        const rect = node.getBoundingClientRect();
+        node.style.top = rect.top + 'px';
+        node.style.left = rect.left + 'px';
+      }
+      console.log('[DROPDOWN FIX] Applied z-index fix to:', node.className);
+    }
+  };
+  
+  document.body.appendChild = function(node) {
+    applyDropdownFix(node);
+    return originalAppendChild.call(this, node);
+  };
+  
+  document.body.insertBefore = function(node, referenceNode) {
+    applyDropdownFix(node);
+    return originalInsertBefore.call(this, node, referenceNode);
+  };
+  
+  // Also use MutationObserver to catch any dropdowns created later
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      mutation.addedNodes.forEach(function(node) {
+        if (node.nodeType === 1 && node.classList && (
+          node.classList.contains('jdropdown-container') ||
+          node.classList.contains('jdropdown-backdrop') ||
+          node.classList.contains('jcontextmenu')
+        )) {
+          // Force maximum z-index for dropdowns
+          node.style.zIndex = '999999';
+          node.style.position = 'fixed';
+          console.log('[DROPDOWN FIX] MutationObserver applied z-index fix to:', node.className);
+        }
+      });
+    });
+  });
+  
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+  
   const spreadsheet = jspreadsheet(cleanContainer, {
     root: shadowRoot,  // Critical parameter for Shadow DOM event handling
     toolbar: true,     // Enable the toolbar with tools
@@ -211,6 +275,8 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       // === USE JSPREADSHEET DEFAULTS ===
       allowComments: true,
       tableOverflow: true,  // Built-in scrolling
+      tableWidth: '100%',
+      tableHeight: 'auto',
       editable: true,
       allowInsertRow: true,
       allowDeleteRow: true,
@@ -220,7 +286,11 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       columnSorting: true,
       columnResize: true,
       rowResize: true,
-      filters: true
+      filters: true,
+      // Enhanced scrolling options
+      scrollbars: true,
+      horizontalScroll: true,
+      verticalScroll: true
     }],
     
   // === SEARCH EVENT HANDLERS ===
@@ -1423,12 +1493,12 @@ async function setupShadowDOMContainer(container) {
     if (!jsuitesJsResponse.ok) {
       throw new Error(`Failed to fetch jsuites.js: ${jsuitesJsResponse.status} ${jsuitesJsResponse.statusText}`);
     }
-    const jsuitesJs = await jsuitesJsResponse.text();
-    console.log('[SHADOW DOM] ✅ jsuites.js loaded, size:', jsuitesJs.length);
+    console.log('[SHADOW DOM] ✅ jsuites.js available at:', jsuitesJsUrl);
 
-    // Create script element for jsuites (load first)
+    // Create script element for jsuites (load as external script to avoid CSP issues)
     const jsuitesScript = document.createElement('script');
-    jsuitesScript.textContent = jsuitesJs;
+    jsuitesScript.src = jsuitesJsUrl;
+    jsuitesScript.type = 'text/javascript';
     shadowRoot.appendChild(jsuitesScript);
     
     // Wait for jsuites to load before proceeding
@@ -1488,12 +1558,37 @@ async function setupShadowDOMContainer(container) {
         background: #fff;
       }
       .jexcel tr, .jspreadsheet tr { height: 16px; }
-      .jexcel thead th, .jspreadsheet thead th {
-        background: linear-gradient(135deg, #10b981 0%, #059669 50%, #065f46 100%);
-        color: white;
+      .jexcel thead th, .jspreadsheet thead th,
+      .jexcel thead td, .jspreadsheet thead td,
+      .jss_worksheet thead td {
+        background: #10b981 !important;
+        color: white !important;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+      }
+      /* Keep filter row green but ensure filter icons are visible */
+      .jexcel thead tr.jss_filter td, .jspreadsheet thead tr.jss_filter td,
+      .jss_worksheet thead tr.jss_filter td {
+        background: #10b981 !important;
+        color: white !important;
+        font-weight: normal !important;
+        text-transform: none !important;
+        letter-spacing: normal !important;
+        font-size: 12px !important;
+        text-align: left !important;
+        border: 1px solid #047857 !important;
+      }
+      /* Ensure filter icons are visible on green background */
+      .jss_worksheet .jss_column_filter {
+        background-repeat: no-repeat !important;
+        background-position: top 50% right 5px !important;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' width='18px' height='18px'%3E%3Cpath d='M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z'/%3E%3Cpath d='M0 0h24v24H0z' fill='none'/%3E%3C/svg%3E") !important;
+        text-overflow: ellipsis !important;
+        overflow: hidden !important;
+        padding: 0px !important;
+        padding-left: 6px !important;
+        padding-right: 20px !important;
       }
       .jexcel .selected, .jspreadsheet .selected { outline: 2px solid #10b981; }
       .jexcel .highlight, .jspreadsheet .highlight { background: #f3f4f6; }
@@ -1519,17 +1614,67 @@ async function setupShadowDOMContainer(container) {
         color: white;
         border-color: #10b981;
       }
+      
+      /* Fix dropdown z-index issues - Much higher values */
+      .jdropdown-container {
+        z-index: 999999 !important;
+        position: relative !important;
+      }
+      .jdropdown-backdrop {
+        z-index: 999998 !important;
+      }
+      .jcontextmenu {
+        z-index: 999997 !important;
+      }
+      .jtoolbar-container {
+        z-index: 999996 !important;
+      }
+      .jdropdown-focus .jdropdown-container {
+        z-index: 999999 !important;
+      }
+      .jdropdown-searchbar.jdropdown-focus {
+        z-index: 999998 !important;
+      }
+      .jdropdown-searchbar.jdropdown-focus .jdropdown-container-header {
+        z-index: 999999 !important;
+      }
+      .jtoolbar .jdropdown {
+        position: relative !important;
+        z-index: 999995 !important;
+      }
+      .jtoolbar .jdropdown-focus {
+        z-index: 999999 !important;
+      }
+      .jss_toolbar .jdropdown-container,
+      .jss_toolbar .jdropdown-backdrop,
+      .jss_toolbar .jcontextmenu {
+        z-index: 999999 !important;
+      }
+      .jdropdown,
+      .jdropdown-menu,
+      .jdropdown-content,
+      .jdropdown-item {
+        z-index: 999999 !important;
+      }
+      .jss_toolbar {
+        z-index: 999990 !important;
+        position: relative !important;
+      }
     `;
     shadowRoot.appendChild(style);
   }
 
   // Create a clean container element for jspreadsheet
   const cleanContainer = document.createElement('div');
-  cleanContainer.className = 'jspreadsheet-clean-container';
+  cleanContainer.className = 'jspreadsheet-clean-container jspreadsheet-container';
   cleanContainer.style.cssText = `
     width: 100%;
     height: 100%;
     position: relative;
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: 80vh;
+    max-width: 100%;
   `;
 
   // Attach the shadow host to the provided container
@@ -1881,428 +2026,6 @@ function getOriginalValue(invoice, fieldName) {
  * // - All standard jspreadsheet functionality
  */
 
-// === MOCK DATA GENERATOR ===
-function generateMockData() {
-  const mockInvoices = [
-    {
-      documentType: 'invoice',
-      status: 'pending',
-      statusThreadId: 'thread_001',
-      statusMessageId: 'msg_001',
-      document: {
-        thread_id: 'thread_001',
-        message_id: 'msg_001',
-        document_name: 'invoice_001.pdf',
-        content_hash: 'hash_001',
-        url: 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf',
-        thumbnailUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjNGNhZjUwIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlNhbXBsZSBJbnZvaWNlPC90ZXh0Pgo8L3N2Zz4K',
-        details: {
-          invoiceNumber: 'INV-2024-001',
-          entityName: 'Acme Corporation',
-          vendor: { name: 'Tech Solutions Inc.' },
-          description: 'Software licensing and support services',
-          period: 'Q1 2024',
-          amount: 15000.00,
-          currency: 'USD',
-          issueDate: '2024-01-15',
-          dueDate: '2024-02-15',
-          paymentTerms: 'Net 30',
-          approvalStatus: 'PENDING',
-          notes: 'Annual software license renewal',
-          documentUrl: 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf',
-          thumbnailUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjNGNhZjUwIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlNhbXBsZSBJbnZvaWNlPC90ZXh0Pgo8L3N2Zz4K'
-        }
-      },
-      vendor: { name: 'Tech Solutions Inc.' },
-      amount: 15000.00,
-      currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
-      involvementHistory: [
-        {
-          actor: { name: 'John Smith', email: 'john@acme.com' },
-          action_type: 'submitted',
-          timestamp: '2024-01-15T10:30:00Z'
-        },
-        {
-          actor: { name: 'Sarah Johnson', email: 'sarah@acme.com' },
-          action_type: 'reviewed',
-          timestamp: '2024-01-16T14:20:00Z'
-        }
-      ]
-    },
-    {
-      documentType: 'invoice',
-      status: 'approved',
-      statusThreadId: 'thread_002',
-      statusMessageId: 'msg_002',
-      document: {
-        thread_id: 'thread_002',
-        message_id: 'msg_002',
-        document_name: 'invoice_002.jpg',
-        content_hash: 'hash_002',
-        url: 'https://picsum.photos/800/600',
-        thumbnailUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjZTM0YTQwIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlNhbXBsZSBJbWFnZTwvdGV4dD4KPC9zdmc+Cg==',
-        details: {
-          invoiceNumber: 'INV-2024-002',
-          entityName: 'Global Enterprises Ltd.',
-          vendor: { name: 'Office Supplies Co.' },
-          description: 'Office furniture and equipment',
-          period: 'January 2024',
-          amount: 8750.50,
-          currency: 'INR',
-          issueDate: '2024-01-20',
-          dueDate: '2024-02-20',
-          paymentTerms: 'Net 30',
-          approvalStatus: 'APPROVED',
-          notes: 'Bulk office furniture purchase',
-          documentUrl: 'https://picsum.photos/800/600',
-          thumbnailUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjZTM0YTQwIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI2ZmZmZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlNhbXBsZSBJbWFnZTwvdGV4dD4KPC9zdmc+Cg=='
-        }
-      },
-      vendor: { name: 'Office Supplies Co.' },
-      amount: 8750.50,
-      currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
-      involvementHistory: [
-        {
-          actor: { name: 'Mike Wilson', email: 'mike@global.com' },
-          action_type: 'submitted',
-          timestamp: '2024-01-20T09:15:00Z'
-        },
-        {
-          actor: { name: 'Lisa Chen', email: 'lisa@global.com' },
-          action_type: 'approved',
-          timestamp: '2024-01-21T16:45:00Z'
-        }
-      ]
-    },
-    {
-      documentType: 'receipt',
-      status: 'paid',
-      statusThreadId: 'thread_003',
-      statusMessageId: 'msg_003',
-      document: {
-        thread_id: 'thread_003',
-        message_id: 'msg_003',
-        document_name: 'receipt_003.pdf',
-        content_hash: 'hash_003',
-        details: {
-          receiptNumber: 'RCP-2024-001',
-          units: ['Unit 101', 'Unit 102'],
-          property_addresses: [
-            { name: 'Downtown Plaza', address: '123 Main St, City, State 12345' }
-          ],
-          date: '2024-01-25',
-          amount: 2500.00,
-          currency: 'EUR',
-          approvalStatus: 'REJECTED'
-        }
-      },
-      vendor: { name: 'Property Management LLC' },
-      amount: 2500.00,
-      currency: 'USD',
-      notes: 'Monthly rent payment for commercial units',
-      editableFields: ['receiptNumber', 'notes'],
-      involvementHistory: [
-        {
-          actor: { name: 'David Brown', email: 'david@acme.com' },
-          action_type: 'paid',
-          timestamp: '2024-01-25T11:30:00Z'
-        }
-      ]
-    },
-    {
-      documentType: 'invoice',
-      status: 'requires_review',
-      statusThreadId: 'thread_004',
-      statusMessageId: 'msg_004',
-      document: {
-        thread_id: 'thread_004',
-        message_id: 'msg_004',
-        document_name: 'invoice_004.pdf',
-        content_hash: 'hash_004',
-        details: {
-          invoiceNumber: 'INV-2024-003',
-          entityName: 'StartupXYZ Inc.',
-          vendor: { name: 'Cloud Services Provider' },
-          description: 'AWS cloud infrastructure services',
-          period: 'January 2024',
-          amount: 3200.75,
-          currency: 'GBP',
-          issueDate: '2024-01-28',
-          dueDate: '2024-02-28',
-          paymentTerms: 'Net 30',
-          approvalStatus: 'PENDING',
-          notes: 'Monthly cloud hosting costs'
-        }
-      },
-      vendor: { name: 'Cloud Services Provider' },
-      amount: 3200.75,
-      currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
-      involvementHistory: [
-        {
-          actor: { name: 'Alex Rodriguez', email: 'alex@startupxyz.com' },
-          action_type: 'submitted',
-          timestamp: '2024-01-28T13:20:00Z'
-        },
-        {
-          actor: { name: 'Emma Davis', email: 'emma@startupxyz.com' },
-          action_type: 'flagged_for_review',
-          timestamp: '2024-01-29T10:15:00Z'
-        }
-      ]
-    },
-    {
-      documentType: 'invoice',
-      status: 'rejected',
-      statusThreadId: 'thread_005',
-      statusMessageId: 'msg_005',
-      document: {
-        thread_id: 'thread_005',
-        message_id: 'msg_005',
-        document_name: 'invoice_005.pdf',
-        content_hash: 'hash_005',
-        details: {
-          invoiceNumber: 'INV-2024-004',
-          entityName: 'Manufacturing Corp',
-          vendor: { name: 'Marketing Agency Pro' },
-          description: 'Digital marketing campaign',
-          period: 'Q1 2024',
-          amount: 25000.00,
-          currency: 'USD',
-          issueDate: '2024-01-30',
-          dueDate: '2024-03-01',
-          paymentTerms: 'Net 30',
-          notes: 'Rejected due to budget constraints'
-        }
-      },
-      vendor: { name: 'Marketing Agency Pro' },
-      amount: 25000.00,
-      currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
-      involvementHistory: [
-        {
-          actor: { name: 'Robert Kim', email: 'robert@manufacturing.com' },
-          action_type: 'submitted',
-          timestamp: '2024-01-30T15:45:00Z'
-        },
-        {
-          actor: { name: 'Jennifer Lee', email: 'jennifer@manufacturing.com' },
-          action_type: 'rejected',
-          timestamp: '2024-02-01T09:30:00Z'
-        }
-      ]
-    },
-    {
-      documentType: 'invoice',
-      status: 'on_hold',
-      statusThreadId: 'thread_006',
-      statusMessageId: 'msg_006',
-      document: {
-        thread_id: 'thread_006',
-        message_id: 'msg_006',
-        document_name: 'invoice_006.pdf',
-        content_hash: 'hash_006',
-        details: {
-          invoiceNumber: 'INV-2024-005',
-          entityName: 'Retail Chain Inc.',
-          vendor: { name: 'Logistics Solutions' },
-          description: 'Warehouse management system',
-          period: 'February 2024',
-          amount: 18000.00,
-          currency: 'USD',
-          issueDate: '2024-02-05',
-          dueDate: '2024-03-07',
-          paymentTerms: 'Net 30',
-          notes: 'On hold pending vendor contract review'
-        }
-      },
-      vendor: { name: 'Logistics Solutions' },
-      amount: 18000.00,
-      currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
-      involvementHistory: [
-        {
-          actor: { name: 'Tom Anderson', email: 'tom@retail.com' },
-          action_type: 'submitted',
-          timestamp: '2024-02-05T12:00:00Z'
-        },
-        {
-          actor: { name: 'Maria Garcia', email: 'maria@retail.com' },
-          action_type: 'placed_on_hold',
-          timestamp: '2024-02-06T14:30:00Z'
-        }
-      ]
-    },
-    {
-      documentType: 'invoice',
-      status: 'partially_approved',
-      statusThreadId: 'thread_007',
-      statusMessageId: 'msg_007',
-      document: {
-        thread_id: 'thread_007',
-        message_id: 'msg_007',
-        document_name: 'invoice_007.pdf',
-        content_hash: 'hash_007',
-        details: {
-          invoiceNumber: 'INV-2024-006',
-          entityName: 'Healthcare Systems',
-          vendor: { name: 'IT Consulting Group' },
-          description: 'System integration and training',
-          period: 'Q1 2024',
-          amount: 45000.00,
-          currency: 'USD',
-          issueDate: '2024-02-10',
-          dueDate: '2024-03-12',
-          paymentTerms: 'Net 30',
-          notes: 'Partially approved - training portion pending'
-        }
-      },
-      vendor: { name: 'IT Consulting Group' },
-      amount: 45000.00,
-      currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
-      involvementHistory: [
-        {
-          actor: { name: 'Dr. Susan White', email: 'susan@healthcare.com' },
-          action_type: 'submitted',
-          timestamp: '2024-02-10T08:30:00Z'
-        },
-        {
-          actor: { name: 'James Taylor', email: 'james@healthcare.com' },
-          action_type: 'partially_approved',
-          timestamp: '2024-02-12T16:20:00Z'
-        }
-      ]
-    },
-    {
-      documentType: 'invoice',
-      status: 'ready_for_payment',
-      statusThreadId: 'thread_008',
-      statusMessageId: 'msg_008',
-      document: {
-        thread_id: 'thread_008',
-        message_id: 'msg_008',
-        document_name: 'invoice_008.pdf',
-        content_hash: 'hash_008',
-        details: {
-          invoiceNumber: 'INV-2024-007',
-          entityName: 'Financial Services Co.',
-          vendor: { name: 'Legal Advisory Firm' },
-          description: 'Legal consultation and contract review',
-          period: 'January 2024',
-          amount: 12500.00,
-          currency: 'USD',
-          issueDate: '2024-02-15',
-          dueDate: '2024-03-17',
-          paymentTerms: 'Net 30',
-          notes: 'Ready for payment processing'
-        }
-      },
-      vendor: { name: 'Legal Advisory Firm' },
-      amount: 12500.00,
-      currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
-      involvementHistory: [
-        {
-          actor: { name: 'Patricia Moore', email: 'patricia@financial.com' },
-          action_type: 'submitted',
-          timestamp: '2024-02-15T11:45:00Z'
-        },
-        {
-          actor: { name: 'Kevin Johnson', email: 'kevin@financial.com' },
-          action_type: 'approved',
-          timestamp: '2024-02-16T13:15:00Z'
-        },
-        {
-          actor: { name: 'Rachel Green', email: 'rachel@financial.com' },
-          action_type: 'ready_for_payment',
-          timestamp: '2024-02-17T10:00:00Z'
-        }
-      ]
-    },
-    {
-      documentType: 'invoice',
-      status: 'duplicate',
-      statusThreadId: 'thread_009',
-      statusMessageId: 'msg_009',
-      document: {
-        thread_id: 'thread_009',
-        message_id: 'msg_009',
-        document_name: 'invoice_009.pdf',
-        content_hash: 'hash_009',
-        details: {
-          invoiceNumber: 'INV-2024-008',
-          entityName: 'Tech Startup Inc.',
-          vendor: { name: 'Design Studio Creative' },
-          description: 'Brand identity and logo design',
-          period: 'February 2024',
-          amount: 8500.00,
-          currency: 'USD',
-          issueDate: '2024-02-20',
-          dueDate: '2024-03-22',
-          paymentTerms: 'Net 30',
-          notes: 'Duplicate of previously processed invoice'
-        }
-      },
-      vendor: { name: 'Design Studio Creative' },
-      amount: 8500.00,
-      currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
-      involvementHistory: [
-        {
-          actor: { name: 'Chris Wilson', email: 'chris@techstartup.com' },
-          action_type: 'submitted',
-          timestamp: '2024-02-20T14:30:00Z'
-        },
-        {
-          actor: { name: 'Amanda Clark', email: 'amanda@techstartup.com' },
-          action_type: 'marked_duplicate',
-          timestamp: '2024-02-21T09:45:00Z'
-        }
-      ]
-    },
-    {
-      documentType: 'invoice',
-      status: 'unknown',
-      statusThreadId: 'thread_010',
-      statusMessageId: 'msg_010',
-      document: {
-        thread_id: 'thread_010',
-        message_id: 'msg_010',
-        document_name: 'invoice_010.pdf',
-        content_hash: 'hash_010',
-        details: {
-          invoiceNumber: 'INV-2024-009',
-          entityName: 'Consulting Firm LLC',
-          vendor: { name: 'Unknown Vendor' },
-          description: 'Consulting services - details unclear',
-          period: 'February 2024',
-          amount: 0.00,
-          currency: 'USD',
-          issueDate: '2024-02-25',
-          dueDate: '2024-03-27',
-          paymentTerms: 'TBD',
-          notes: 'Status unknown - requires manual review'
-        }
-      },
-      vendor: { name: 'Unknown Vendor' },
-      amount: 0.00,
-      currency: 'USD',
-      editableFields: ['invoiceNumber', 'entityName', 'vendor.name', 'description', 'period', 'amount', 'currency', 'issueDate', 'dueDate', 'paymentTerms', 'approvalStatus', 'notes'],
-      involvementHistory: [
-        {
-          actor: { name: 'System', email: 'system@company.com' },
-          action_type: 'auto_imported',
-          timestamp: '2024-02-25T00:00:00Z'
-        }
-      ]
-    }
-  ];
-
-  console.log('[MOCK DATA] Generated', mockInvoices.length, 'mock invoices');
-  return mockInvoices;
-}
+// Mock data generator removed - now using production backend data only
 
  

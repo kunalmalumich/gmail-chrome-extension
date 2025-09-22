@@ -1,0 +1,492 @@
+/* Stamp Spreadsheet Theme - Custom green theme for invoice tracker */
+
+/* Note: Material Icons font is loaded via link element in JavaScript */
+
+/* Override jspreadsheet default styles with Stamp branding */
+.jspreadsheet-clean-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: #111827;
+  background: #ffffff;
+}
+
+/* Toolbar styling */
+.jss_toolbar {
+  background: linear-gradient(135deg, #10b981 0%, #059669 50%, #065f46 100%);
+  border-bottom: 2px solid #047857;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  position: relative !important;
+  z-index: 999990 !important;
+  overflow: visible !important;
+}
+
+.jss_toolbar button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.jss_toolbar button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.jss_toolbar button:active {
+  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.jss_toolbar button.selected {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Material Icons in toolbar */
+.jss_toolbar .material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Table styling */
+.jexcel, .jspreadsheet, .jss_container, .jss_worksheet {
+  font-size: 12px;
+  line-height: 1.2;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: visible !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  max-height: 80vh;
+  max-width: 100%;
+}
+
+/* Spreadsheet container with scrolling */
+.jspreadsheet-container {
+  overflow: visible !important;
+  max-height: 80vh;
+  max-width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+/* Ensure the spreadsheet table can scroll horizontally */
+.jexcel table, .jspreadsheet table {
+  min-width: 100%;
+  table-layout: fixed;
+}
+
+.jexcel td, .jspreadsheet td, .jexcel th, .jspreadsheet th {
+  border: 1px solid #e5e7eb;
+  padding: 4px 8px;
+  height: auto;
+  min-height: 20px;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow: visible;
+  background: #fff;
+  transition: background-color 0.2s ease;
+}
+
+.jexcel tr, .jspreadsheet tr { 
+  height: auto;
+  min-height: 20px; 
+}
+
+.jexcel thead th, .jspreadsheet thead th,
+.jexcel thead td, .jspreadsheet thead td,
+.jss_worksheet thead td {
+  background: #10b981 !important;
+  color: white !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+  text-align: center;
+}
+
+/* Keep filter row green but ensure filter icons are visible */
+.jexcel thead tr.jss_filter td, .jspreadsheet thead tr.jss_filter td,
+.jss_worksheet thead tr.jss_filter td {
+  background: #10b981 !important;
+  color: white !important;
+  font-weight: normal !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-size: 12px !important;
+  text-align: left !important;
+  border: 1px solid #047857 !important;
+}
+
+/* Ensure filter icons are visible on green background */
+.jss_worksheet .jss_column_filter {
+  background-repeat: no-repeat !important;
+  background-position: top 50% right 5px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' width='18px' height='18px'%3E%3Cpath d='M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z'/%3E%3Cpath d='M0 0h24v24H0z' fill='none'/%3E%3C/svg%3E") !important;
+  text-overflow: ellipsis !important;
+  overflow: hidden !important;
+  padding: 0px !important;
+  padding-left: 6px !important;
+  padding-right: 20px !important;
+}
+
+/* Row hover effects */
+.jexcel tbody tr:hover td, .jspreadsheet tbody tr:hover td {
+  background: #f8fafc;
+}
+
+/* Selection styling */
+.jexcel .selected, .jspreadsheet .selected { 
+  outline: 2px solid #10b981; 
+  outline-offset: -2px;
+}
+
+.jexcel .highlight, .jspreadsheet .highlight { 
+  background: #fef3c7 !important; 
+  border: 1px solid #f59e0b !important; 
+}
+
+.jss_highlight { 
+  background: #fef3c7 !important; 
+  border: 1px solid #f59e0b !important; 
+}
+
+/* Pagination styling */
+.jss_pagination {
+  margin: 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.jss_pagination > div > div {
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.jss_pagination > div > div:hover {
+  background: #f3f4f6;
+  border-color: #10b981;
+}
+
+.jss_page_selected {
+  background: #10b981 !important;
+  color: white !important;
+  border-color: #10b981 !important;
+}
+
+/* Search styling */
+.jss_filter {
+  margin: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jss_filter input {
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 12px;
+  width: 200px;
+  transition: border-color 0.2s ease;
+}
+
+.jss_filter input:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+/* Status column styling */
+.status-cell {
+  text-align: center;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+
+.status-approved {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+.status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #ef4444;
+}
+
+/* Amount column styling */
+.amount-cell {
+  text-align: right;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-weight: 500;
+}
+
+/* Document preview icons */
+.doc-preview-icon {
+  cursor: pointer;
+  color: #10b981;
+  font-size: 16px;
+  transition: color 0.2s ease;
+}
+
+.doc-preview-icon:hover {
+  color: #059669;
+}
+
+/* Enhanced scrolling styles */
+.jspreadsheet-container::-webkit-scrollbar {
+  width: 8px;
+  height: 0px; /* Hide horizontal scrollbar */
+}
+
+.jspreadsheet-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.jspreadsheet-container::-webkit-scrollbar-thumb {
+  background: #10b981;
+  border-radius: 4px;
+}
+
+.jspreadsheet-container::-webkit-scrollbar-thumb:hover {
+  background: #059669;
+}
+
+/* Hide horizontal scrollbar completely */
+.jspreadsheet-container {
+  overflow: visible !important;
+}
+
+/* Ensure header stays green and visible */
+.jexcel thead, .jspreadsheet thead, .jss_worksheet thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.jexcel thead th, .jspreadsheet thead th,
+.jexcel thead td, .jspreadsheet thead td,
+.jss_worksheet thead td {
+  background: #10b981 !important;
+  color: white !important;
+  border: 1px solid #047857 !important;
+}
+
+/* Keep filter row green in sticky header but ensure filter icons are visible */
+.jexcel thead tr.jss_filter td, .jspreadsheet thead tr.jss_filter td,
+.jss_worksheet thead tr.jss_filter td {
+  background: #10b981 !important;
+  color: white !important;
+  border: 1px solid #047857 !important;
+  font-weight: normal !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-size: 12px !important;
+  text-align: left !important;
+}
+
+/* Fix dropdown z-index issues - Much higher values */
+.jdropdown-container {
+  z-index: 999999 !important;
+  position: relative !important;
+}
+
+.jdropdown-backdrop {
+  z-index: 999998 !important;
+}
+
+.jcontextmenu {
+  z-index: 999997 !important;
+}
+
+.jtoolbar-container {
+  z-index: 999996 !important;
+}
+
+/* Ensure dropdowns appear above everything */
+.jdropdown-focus .jdropdown-container {
+  z-index: 999999 !important;
+}
+
+.jdropdown-searchbar.jdropdown-focus {
+  z-index: 999998 !important;
+}
+
+.jdropdown-searchbar.jdropdown-focus .jdropdown-container-header {
+  z-index: 999999 !important;
+}
+
+/* Fix toolbar dropdown positioning */
+.jtoolbar .jdropdown {
+  position: relative !important;
+  z-index: 999995 !important;
+}
+
+.jtoolbar .jdropdown-focus {
+  z-index: 999999 !important;
+}
+
+/* Ensure jspreadsheet dropdowns are above everything */
+.jss_toolbar .jdropdown-container,
+.jss_toolbar .jdropdown-backdrop,
+.jss_toolbar .jcontextmenu {
+  z-index: 999999 !important;
+}
+
+/* Additional dropdown selectors for jsuites */
+.jdropdown,
+.jdropdown-menu,
+.jdropdown-content,
+.jdropdown-item {
+  z-index: 999999 !important;
+}
+
+/* Ensure toolbar itself has proper z-index */
+.jss_toolbar {
+  z-index: 999990 !important;
+  position: relative !important;
+}
+
+/* Force all dropdowns to be positioned absolutely and on top */
+.jdropdown-container,
+.jdropdown-menu,
+.jdropdown-content {
+  position: absolute !important;
+  z-index: 999999 !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+}
+
+/* Ensure dropdowns are not clipped by parent containers */
+.jspreadsheet-container,
+.jspreadsheet-clean-container,
+.jss_container,
+.jss_worksheet {
+  overflow: visible !important;
+}
+
+/* Force dropdown positioning to be relative to viewport */
+.jdropdown-container[style*="position"] {
+  position: fixed !important;
+  z-index: 999999 !important;
+}
+
+/* Additional comprehensive dropdown fixes */
+.jdropdown-container,
+.jdropdown-menu,
+.jdropdown-content,
+.jdropdown-item,
+.jdropdown-header,
+.jdropdown-searchbar {
+  z-index: 999999 !important;
+  position: relative !important;
+}
+
+/* Ensure all jsuites dropdowns are on top */
+.jsuites .jdropdown-container,
+.jsuites .jdropdown-backdrop,
+.jsuites .jcontextmenu {
+  z-index: 999999 !important;
+}
+
+/* Fix for any dynamically created dropdowns */
+[class*="jdropdown"] {
+  z-index: 999999 !important;
+}
+
+/* Ensure toolbar buttons and their dropdowns are properly layered */
+.jss_toolbar button,
+.jss_toolbar .jdropdown,
+.jss_toolbar .jdropdown-container {
+  position: relative !important;
+  z-index: 999995 !important;
+}
+
+.jss_toolbar .jdropdown-focus,
+.jss_toolbar .jdropdown-focus .jdropdown-container {
+  z-index: 999999 !important;
+}
+
+/* Force all dropdowns to be positioned absolutely and above everything */
+.jdropdown-container,
+.jdropdown-menu,
+.jdropdown-content,
+.jdropdown-backdrop {
+  position: absolute !important;
+  z-index: 999999 !important;
+}
+
+/* Ensure dropdowns are not clipped by any parent containers */
+* {
+  overflow: visible !important;
+}
+
+.jspreadsheet-container,
+.jspreadsheet-clean-container,
+.jss_container,
+.jss_worksheet,
+.jss_toolbar {
+  overflow: visible !important;
+  position: relative !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .jss_toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .jss_toolbar button {
+    justify-content: center;
+  }
+  
+  .jexcel, .jspreadsheet {
+    font-size: 11px;
+  }
+  
+  .jexcel td, .jspreadsheet td, .jexcel th, .jspreadsheet th {
+    padding: 2px 4px;
+    height: 18px;
+  }
+}

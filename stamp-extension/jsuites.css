@@ -1149,7 +1149,7 @@ div[data-before]:before {
     background-color:rgba(0,0,0,0.5);
     border:0px;
     padding:0px;
-    z-index:8000;
+    z-index:999998 !important;
     display:none;
 }
 
@@ -1208,7 +1208,7 @@ div[data-before]:before {
     min-width: inherit;
     transform: translate3d(-10000px,0,0);
     position:absolute;
-    z-index:9001;
+    z-index:999999 !important;
 }
 
 .jdropdown-close {

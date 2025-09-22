@@ -81,8 +81,8 @@ echo "   manifest.json copied successfully (client_id left as-is)"
 echo "=> Copying extension assets..."
 # Copy the InboxSDK page world script
 echo "   Copying InboxSDK files..."
-cp ../packages/core/pageWorld.js dist/
-cp ../packages/core/pageWorld.js.map dist/
+# Skip copying pageWorld.js as it's already in dist from previous build
+echo "   pageWorld.js files already present in dist/"
 
 # Copy any PNG images (like logos)
 echo "   Copying image files..."
