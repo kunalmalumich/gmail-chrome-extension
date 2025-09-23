@@ -2,10 +2,15 @@
 (() => {
   // background.js
   console.log("[Background] Starting in PRODUCTION mode");
-  var AUTH_ENDPOINT = "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/prod/email-poller";
+  if (typeof CONFIG === "undefined") {
+    globalThis.CONFIG = {
+      AUTH_ENDPOINT: "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/prod/email-poller"
+    };
+  }
+  var AUTH_ENDPOINT = CONFIG?.AUTH_ENDPOINT || "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/prod/email-poller";
   var webOAuthFlows = /* @__PURE__ */ new Map();
   function getRedirectURL() {
-    const redirectUri = chrome.identity.getRedirectURL ? chrome.identity.getRedirectURL() : "https://trystamp.ai/oauth2-callback";
+    const redirectUri = chrome.identity.getRedirectURL ? chrome.identity.getRedirectURL() : "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/prod/email-poller/oauth2-callback";
     console.log("[Background] Using redirect URI:", redirectUri);
     return redirectUri;
   }
@@ -115,7 +120,7 @@
           const tabUpdateListener = (tabId, changeInfo, updatedTab) => {
             if (tabId === tab.id && changeInfo.url) {
               console.log("[Background] OAuth tab navigated to:", changeInfo.url);
-              if (changeInfo.url.includes("trystamp.ai/oauth2-callback")) {
+              if (changeInfo.url.includes("70h4jbuv95.execute-api.us-east-2.amazonaws.com/prod/email-poller/oauth2-callback")) {
                 console.log("[Background] \u{1F3AF} OAuth callback page detected!");
               }
               if (changeInfo.url.includes("70h4jbuv95.execute-api.us-east-2.amazonaws.com")) {

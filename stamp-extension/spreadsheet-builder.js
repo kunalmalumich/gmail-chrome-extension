@@ -171,7 +171,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   ];
 
   // Simple in-memory PDF cache for the session
-  const pdfCache = new Map(); // key: `${messageId}|${documentName}` => objectUrl
+  const pdfCache = new Map(); // key: `${threadId}|${documentName}` => blob
 
   // Transform the raw invoice data to fit the spreadsheet structure
   const spreadsheetData = transformDataForSpreadsheet(data);
@@ -1394,6 +1394,330 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       }
     };
 
+    // New function to show preview with PDF blob from backend
+    const showRightPreviewWithBlob = (iconEl, blob) => {
+      const docName = iconEl.getAttribute('data-doc-name') || 'Document';
+      const docUrl = iconEl.getAttribute('data-doc-url');
+      
+      console.log('[PREVIEW] Showing preview with PDF blob for:', docName);
+      
+      // Create or update the right preview panel
+      if (!rightPreviewPanel) {
+        rightPreviewPanel = document.createElement('div');
+        rightPreviewPanel.id = 'stamp-right-preview-panel';
+        rightPreviewPanel.style.cssText = `
+          position: fixed;
+          top: 0;
+          right: 0;
+          width: 400px;
+          height: 100vh;
+          background: #ffffff;
+          border-left: 1px solid #e0e0e0;
+          box-shadow: -4px 0 12px rgba(0,0,0,0.1);
+          z-index: 2147483647;
+          display: none;
+          flex-direction: column;
+          transform: translateX(100%);
+          transition: transform 0.3s ease;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        `;
+        
+        // Add close button
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '×';
+        closeBtn.style.cssText = `
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          width: 32px;
+          height: 32px;
+          border: none;
+          background: #f5f5f5;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 18px;
+          font-weight: bold;
+          color: #666;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1001;
+        `;
+        
+        closeBtn.addEventListener('click', () => {
+          hideRightPreview();
+        });
+        
+        rightPreviewPanel.appendChild(closeBtn);
+        document.body.appendChild(rightPreviewPanel);
+      }
+
+      // Create object URL from blob
+      const objectUrl = URL.createObjectURL(blob);
+      
+      // Update preview content with PDF blob
+      const previewContent = `
+        <div style="flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto;">
+          <div style="margin-bottom: 20px;">
+            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #1f2937;">Document Preview</h3>
+            <p style="margin: 0; font-size: 14px; color: #6b7280;">${docName}</p>
+          </div>
+          
+          <div style="flex: 1; display: flex; flex-direction: column; background: #f8f9fa; border-radius: 8px; overflow: hidden; margin-bottom: 20px; position: relative;">
+            <div style="flex: 1; min-height: 300px; position: relative; background: #f8f9fa; border-radius: 8px 8px 0 0; overflow: hidden;">
+              <!-- PDF Viewer Container -->
+              <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #fff;">
+                <div id="pdf-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">
+                  <div style="font-size: 24px; margin-bottom: 12px;">📄</div>
+                  <div style="font-size: 16px; font-weight: 500;">Loading PDF...</div>
+                  <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Please wait</div>
+                </div>
+                <div id="pdf-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #dc2626;">
+                  <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
+                  <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
+                  <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View PDF" to open in new tab</div>
+                </div>
+                <iframe id="pdf-iframe" 
+                  src="${objectUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
+                  style="width: 100%; height: 100%; border: none; display: none;">
+                </iframe>
+              </div>
+              
+              <!-- Document Info Card -->
+              <div style="background: #f8f9fa; padding: 16px; border-top: 1px solid #e5e7eb;">
+                <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #374151;">Document Details</div>
+                <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;"><strong>File:</strong> ${docName}</div>
+                <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;"><strong>Type:</strong> PDF Document</div>
+                <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;"><strong>Status:</strong> <span id="document-status">Loading...</span></div>
+                
+                <!-- Quick Actions -->
+                <div style="display: flex; gap: 8px; margin-top: 12px; justify-content: center;">
+                  <button id="preview-quick-view-btn" data-object-url="${objectUrl}" style="
+                    padding: 6px 12px; 
+                    background: #1a73e8; 
+                    color: white; 
+                    border: none; 
+                    border-radius: 4px; 
+                    cursor: pointer; 
+                    font-size: 11px; 
+                    font-weight: 500;
+                    transition: all 0.2s ease;
+                  ">
+                    View PDF
+                  </button>
+                  <button id="preview-quick-download-btn" data-object-url="${objectUrl}" data-doc-name="${docName}" style="
+                    padding: 6px 12px; 
+                    background: #34a853; 
+                    color: white; 
+                    border: none; 
+                    border-radius: 4px; 
+                    cursor: pointer; 
+                    font-size: 11px; 
+                    font-weight: 500;
+                    transition: all 0.2s ease;
+                  ">
+                    Download
+                  </button>
+                  <button id="preview-quick-copy-btn" data-object-url="${objectUrl}" style="
+                    padding: 6px 12px; 
+                    background: #ea4335; 
+                    color: white; 
+                    border: none; 
+                    border-radius: 4px; 
+                    cursor: pointer; 
+                    font-size: 11px; 
+                    font-weight: 500;
+                    transition: all 0.2s ease;
+                  ">
+                    Copy Link
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div style="display: flex; gap: 12px;">
+            <button id="preview-open-doc-btn" data-object-url="${objectUrl}" style="
+              flex: 1;
+              padding: 12px 20px;
+              background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+              color: white;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 600;
+              transition: all 0.2s ease;
+              box-shadow: 0 2px 8px rgba(26,115,232,0.3);
+            ">Open Document</button>
+            <button id="preview-download-btn" data-object-url="${objectUrl}" data-doc-name="${docName}" style="
+              padding: 12px 20px;
+              background: #f8f9fa;
+              color: #374151;
+              border: 1px solid #d1d5db;
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 500;
+              transition: all 0.2s ease;
+            ">Download</button>
+          </div>
+        </div>
+      `;
+      
+      rightPreviewPanel.innerHTML = previewContent;
+      
+      // Add PDF loading handlers
+      const pdfIframe = rightPreviewPanel.querySelector('#pdf-iframe');
+      const pdfLoading = rightPreviewPanel.querySelector('#pdf-loading');
+      const pdfError = rightPreviewPanel.querySelector('#pdf-error');
+      const documentStatus = rightPreviewPanel.querySelector('#document-status');
+      
+      if (pdfIframe) {
+        const handlePdfLoad = () => {
+          console.log('[PREVIEW] PDF blob loaded successfully');
+          if (pdfLoading) pdfLoading.style.display = 'none';
+          if (pdfError) pdfError.style.display = 'none';
+          if (pdfIframe) pdfIframe.style.display = 'block';
+          if (documentStatus) documentStatus.textContent = 'Ready to View';
+        };
+        
+        const handlePdfError = () => {
+          console.log('[PREVIEW] PDF blob failed to load');
+          if (pdfLoading) pdfLoading.style.display = 'none';
+          if (pdfError) pdfError.style.display = 'block';
+          if (pdfIframe) pdfIframe.style.display = 'none';
+          if (documentStatus) documentStatus.textContent = 'Failed to Load';
+        };
+        
+        // Set up event listeners
+        pdfIframe.addEventListener('load', handlePdfLoad);
+        pdfIframe.addEventListener('error', handlePdfError);
+        
+        // Timeout fallback
+        setTimeout(() => {
+          if (pdfLoading && pdfLoading.style.display !== 'none') {
+            console.log('[PREVIEW] PDF blob loading timeout');
+            handlePdfError();
+          }
+        }, 5000); // 5 second timeout
+      }
+      
+      // Add event listeners for buttons (using object URL instead of doc URL)
+      const openDocBtn = rightPreviewPanel.querySelector('#preview-open-doc-btn');
+      const downloadBtn = rightPreviewPanel.querySelector('#preview-download-btn');
+      
+      if (openDocBtn) {
+        openDocBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const objectUrl = openDocBtn.getAttribute('data-object-url');
+          if (objectUrl) {
+            window.open(objectUrl, '_blank');
+          }
+        });
+      }
+      
+      if (downloadBtn) {
+        downloadBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const objectUrl = downloadBtn.getAttribute('data-object-url');
+          const docName = downloadBtn.getAttribute('data-doc-name');
+          if (objectUrl) {
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = docName || 'document.pdf';
+            link.click();
+          }
+        });
+      }
+      
+      // Add event listeners for quick action buttons
+      const quickViewBtn = rightPreviewPanel.querySelector('#preview-quick-view-btn');
+      const quickDownloadBtn = rightPreviewPanel.querySelector('#preview-quick-download-btn');
+      const quickCopyBtn = rightPreviewPanel.querySelector('#preview-quick-copy-btn');
+      
+      if (quickViewBtn) {
+        quickViewBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const objectUrl = quickViewBtn.getAttribute('data-object-url');
+          if (objectUrl) {
+            window.open(objectUrl, '_blank');
+          }
+        });
+      }
+      
+      if (quickDownloadBtn) {
+        quickDownloadBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const objectUrl = quickDownloadBtn.getAttribute('data-object-url');
+          const docName = quickDownloadBtn.getAttribute('data-doc-name');
+          if (objectUrl) {
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = docName || 'document.pdf';
+            link.click();
+          }
+        });
+      }
+      
+      if (quickCopyBtn) {
+        quickCopyBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const objectUrl = quickCopyBtn.getAttribute('data-object-url');
+          if (objectUrl) {
+            navigator.clipboard.writeText(objectUrl).then(() => {
+              // Show temporary success message
+              const notification = document.createElement('div');
+              notification.textContent = 'Link copied to clipboard!';
+              notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #10b981;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 500;
+                z-index: 10000;
+                box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+              `;
+              document.body.appendChild(notification);
+              setTimeout(() => {
+                document.body.removeChild(notification);
+              }, 3000);
+            }).catch(() => {
+              alert('Failed to copy link. Please copy manually: ' + objectUrl);
+            });
+          }
+        });
+      }
+      
+      // Show the panel with animation
+      console.log('[PREVIEW] Showing right preview panel with PDF blob');
+      rightPreviewPanel.style.display = 'flex';
+      rightPreviewPanel.offsetHeight; // Force reflow
+      rightPreviewPanel.style.transform = 'translateX(0)';
+      
+      // Clean up object URL when panel is closed
+      const originalHideRightPreview = hideRightPreview;
+      const hideRightPreviewWithCleanup = () => {
+        URL.revokeObjectURL(objectUrl);
+        originalHideRightPreview();
+      };
+      
+      // Override the close button to use the cleanup version
+      const closeBtn = rightPreviewPanel.querySelector('button');
+      if (closeBtn) {
+        closeBtn.onclick = hideRightPreviewWithCleanup;
+      }
+    };
+
     cleanContainer.addEventListener('click', async (e) => {
       console.log('[DOC] Click detected on:', e.target);
       const icon = e.target.closest('.doc-preview-icon');
@@ -1406,10 +1730,55 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       
       if (!hasDoc) return;
 
-      console.log('[DOC] Document icon clicked, showing right preview panel');
+      const threadId = icon.getAttribute('data-thread-id');
+      const documentName = icon.getAttribute('data-doc-name');
+      const docUrl = icon.getAttribute('data-doc-url');
       
-      // Show the right-side preview panel
-      showRightPreview(icon);
+      // Check if we have a direct URL (sample documents) or need to fetch from backend
+      if (docUrl && docUrl.includes('w3.org')) {
+        // Sample document - use existing preview functionality
+        console.log('[DOC] Sample document detected, using existing preview');
+        showRightPreview(icon);
+        return;
+      }
+      
+      // Real document - try to fetch from backend first
+      if (threadId && documentName && opts.fetchPdf) {
+        const cacheKey = `${threadId}|${documentName}`;
+        
+        // Try cache first
+        let cachedBlob = pdfCache.get(cacheKey);
+        if (cachedBlob) {
+          console.log('[DOC] Using cached PDF blob');
+          showRightPreviewWithBlob(icon, cachedBlob);
+          return;
+        }
+        
+        // No cache: fetch via authenticated client hook
+        try {
+          console.log('[DOC] Fetching PDF from backend:', { threadId, documentName });
+          const blob = await opts.fetchPdf({ threadId, documentName });
+          
+          // Small LRU: cap at 25 items
+          if (pdfCache.size > 25) {
+            const firstKey = pdfCache.keys().next().value;
+            pdfCache.delete(firstKey);
+          }
+          pdfCache.set(cacheKey, blob);
+          
+          console.log('[DOC] PDF fetched successfully, showing preview');
+          showRightPreviewWithBlob(icon, blob);
+        } catch (err) {
+          console.error('[DOC] Failed to fetch PDF from backend:', err);
+          // Fallback to existing preview functionality
+          console.log('[DOC] Falling back to existing preview functionality');
+          showRightPreview(icon);
+        }
+      } else {
+        // No backend fetch available, use existing preview functionality
+        console.log('[DOC] No backend fetch available, using existing preview');
+        showRightPreview(icon);
+      }
     });
   }, 500);
 

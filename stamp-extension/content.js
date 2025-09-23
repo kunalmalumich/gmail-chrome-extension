@@ -141,7 +141,17 @@ setTimeout(() => {
 }, 1000);
 
 // --- CONFIGURATION ---
-// These values are injected by the build script (build.sh) as a global CONFIG object.
+// Define CONFIG object if not injected by build script
+if (typeof CONFIG === 'undefined') {
+  globalThis.CONFIG = {
+    API_ENDPOINT: 'https://nmuo25f2da.execute-api.us-east-2.amazonaws.com/prod',
+    AUTH_ENDPOINT: 'https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/prod/email-poller',
+    CLIENT_ID: '759225635526-gs69pgupgap87o4ul9ud9pv8pjrupcgc.apps.googleusercontent.com',
+    CLIENT_SECRET: null,
+    CHROME_CLIENT_ID: '759225635526-gs69pgupgap87o4ul9ud9pv8pjrupcgc.apps.googleusercontent.com'
+  };
+}
+
 const API_ENDPOINT = CONFIG.API_ENDPOINT;
 const AUTH_ENDPOINT = CONFIG.AUTH_ENDPOINT; 
 const CLIENT_ID = CONFIG.CLIENT_ID;
@@ -3621,6 +3631,52 @@ InboxSDK.load(2, 'sdk_stamp-extension_0b8df882e1').then((sdk) => {
     `;
     
     customRouteView.getElement().appendChild(container);
+
+    // Check authentication first
+    try {
+      const authState = await uiManager.authService.getAuthState();
+      if (!authState.isLoggedIn) {
+        console.log('[UI DEBUG] User not authenticated, showing login view in route');
+        // Show login content in the route
+        container.innerHTML = uiManager.createLoginContent();
+        
+        // Set up login button event listener
+        const signInBtn = container.querySelector('#google-signin-btn');
+        if (signInBtn) {
+          signInBtn.addEventListener('click', async () => {
+            console.log('[UI] "Sign in with Google" button clicked from route');
+            const loadingIndicator = container.querySelector('#loading-indicator');
+            const errorIndicator = container.querySelector('#error-indicator');
+            
+            if (loadingIndicator) loadingIndicator.style.display = 'block';
+            if (errorIndicator) errorIndicator.style.display = 'none';
+            
+            try {
+              await uiManager.authService.signInWithGoogle();
+              // After successful login, reload the route
+              console.log('[UI] Login successful, reloading route');
+              sdk.Router.goto('invoice-tracker-view');
+            } catch (error) {
+              console.error('[UI] Sign-in failed:', error);
+              if (loadingIndicator) loadingIndicator.style.display = 'none';
+              if (errorIndicator) {
+                errorIndicator.style.display = 'block';
+                errorIndicator.textContent = `Sign-in failed: ${error.message}. Please try again.`;
+              }
+            }
+          });
+        }
+        return; // Exit early, don't try to load invoices
+      }
+    } catch (error) {
+      console.error('[UI] Failed to check auth state:', error);
+      // Show login view as fallback
+      container.innerHTML = uiManager.createLoginContent();
+      return;
+    }
+
+    // User is authenticated, proceed with invoice loading
+    console.log('[UI DEBUG] User is authenticated, loading invoice data');
 
     // Initialize AI-style loading controller
     const loadingController = createLoadingController(container);

@@ -72686,20 +72686,25 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
     console.log("[JS001] Column configuration:", columns);
     const originalAppendChild = document.body.appendChild;
     const originalInsertBefore = document.body.insertBefore;
-    document.body.appendChild = function(node) {
-      if (node && node.classList && (node.classList.contains("jdropdown-container") || node.classList.contains("jdropdown-backdrop") || node.classList.contains("jcontextmenu"))) {
+    const applyDropdownFix = (node) => {
+      if (node && node.classList && (node.classList.contains("jdropdown-container") || node.classList.contains("jdropdown-backdrop") || node.classList.contains("jcontextmenu") || node.classList.contains("jdropdown-menu") || node.classList.contains("jdropdown-content") || node.classList.contains("jdropdown-item") || node.classList.contains("jdropdown-header") || node.classList.contains("jdropdown-searchbar") || node.className.includes("jdropdown"))) {
         node.style.zIndex = "999999";
         node.style.position = "fixed";
+        node.style.overflow = "visible";
+        if (node.classList.contains("jdropdown-container")) {
+          const rect = node.getBoundingClientRect();
+          node.style.top = rect.top + "px";
+          node.style.left = rect.left + "px";
+        }
         console.log("[DROPDOWN FIX] Applied z-index fix to:", node.className);
       }
+    };
+    document.body.appendChild = function(node) {
+      applyDropdownFix(node);
       return originalAppendChild.call(this, node);
     };
     document.body.insertBefore = function(node, referenceNode) {
-      if (node && node.classList && (node.classList.contains("jdropdown-container") || node.classList.contains("jdropdown-backdrop") || node.classList.contains("jcontextmenu"))) {
-        node.style.zIndex = "999999";
-        node.style.position = "fixed";
-        console.log("[DROPDOWN FIX] Applied z-index fix to:", node.className);
-      }
+      applyDropdownFix(node);
       return originalInsertBefore.call(this, node, referenceNode);
     };
     const observer = new MutationObserver(function(mutations) {
@@ -73664,6 +73669,292 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           }, 300);
         }
       };
+      const showRightPreviewWithBlob = (iconEl, blob2) => {
+        const docName = iconEl.getAttribute("data-doc-name") || "Document";
+        const docUrl = iconEl.getAttribute("data-doc-url");
+        console.log("[PREVIEW] Showing preview with PDF blob for:", docName);
+        if (!rightPreviewPanel) {
+          rightPreviewPanel = document.createElement("div");
+          rightPreviewPanel.id = "stamp-right-preview-panel";
+          rightPreviewPanel.style.cssText = `
+          position: fixed;
+          top: 0;
+          right: 0;
+          width: 400px;
+          height: 100vh;
+          background: #ffffff;
+          border-left: 1px solid #e0e0e0;
+          box-shadow: -4px 0 12px rgba(0,0,0,0.1);
+          z-index: 2147483647;
+          display: none;
+          flex-direction: column;
+          transform: translateX(100%);
+          transition: transform 0.3s ease;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        `;
+          const closeBtn2 = document.createElement("button");
+          closeBtn2.innerHTML = "\xD7";
+          closeBtn2.style.cssText = `
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          width: 32px;
+          height: 32px;
+          border: none;
+          background: #f5f5f5;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 18px;
+          font-weight: bold;
+          color: #666;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1001;
+        `;
+          closeBtn2.addEventListener("click", () => {
+            hideRightPreview();
+          });
+          rightPreviewPanel.appendChild(closeBtn2);
+          document.body.appendChild(rightPreviewPanel);
+        }
+        const objectUrl = URL.createObjectURL(blob2);
+        const previewContent = `
+        <div style="flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto;">
+          <div style="margin-bottom: 20px;">
+            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #1f2937;">Document Preview</h3>
+            <p style="margin: 0; font-size: 14px; color: #6b7280;">${docName}</p>
+          </div>
+          
+          <div style="flex: 1; display: flex; flex-direction: column; background: #f8f9fa; border-radius: 8px; overflow: hidden; margin-bottom: 20px; position: relative;">
+            <div style="flex: 1; min-height: 300px; position: relative; background: #f8f9fa; border-radius: 8px 8px 0 0; overflow: hidden;">
+              <!-- PDF Viewer Container -->
+              <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #fff;">
+                <div id="pdf-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">
+                  <div style="font-size: 24px; margin-bottom: 12px;">\u{1F4C4}</div>
+                  <div style="font-size: 16px; font-weight: 500;">Loading PDF...</div>
+                  <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Please wait</div>
+                </div>
+                <div id="pdf-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #dc2626;">
+                  <div style="font-size: 24px; margin-bottom: 12px;">\u26A0\uFE0F</div>
+                  <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
+                  <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View PDF" to open in new tab</div>
+                </div>
+                <iframe id="pdf-iframe" 
+                  src="${objectUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
+                  style="width: 100%; height: 100%; border: none; display: none;">
+                </iframe>
+              </div>
+              
+              <!-- Document Info Card -->
+              <div style="background: #f8f9fa; padding: 16px; border-top: 1px solid #e5e7eb;">
+                <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #374151;">Document Details</div>
+                <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;"><strong>File:</strong> ${docName}</div>
+                <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;"><strong>Type:</strong> PDF Document</div>
+                <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;"><strong>Status:</strong> <span id="document-status">Loading...</span></div>
+                
+                <!-- Quick Actions -->
+                <div style="display: flex; gap: 8px; margin-top: 12px; justify-content: center;">
+                  <button id="preview-quick-view-btn" data-object-url="${objectUrl}" style="
+                    padding: 6px 12px; 
+                    background: #1a73e8; 
+                    color: white; 
+                    border: none; 
+                    border-radius: 4px; 
+                    cursor: pointer; 
+                    font-size: 11px; 
+                    font-weight: 500;
+                    transition: all 0.2s ease;
+                  ">
+                    View PDF
+                  </button>
+                  <button id="preview-quick-download-btn" data-object-url="${objectUrl}" data-doc-name="${docName}" style="
+                    padding: 6px 12px; 
+                    background: #34a853; 
+                    color: white; 
+                    border: none; 
+                    border-radius: 4px; 
+                    cursor: pointer; 
+                    font-size: 11px; 
+                    font-weight: 500;
+                    transition: all 0.2s ease;
+                  ">
+                    Download
+                  </button>
+                  <button id="preview-quick-copy-btn" data-object-url="${objectUrl}" style="
+                    padding: 6px 12px; 
+                    background: #ea4335; 
+                    color: white; 
+                    border: none; 
+                    border-radius: 4px; 
+                    cursor: pointer; 
+                    font-size: 11px; 
+                    font-weight: 500;
+                    transition: all 0.2s ease;
+                  ">
+                    Copy Link
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div style="display: flex; gap: 12px;">
+            <button id="preview-open-doc-btn" data-object-url="${objectUrl}" style="
+              flex: 1;
+              padding: 12px 20px;
+              background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+              color: white;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 600;
+              transition: all 0.2s ease;
+              box-shadow: 0 2px 8px rgba(26,115,232,0.3);
+            ">Open Document</button>
+            <button id="preview-download-btn" data-object-url="${objectUrl}" data-doc-name="${docName}" style="
+              padding: 12px 20px;
+              background: #f8f9fa;
+              color: #374151;
+              border: 1px solid #d1d5db;
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 500;
+              transition: all 0.2s ease;
+            ">Download</button>
+          </div>
+        </div>
+      `;
+        rightPreviewPanel.innerHTML = previewContent;
+        const pdfIframe = rightPreviewPanel.querySelector("#pdf-iframe");
+        const pdfLoading = rightPreviewPanel.querySelector("#pdf-loading");
+        const pdfError = rightPreviewPanel.querySelector("#pdf-error");
+        const documentStatus = rightPreviewPanel.querySelector("#document-status");
+        if (pdfIframe) {
+          const handlePdfLoad = () => {
+            console.log("[PREVIEW] PDF blob loaded successfully");
+            if (pdfLoading) pdfLoading.style.display = "none";
+            if (pdfError) pdfError.style.display = "none";
+            if (pdfIframe) pdfIframe.style.display = "block";
+            if (documentStatus) documentStatus.textContent = "Ready to View";
+          };
+          const handlePdfError = () => {
+            console.log("[PREVIEW] PDF blob failed to load");
+            if (pdfLoading) pdfLoading.style.display = "none";
+            if (pdfError) pdfError.style.display = "block";
+            if (pdfIframe) pdfIframe.style.display = "none";
+            if (documentStatus) documentStatus.textContent = "Failed to Load";
+          };
+          pdfIframe.addEventListener("load", handlePdfLoad);
+          pdfIframe.addEventListener("error", handlePdfError);
+          setTimeout(() => {
+            if (pdfLoading && pdfLoading.style.display !== "none") {
+              console.log("[PREVIEW] PDF blob loading timeout");
+              handlePdfError();
+            }
+          }, 5e3);
+        }
+        const openDocBtn = rightPreviewPanel.querySelector("#preview-open-doc-btn");
+        const downloadBtn = rightPreviewPanel.querySelector("#preview-download-btn");
+        if (openDocBtn) {
+          openDocBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const objectUrl2 = openDocBtn.getAttribute("data-object-url");
+            if (objectUrl2) {
+              window.open(objectUrl2, "_blank");
+            }
+          });
+        }
+        if (downloadBtn) {
+          downloadBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const objectUrl2 = downloadBtn.getAttribute("data-object-url");
+            const docName2 = downloadBtn.getAttribute("data-doc-name");
+            if (objectUrl2) {
+              const link = document.createElement("a");
+              link.href = objectUrl2;
+              link.download = docName2 || "document.pdf";
+              link.click();
+            }
+          });
+        }
+        const quickViewBtn = rightPreviewPanel.querySelector("#preview-quick-view-btn");
+        const quickDownloadBtn = rightPreviewPanel.querySelector("#preview-quick-download-btn");
+        const quickCopyBtn = rightPreviewPanel.querySelector("#preview-quick-copy-btn");
+        if (quickViewBtn) {
+          quickViewBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const objectUrl2 = quickViewBtn.getAttribute("data-object-url");
+            if (objectUrl2) {
+              window.open(objectUrl2, "_blank");
+            }
+          });
+        }
+        if (quickDownloadBtn) {
+          quickDownloadBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const objectUrl2 = quickDownloadBtn.getAttribute("data-object-url");
+            const docName2 = quickDownloadBtn.getAttribute("data-doc-name");
+            if (objectUrl2) {
+              const link = document.createElement("a");
+              link.href = objectUrl2;
+              link.download = docName2 || "document.pdf";
+              link.click();
+            }
+          });
+        }
+        if (quickCopyBtn) {
+          quickCopyBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const objectUrl2 = quickCopyBtn.getAttribute("data-object-url");
+            if (objectUrl2) {
+              navigator.clipboard.writeText(objectUrl2).then(() => {
+                const notification = document.createElement("div");
+                notification.textContent = "Link copied to clipboard!";
+                notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #10b981;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 500;
+                z-index: 10000;
+                box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+              `;
+                document.body.appendChild(notification);
+                setTimeout(() => {
+                  document.body.removeChild(notification);
+                }, 3e3);
+              }).catch(() => {
+                alert("Failed to copy link. Please copy manually: " + objectUrl2);
+              });
+            }
+          });
+        }
+        console.log("[PREVIEW] Showing right preview panel with PDF blob");
+        rightPreviewPanel.style.display = "flex";
+        rightPreviewPanel.offsetHeight;
+        rightPreviewPanel.style.transform = "translateX(0)";
+        const originalHideRightPreview = hideRightPreview;
+        const hideRightPreviewWithCleanup = () => {
+          URL.revokeObjectURL(objectUrl);
+          originalHideRightPreview();
+        };
+        const closeBtn = rightPreviewPanel.querySelector("button");
+        if (closeBtn) {
+          closeBtn.onclick = hideRightPreviewWithCleanup;
+        }
+      };
       cleanContainer.addEventListener("click", async (e) => {
         console.log("[DOC] Click detected on:", e.target);
         const icon = e.target.closest(".doc-preview-icon");
@@ -73672,8 +73963,41 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         const hasDoc = icon.getAttribute("data-has-doc") === "1";
         console.log("[DOC] Has document:", hasDoc);
         if (!hasDoc) return;
-        console.log("[DOC] Document icon clicked, showing right preview panel");
-        showRightPreview(icon);
+        const threadId = icon.getAttribute("data-thread-id");
+        const documentName = icon.getAttribute("data-doc-name");
+        const docUrl = icon.getAttribute("data-doc-url");
+        if (docUrl && docUrl.includes("w3.org")) {
+          console.log("[DOC] Sample document detected, using existing preview");
+          showRightPreview(icon);
+          return;
+        }
+        if (threadId && documentName && opts.fetchPdf) {
+          const cacheKey = `${threadId}|${documentName}`;
+          let cachedBlob = pdfCache.get(cacheKey);
+          if (cachedBlob) {
+            console.log("[DOC] Using cached PDF blob");
+            showRightPreviewWithBlob(icon, cachedBlob);
+            return;
+          }
+          try {
+            console.log("[DOC] Fetching PDF from backend:", { threadId, documentName });
+            const blob2 = await opts.fetchPdf({ threadId, documentName });
+            if (pdfCache.size > 25) {
+              const firstKey = pdfCache.keys().next().value;
+              pdfCache.delete(firstKey);
+            }
+            pdfCache.set(cacheKey, blob2);
+            console.log("[DOC] PDF fetched successfully, showing preview");
+            showRightPreviewWithBlob(icon, blob2);
+          } catch (err) {
+            console.error("[DOC] Failed to fetch PDF from backend:", err);
+            console.log("[DOC] Falling back to existing preview functionality");
+            showRightPreview(icon);
+          }
+        } else {
+          console.log("[DOC] No backend fetch available, using existing preview");
+          showRightPreview(icon);
+        }
       });
     }, 500);
     return {
@@ -74713,10 +75037,20 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         console.log("[DEBUG] All utility functions available:", Object.keys(window.SpreadsheetMetaUtils));
         console.log("============================================\n");
       }, 1e3);
-      var API_ENDPOINT = "https://nmuo25f2da.execute-api.us-east-2.amazonaws.com/prod";
-      var AUTH_ENDPOINT = "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/prod/email-poller";
-      var CLIENT_ID = "759225635526-dsidm6o777blfol5h26g6jfqhad710td.apps.googleusercontent.com";
-      var CHROME_CLIENT_ID = "759225635526-gs69pgupgap87o4ul9ud9pv8pjrupcgc.apps.googleusercontent.com";
+      if (typeof CONFIG === "undefined") {
+        globalThis.CONFIG = {
+          API_ENDPOINT: "https://nmuo25f2da.execute-api.us-east-2.amazonaws.com/prod",
+          AUTH_ENDPOINT: "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/prod/email-poller",
+          CLIENT_ID: "759225635526-gs69pgupgap87o4ul9ud9pv8pjrupcgc.apps.googleusercontent.com",
+          CLIENT_SECRET: null,
+          CHROME_CLIENT_ID: "759225635526-gs69pgupgap87o4ul9ud9pv8pjrupcgc.apps.googleusercontent.com"
+        };
+      }
+      var API_ENDPOINT = CONFIG.API_ENDPOINT;
+      var AUTH_ENDPOINT = CONFIG.AUTH_ENDPOINT;
+      var CLIENT_ID = CONFIG.CLIENT_ID;
+      var CLIENT_SECRET = CONFIG.CLIENT_SECRET;
+      var CHROME_CLIENT_ID = CONFIG.CHROME_CLIENT_ID;
       if (!API_ENDPOINT) {
         console.error("[CONFIG] API_ENDPOINT is not set");
       }
@@ -77543,6 +77877,41 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       background: #fff !important;
     `;
           customRouteView.getElement().appendChild(container);
+          try {
+            const authState = await uiManager.authService.getAuthState();
+            if (!authState.isLoggedIn) {
+              console.log("[UI DEBUG] User not authenticated, showing login view in route");
+              container.innerHTML = uiManager.createLoginContent();
+              const signInBtn = container.querySelector("#google-signin-btn");
+              if (signInBtn) {
+                signInBtn.addEventListener("click", async () => {
+                  console.log('[UI] "Sign in with Google" button clicked from route');
+                  const loadingIndicator = container.querySelector("#loading-indicator");
+                  const errorIndicator = container.querySelector("#error-indicator");
+                  if (loadingIndicator) loadingIndicator.style.display = "block";
+                  if (errorIndicator) errorIndicator.style.display = "none";
+                  try {
+                    await uiManager.authService.signInWithGoogle();
+                    console.log("[UI] Login successful, reloading route");
+                    sdk.Router.goto("invoice-tracker-view");
+                  } catch (error) {
+                    console.error("[UI] Sign-in failed:", error);
+                    if (loadingIndicator) loadingIndicator.style.display = "none";
+                    if (errorIndicator) {
+                      errorIndicator.style.display = "block";
+                      errorIndicator.textContent = `Sign-in failed: ${error.message}. Please try again.`;
+                    }
+                  }
+                });
+              }
+              return;
+            }
+          } catch (error) {
+            console.error("[UI] Failed to check auth state:", error);
+            container.innerHTML = uiManager.createLoginContent();
+            return;
+          }
+          console.log("[UI DEBUG] User is authenticated, loading invoice data");
           const loadingController = createLoadingController(container);
           let spreadsheetResult = null;
           let handleCleanup = () => {

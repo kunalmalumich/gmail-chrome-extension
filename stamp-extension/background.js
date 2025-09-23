@@ -4,8 +4,15 @@
 // These values are injected by the build script (build.sh) as a global CONFIG object.
 console.log('[Background] Starting in PRODUCTION mode');
 
+// Define CONFIG object if not injected by build script
+if (typeof CONFIG === 'undefined') {
+  globalThis.CONFIG = {
+    AUTH_ENDPOINT: 'https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/prod/email-poller'
+  };
+}
+
 // Get AUTH_ENDPOINT from CONFIG (injected by build script)
-const AUTH_ENDPOINT = CONFIG?.AUTH_ENDPOINT || 'https://trystamp.ai/email-poller';
+const AUTH_ENDPOINT = CONFIG?.AUTH_ENDPOINT || 'https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/prod/email-poller';
 
 // Map to track Web OAuth flows by tab ID
 const webOAuthFlows = new Map();
@@ -15,7 +22,7 @@ function getRedirectURL() {
   // For Edge compatibility, use the hardcoded URL if getRedirectURL is not available
   const redirectUri = chrome.identity.getRedirectURL 
     ? chrome.identity.getRedirectURL()
-    : "https://trystamp.ai/oauth2-callback";
+    : "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/prod/email-poller/oauth2-callback";
   
   console.log('[Background] Using redirect URI:', redirectUri);
   return redirectUri;
@@ -160,7 +167,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const tabUpdateListener = (tabId, changeInfo, updatedTab) => {
           if (tabId === tab.id && changeInfo.url) {
             console.log('[Background] OAuth tab navigated to:', changeInfo.url);
-            if (changeInfo.url.includes('trystamp.ai/oauth2-callback')) {
+            if (changeInfo.url.includes('70h4jbuv95.execute-api.us-east-2.amazonaws.com/prod/email-poller/oauth2-callback')) {
               console.log('[Background] 🎯 OAuth callback page detected!');
             }
             if (changeInfo.url.includes('70h4jbuv95.execute-api.us-east-2.amazonaws.com')) {

@@ -78,7 +78,7 @@
     left:0px;
     width:100%;
     height:100%;
-    z-index:21;
+    z-index:999990 !important;
 
     display: flex;
     flex-direction: column;
@@ -159,7 +159,7 @@
     position: -webkit-sticky;
     position: sticky;
     top: 0;
-    z-index:2;
+    z-index:999995 !important;
     font-size: 12px;
     font-weight: 700;
     line-height: 1.2;
@@ -417,7 +417,7 @@
     left:-2000px;
     cursor:crosshair;
     box-sizing: initial;
-    z-index:20;
+    z-index:999996 !important;
     padding: 2px;
 }
 
@@ -441,7 +441,7 @@
 {
     position:fixed;
     top:100%;
-    z-index:40;
+    z-index:999997 !important;
     user-select:none;
     -webkit-font-smoothing: antialiased;
     font-size: .875rem;
@@ -467,7 +467,7 @@
 {
     position:fixed;
     top:100%;
-    z-index:40;
+    z-index:999997 !important;
     user-select:none;
     -webkit-font-smoothing: antialiased;
     font-size: .875rem;
@@ -764,7 +764,7 @@
 
 .jss_worksheet thead .jss_freezed, .jss_worksheet tfoot .jss_freezed {
     left: 0px;
-    z-index: 3 !important;
+    z-index: 999994 !important;
     box-shadow: 2px 0px 2px 0.2px #ccc !important;
     -webkit-box-shadow: 2px 0px 2px 0.2px #ccc !important;
     -moz-box-shadow: 2px 0px 2px 0.2px #ccc !important;
