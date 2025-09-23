@@ -18,9 +18,11 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  position: relative !important;
-  z-index: 999990 !important;
-  overflow: visible !important;
+  position: relative;
+  z-index: 999990;
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
 }
 
 .jss_toolbar button {
@@ -68,16 +70,18 @@
   word-wrap: normal;
   direction: ltr;
   -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
 }
 
 /* Table styling */
 .jexcel, .jspreadsheet, .jss_container, .jss_worksheet {
-  font-size: 12px;
-  line-height: 1.2;
+  font-size: 10px;
+  line-height: 1.1;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  overflow: visible !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   max-height: 80vh;
   max-width: 100%;
@@ -85,34 +89,36 @@
 
 /* Spreadsheet container with scrolling */
 .jspreadsheet-container {
-  overflow: visible !important;
+  overflow-x: auto;
+  overflow-y: auto;
   max-height: 80vh;
-  max-width: 100%;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
 }
 
-/* Ensure the spreadsheet table can scroll horizontally */
+/* Make the spreadsheet table responsive */
 .jexcel table, .jspreadsheet table {
-  min-width: 100%;
+  width: 100%;
+  max-width: 100%;
   table-layout: fixed;
 }
 
 .jexcel td, .jspreadsheet td, .jexcel th, .jspreadsheet th {
   border: 1px solid #e5e7eb;
-  padding: 4px 8px;
+  padding: 1px 3px;
   height: auto;
-  min-height: 20px;
-  white-space: normal;
+  min-height: 12px;
+  white-space: nowrap;
   word-wrap: break-word;
-  overflow: visible;
+  overflow: hidden;
+  text-overflow: ellipsis;
   background: #fff;
   transition: background-color 0.2s ease;
 }
 
 .jexcel tr, .jspreadsheet tr { 
   height: auto;
-  min-height: 20px; 
+  min-height: 12px; 
 }
 
 .jexcel thead th, .jspreadsheet thead th,
@@ -122,8 +128,8 @@
   color: white !important;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-size: 11px;
+  letter-spacing: 0.3px;
+  font-size: 9px;
   text-align: center;
 }
 
@@ -135,7 +141,7 @@
   font-weight: normal !important;
   text-transform: none !important;
   letter-spacing: normal !important;
-  font-size: 12px !important;
+  font-size: 9px !important;
   text-align: left !important;
   border: 1px solid #047857 !important;
 }
@@ -215,7 +221,9 @@
   border-radius: 4px;
   padding: 6px 8px;
   font-size: 12px;
-  width: 200px;
+  flex: 1;
+  min-width: 150px;
+  max-width: 300px;
   transition: border-color 0.2s ease;
 }
 
@@ -270,29 +278,12 @@
   color: #059669;
 }
 
-/* Enhanced scrolling styles */
-.jspreadsheet-container::-webkit-scrollbar {
-  width: 8px;
-  height: 0px; /* Hide horizontal scrollbar */
-}
+/* Remove all custom scrollbar styling - use browser default */
 
-.jspreadsheet-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-.jspreadsheet-container::-webkit-scrollbar-thumb {
-  background: #10b981;
-  border-radius: 4px;
-}
-
-.jspreadsheet-container::-webkit-scrollbar-thumb:hover {
-  background: #059669;
-}
-
-/* Hide horizontal scrollbar completely */
+/* Allow vertical scrolling only */
 .jspreadsheet-container {
-  overflow: visible !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
 }
 
 /* Ensure header stays green and visible */
@@ -385,16 +376,11 @@
   position: relative !important;
 }
 
-/* Force all dropdowns to be positioned absolutely and on top */
+/* Ensure dropdowns have proper z-index */
 .jdropdown-container,
 .jdropdown-menu,
 .jdropdown-content {
-  position: absolute !important;
   z-index: 999999 !important;
-  top: auto !important;
-  left: auto !important;
-  right: auto !important;
-  bottom: auto !important;
 }
 
 /* Ensure dropdowns are not clipped by parent containers */
@@ -402,12 +388,41 @@
 .jspreadsheet-clean-container,
 .jss_container,
 .jss_worksheet {
-  overflow: visible !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
 }
 
-/* Force dropdown positioning to be relative to viewport */
-.jdropdown-container[style*="position"] {
+/* Fullscreen mode styling */
+.jspreadsheet-clean-container.fullscreen {
   position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 999999 !important;
+  background: #ffffff !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.jspreadsheet-clean-container.fullscreen .jss_toolbar {
+  flex-shrink: 0 !important;
+}
+
+.jspreadsheet-clean-container.fullscreen .jss_filter {
+  flex-shrink: 0 !important;
+}
+
+.jspreadsheet-clean-container.fullscreen .jspreadsheet-container {
+  flex: 1 !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+/* Width fixes are now handled in the default jspreadsheet.css file */
+
+/* Let jspreadsheet handle dropdown positioning naturally */
+.jdropdown-container {
   z-index: 999999 !important;
 }
 
@@ -447,27 +462,45 @@
   z-index: 999999 !important;
 }
 
-/* Force all dropdowns to be positioned absolutely and above everything */
+/* Ensure dropdowns are above everything */
 .jdropdown-container,
 .jdropdown-menu,
 .jdropdown-content,
 .jdropdown-backdrop {
-  position: absolute !important;
   z-index: 999999 !important;
 }
 
-/* Ensure dropdowns are not clipped by any parent containers */
-* {
-  overflow: visible !important;
+/* Fix dropdown visibility by allowing proper overflow */
+.jspreadsheet-container,
+.jspreadsheet-clean-container {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  position: relative !important;
 }
 
-.jspreadsheet-container,
-.jspreadsheet-clean-container,
+/* Allow dropdowns to escape container bounds */
 .jss_container,
-.jss_worksheet,
-.jss_toolbar {
+.jss_worksheet {
   overflow: visible !important;
   position: relative !important;
+}
+
+.jss_toolbar {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  position: relative !important;
+}
+
+/* Critical: Ensure dropdown cells can show dropdowns */
+.jss_worksheet > tbody > tr > td.jss_dropdown {
+  overflow: visible !important;
+  position: relative !important;
+}
+
+/* Ensure dropdown containers can appear outside their parent */
+.jdropdown-container {
+  position: fixed !important;
+  z-index: 999999 !important;
 }
 
 /* Responsive design */

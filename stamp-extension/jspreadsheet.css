@@ -65,11 +65,14 @@
 }
 
 .jss_container {
-    display:inline-block;
+    display:block;
     padding-right:2px;
     box-sizing: border-box;
     overscroll-behavior: contain;
     outline: none;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
 }
 
 .fullscreen {
@@ -103,13 +106,14 @@
 }
 
 .jss_content {
-    display:inline-block;
+    display:block;
     box-sizing: border-box;
     padding-right:3px;
     padding-bottom:3px;
     position:relative;
     scrollbar-width: thin;
     scrollbar-color: #666 transparent;
+    width: 100%;
 }
 
 @supports (-moz-appearance:none) {
@@ -135,6 +139,7 @@
     white-space:  nowrap;
     empty-cells: show;
     border: 0px;
+    min-width: 1200px;
     background-color: #fff;
     width: 0;
 
@@ -246,12 +251,12 @@
 }
 
 .jss_overflow > tbody > tr > td {
-    overflow: hidden;
+    overflow: visible;
 }
 
 .jss_worksheet > tbody > tr > td:last-child
 {
-    overflow: hidden;
+    overflow: visible;
 }
 
 .jss_worksheet > tbody > tr > td > img
@@ -317,7 +322,7 @@
     background-position:top 50% right 5px;
     background-image: url("data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='none' d='M0 0h24v24H0V0z'/%3E%3Cpath d='M7 10l5 5 5-5H7z' fill='lightgray'/%3E%3C/svg%3E");
     text-overflow: ellipsis;
-    overflow-x:hidden;
+    overflow-x:visible;
 }
 
 .jss_worksheet > tbody > tr > td.jss_dropdown.jss_comments
@@ -636,6 +641,10 @@
     display:flex;
     justify-content:space-between;
     margin-bottom:4px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
 }
 
 .jss_filter > div
@@ -696,7 +705,11 @@
     margin: 0px 2px 4px 1px;
     box-shadow: var(--stamp-shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     position: relative;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .jss_toolbar:empty

@@ -9,8 +9,8 @@
 export async function buildSpreadsheet(container, data, opts = {}) {
   console.log('[SHADOW DOM] Starting clean jspreadsheet integration...');
   
-  // Setup clean Shadow DOM container instead of CSS isolation
-  const { cleanContainer, shadowRoot } = await setupShadowDOMContainer(container);
+  // Setup clean container for jspreadsheet
+  const { cleanContainer, mainWrapper } = await setupCleanContainer(container);
   
   // Initialize corrections batcher (requires apiClient from opts)
   const correctionsBatcher = opts.apiClient ? new CorrectionsBatcher(opts.apiClient) : null;
@@ -25,10 +25,12 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   }
   
   // Define columns with field mapping metadata for edit tracking
+  // Excel-like column widths for better readability (total: ~1200px)
+  // 30+80+100+120+150+60+80+60+80+80+50+80+30+80+120+60 = 1200px
   const columns = [
     {
       title: '📄', // Document icon column (preview/open)
-      width: 40,
+      width: 30,
       type: 'html',
       readOnly: true,
       fieldName: null,
@@ -36,7 +38,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Invoice #', 
-      width: 100, 
+      width: 80, // Excel-like width
       type: 'text',
       fieldName: 'invoiceNumber',
       editable: true,
@@ -44,7 +46,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Entity Name', 
-      width: 150, 
+      width: 100, // Excel-like width
       type: 'text',
       fieldName: 'entityName',
       editable: true,
@@ -52,7 +54,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Vendor Name', 
-      width: 150, 
+      width: 120, // Excel-like width
       type: 'text',
       fieldName: 'vendor.name',
       editable: true,
@@ -60,7 +62,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Description', 
-      width: 200, 
+      width: 150, // Excel-like width
       type: 'text',
       fieldName: 'description',
       editable: true,
@@ -68,7 +70,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Period', 
-      width: 80, 
+      width: 60, // Excel-like width
       type: 'text',
       fieldName: 'period',
       editable: true,
@@ -76,7 +78,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Amount', 
-      width: 120, 
+      width: 80, // Excel-like width
       type: 'numeric', 
       mask: '$ #,##.00',
       fieldName: 'amount',
@@ -85,7 +87,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     {
       title: 'Currency',
-      width: 80,
+      width: 60, // Excel-like width
       type: 'dropdown',
       source: ['USD', 'INR', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CNY', 'OTHER'],
       fieldName: 'currency',
@@ -98,7 +100,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Issue Date', 
-      width: 90, 
+      width: 80, // Excel-like width
       type: 'calendar', 
       options: { format: 'YYYY-MM-DD' },
       fieldName: 'issueDate',
@@ -107,7 +109,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Due Date', 
-      width: 90, 
+      width: 80, // Excel-like width
       type: 'calendar', 
       options: { format: 'YYYY-MM-DD' },
       fieldName: 'dueDate',
@@ -116,7 +118,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     {
       title: 'Terms',
-      width: 70,
+      width: 50, // Excel-like width
       type: 'text',
       fieldName: 'paymentTerms',
       editable: true,
@@ -124,7 +126,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Status', 
-      width: 90, 
+      width: 80, // Excel-like width
       type: 'dropdown',
       source: [ 'pending', 'approved', 'rejected', 'paid', 'on_hold', 'requires_review', 'partially_approved', 'ready_for_payment', 'duplicate', 'unknown' ],
       fieldName: 'status',
@@ -133,7 +135,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     {
       title: '📤', // Gmail icon column (moved next to Status)
-      width: 60,
+      width: 30, // Excel-like width
       type: 'html',
       readOnly: true,
       fieldName: null,
@@ -141,7 +143,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     {
       title: 'Approver',
-      width: 120,
+      width: 80, // Excel-like width
       type: 'dropdown',
       source: ['PENDING', 'APPROVED', 'REJECTED'],
       fieldName: 'approvalStatus',
@@ -154,7 +156,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     {
       title: 'Notes',
-      width: 250,
+      width: 120, // Excel-like width
       type: 'text',
       fieldName: 'notes',
       editable: true,
@@ -162,7 +164,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Actions', 
-      width: 120, 
+      width: 60, // Excel-like width
       type: 'html',
       readOnly: true,
       fieldName: null,
@@ -189,6 +191,14 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   console.log('[JS001] Creating jspreadsheet, data rows:', spreadsheetData.length);
   console.log('[JS001] Column configuration:', columns);
   
+  // Ensure jspreadsheet is available
+  if (typeof jspreadsheet === 'undefined') {
+    console.error('[JS001] jspreadsheet library not loaded!');
+    throw new Error('jspreadsheet library is not available');
+  }
+  
+  console.log('[JS001] jspreadsheet library loaded:', typeof jspreadsheet);
+  
   // Fix dropdown z-index issues by intercepting dropdown creation
   const originalAppendChild = document.body.appendChild;
   const originalInsertBefore = document.body.insertBefore;
@@ -207,15 +217,20 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     )) {
       // Force maximum z-index for dropdowns and ensure they're not clipped
       node.style.zIndex = '999999';
-      node.style.position = 'fixed';
       node.style.overflow = 'visible';
-      // Ensure dropdown is positioned relative to viewport, not parent container
-      if (node.classList.contains('jdropdown-container')) {
-        const rect = node.getBoundingClientRect();
-        node.style.top = rect.top + 'px';
-        node.style.left = rect.left + 'px';
-      }
-      console.log('[DROPDOWN FIX] Applied z-index fix to:', node.className);
+      node.style.position = 'fixed';
+      // Let jspreadsheet handle positioning naturally - don't override with getBoundingClientRect
+      console.log('[DROPDOWN FIX] Applied z-index fix to:', node.className, node);
+      
+      // Ensure dropdown is properly positioned and visible
+      setTimeout(() => {
+        if (node.style.display === 'none') {
+          node.style.display = 'block';
+        }
+        if (node.style.visibility === 'hidden') {
+          node.style.visibility = 'visible';
+        }
+      }, 10);
     }
   };
   
@@ -240,7 +255,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
         )) {
           // Force maximum z-index for dropdowns
           node.style.zIndex = '999999';
-          node.style.position = 'fixed';
+          node.style.overflow = 'visible';
           console.log('[DROPDOWN FIX] MutationObserver applied z-index fix to:', node.className);
         }
       });
@@ -253,7 +268,6 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   });
   
   const spreadsheet = jspreadsheet(cleanContainer, {
-    root: shadowRoot,  // Critical parameter for Shadow DOM event handling
     toolbar: true,     // Enable the toolbar with tools
     worksheets: [{
       data: spreadsheetData,
@@ -261,7 +275,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       meta: metaInformation,  // Hidden metadata for linking to Gmail threads/messages
       
       // === ROW HEIGHT CONFIGURATION ===
-      defaultRowHeight: 16, // Further reduced row height for more compact view
+      defaultRowHeight: 12, // Excel-like compact row height
       minDimensions: [15, 100], // [columns, rows] - ensure we have enough space
       
       // === PAGINATION CONFIGURATION ===
@@ -298,7 +312,103 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   
   // === ENHANCE EXISTING SEARCH WITH REAL-TIME FUNCTIONALITY ===
   oncreateworksheet: function(worksheet) {
-    console.log('[DROPDOWN] Worksheet created - using jspreadsheet native dropdown handling');
+    console.log('[DROPDOWN] Worksheet created - initializing dropdown functionality');
+    console.log('[DROPDOWN] Worksheet element:', worksheet.element);
+    
+    // Initialize dropdowns after worksheet is created
+    setTimeout(() => {
+      console.log('[DROPDOWN] Initializing dropdown cells...');
+      
+      // Check if jsuites is available
+      if (typeof window.jsuites === 'undefined') {
+        console.warn('[DROPDOWN] jsuites not available - dropdowns may not work properly');
+        return;
+      }
+      
+      // Find all dropdown cells
+      const dropdownCells = worksheet.element.querySelectorAll('.jss_dropdown');
+      console.log('[DROPDOWN] Found dropdown cells:', dropdownCells.length);
+      
+      dropdownCells.forEach((cell, index) => {
+        console.log(`[DROPDOWN] Initializing cell ${index}:`, cell);
+        
+        // Ensure the cell has proper classes and attributes
+        if (!cell.classList.contains('jss_dropdown')) {
+          cell.classList.add('jss_dropdown');
+        }
+        
+        // Add click handler to ensure dropdown opens
+        cell.addEventListener('click', function(e) {
+          console.log('[DROPDOWN] Cell clicked:', cell);
+          e.stopPropagation();
+          
+          // Force dropdown to open if it's not already open
+          if (cell.querySelector('.jdropdown-container') === null) {
+            console.log('[DROPDOWN] Manually triggering dropdown for cell');
+            // Trigger the dropdown programmatically
+            const event = new Event('click', { bubbles: true });
+            cell.dispatchEvent(event);
+          }
+        });
+        
+        // Add hover effect to indicate it's clickable
+        cell.style.cursor = 'pointer';
+        cell.title = 'Click to open dropdown';
+      });
+      
+      // Also check for filter cells and ensure they work
+      const filterCells = worksheet.element.querySelectorAll('.jss_column_filter');
+      console.log('[DROPDOWN] Found filter cells:', filterCells.length);
+      
+      filterCells.forEach((cell, index) => {
+        console.log(`[DROPDOWN] Initializing filter cell ${index}:`, cell);
+        cell.style.cursor = 'pointer';
+        cell.title = 'Click to filter';
+        
+        // Ensure filter cells have proper classes
+        if (!cell.classList.contains('jss_column_filter')) {
+          cell.classList.add('jss_column_filter');
+        }
+        
+        // Add click handler for filter functionality
+        cell.addEventListener('click', function(e) {
+          console.log('[FILTER] Filter cell clicked:', cell);
+          e.stopPropagation();
+          
+          // Check if this is a filterable column
+          const columnIndex = Array.from(cell.parentNode.children).indexOf(cell);
+          const columnDef = columns[columnIndex];
+          
+          if (columnDef && columnDef.filter) {
+            console.log('[FILTER] Column is filterable:', columnDef.title);
+            // The filter functionality should be handled by jspreadsheet
+            // We just ensure the cell is properly configured
+          }
+        });
+      });
+      
+      // Also ensure filter row is properly styled
+      const filterRow = worksheet.element.querySelector('thead tr.jss_filter');
+      if (filterRow) {
+        console.log('[FILTER] Found filter row, ensuring proper styling');
+        filterRow.style.background = '#10b981';
+        filterRow.style.color = 'white';
+        
+        // Ensure all filter cells in the row are properly styled
+        const filterCellsInRow = filterRow.querySelectorAll('td');
+        filterCellsInRow.forEach((cell, index) => {
+          cell.style.background = '#10b981';
+          cell.style.color = 'white';
+          cell.style.border = '1px solid #047857';
+          
+          // Add filter icon if not present
+          if (!cell.querySelector('.jss_column_filter')) {
+            cell.classList.add('jss_column_filter');
+          }
+        });
+      }
+      
+    }, 1500); // Increased delay to ensure everything is rendered
     
     // Search functionality (keeping existing search logic)
     console.log('[SEARCH] oncreateworksheet event fired!');
@@ -349,7 +459,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           gap: 10px;
           margin: 10px 0;
           padding: 10px;
-          background: #f8f9fa;
+          background: #059669;
           border-radius: 4px;
         `;
         
@@ -434,6 +544,35 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   const sheet = Array.isArray(spreadsheet) ? spreadsheet[0] : spreadsheet;
   console.log('[JS005] sheets:', Array.isArray(spreadsheet) ? spreadsheet.length : 1);
   
+  // Add fullscreen toggle functionality
+  setTimeout(() => {
+    const fullscreenButton = cleanContainer.querySelector('.jss_toolbar button[title*="fullscreen"], .jss_toolbar button[title*="Fullscreen"], .jss_toolbar button[aria-label*="fullscreen"]');
+    if (fullscreenButton) {
+      console.log('[FULLSCREEN] Found fullscreen button, adding click handler');
+      fullscreenButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('[FULLSCREEN] Toggle fullscreen clicked');
+        
+        const isFullscreen = mainWrapper.classList.contains('fullscreen');
+        
+        if (isFullscreen) {
+          // Exit fullscreen
+          mainWrapper.classList.remove('fullscreen');
+          document.body.style.overflow = '';
+          console.log('[FULLSCREEN] Exited fullscreen mode');
+        } else {
+          // Enter fullscreen
+          mainWrapper.classList.add('fullscreen');
+          document.body.style.overflow = 'hidden';
+          console.log('[FULLSCREEN] Entered fullscreen mode');
+        }
+      });
+    } else {
+      console.log('[FULLSCREEN] Fullscreen button not found');
+    }
+  }, 1000);
+  
   // Debug: Check if search methods are available
   console.log('[SEARCH DEBUG] Sheet object:', sheet);
   console.log('[SEARCH DEBUG] Search method available:', typeof sheet?.search);
@@ -484,7 +623,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
         gap: 10px;
         margin: 10px 0;
         padding: 10px;
-        background: #f8f9fa;
+        background: #059669;
         border-radius: 4px;
       `;
       
@@ -612,6 +751,32 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           console.log('[SEARCH DEBUG] Search input value:', searchInSheet.value);
           console.log('[SEARCH DEBUG] Search input events:', searchInSheet.oninput, searchInSheet.onkeydown);
         }
+      }
+    },
+    
+    // Debug method to check dropdown functionality
+    debugDropdowns: () => {
+      console.log('[DROPDOWN DEBUG] jsuites available:', typeof window.jsuites);
+      console.log('[DROPDOWN DEBUG] jspreadsheet available:', typeof jspreadsheet);
+      
+      if (sheet && sheet.element) {
+        const dropdownCells = sheet.element.querySelectorAll('.jss_dropdown');
+        console.log('[DROPDOWN DEBUG] Dropdown cells found:', dropdownCells.length);
+        
+        dropdownCells.forEach((cell, index) => {
+          console.log(`[DROPDOWN DEBUG] Cell ${index}:`, {
+            element: cell,
+            classes: cell.className,
+            textContent: cell.textContent,
+            hasDropdown: !!cell.querySelector('.jdropdown-container')
+          });
+        });
+        
+        const filterCells = sheet.element.querySelectorAll('.jss_column_filter');
+        console.log('[DROPDOWN DEBUG] Filter cells found:', filterCells.length);
+        
+        const allDropdowns = document.querySelectorAll('.jdropdown-container');
+        console.log('[DROPDOWN DEBUG] Active dropdowns:', allDropdowns.length);
       }
     }
   };
@@ -934,8 +1099,8 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           right: 0;
           width: 400px;
           height: 100vh;
-          background: #ffffff;
-          border-left: 1px solid #e0e0e0;
+          background: #10b981;
+          border-left: 1px solid #059669;
           box-shadow: -4px 0 12px rgba(0,0,0,0.1);
           z-index: 2147483647;
           display: none;
@@ -955,12 +1120,12 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           width: 32px;
           height: 32px;
           border: none;
-          background: #f5f5f5;
+          background: #059669;
           border-radius: 50%;
           cursor: pointer;
           font-size: 18px;
           font-weight: bold;
-          color: #666;
+          color: #ffffff;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -979,22 +1144,22 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       const previewContent = `
         <div style="flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto;">
           <div style="margin-bottom: 20px;">
-            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #1f2937;">Document Preview</h3>
-            <p style="margin: 0; font-size: 14px; color: #6b7280;">${docName}</p>
+            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #ffffff;">Document Preview</h3>
+            <p style="margin: 0; font-size: 14px; color: #ffffff;">${docName}</p>
           </div>
           
-          <div style="flex: 1; display: flex; flex-direction: column; background: #f8f9fa; border-radius: 8px; overflow: hidden; margin-bottom: 20px; position: relative;">
+          <div style="flex: 1; display: flex; flex-direction: column; background: #059669; border-radius: 8px; overflow: hidden; margin-bottom: 20px; position: relative;">
             ${docUrl ? `
-              <div style="flex: 1; min-height: 300px; position: relative; background: #f8f9fa; border-radius: 8px 8px 0 0; overflow: hidden;">
+              <div style="flex: 1; min-height: 300px; position: relative; background: #059669; border-radius: 8px 8px 0 0; overflow: hidden;">
                 ${isImage ? `
                   <!-- Image Viewer Container -->
-                  <div id="image-viewer-container" style="width: 100%; height: 100%; position: relative; background: #fff; display: flex; align-items: center; justify-content: center;">
-                    <div id="image-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">
+                  <div id="image-viewer-container" style="width: 100%; height: 100%; position: relative; background: #10b981; display: flex; align-items: center; justify-content: center;">
+                    <div id="image-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ffffff;">
                       <div style="font-size: 24px; margin-bottom: 12px;">🖼️</div>
                       <div style="font-size: 16px; font-weight: 500;">Loading Image...</div>
                       <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Please wait</div>
                     </div>
-                    <div id="image-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #dc2626;">
+                    <div id="image-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #fbbf24;">
                       <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
                       <div style="font-size: 16px; font-weight: 500;">Failed to load Image</div>
                       <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View Image" to open in new tab</div>
@@ -1005,13 +1170,13 @@ export async function buildSpreadsheet(container, data, opts = {}) {
                   </div>
                 ` : `
                   <!-- PDF Viewer Container -->
-                  <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #fff;">
-                    <div id="pdf-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">
+                  <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #10b981;">
+                    <div id="pdf-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ffffff;">
                       <div style="font-size: 24px; margin-bottom: 12px;">📄</div>
                       <div style="font-size: 16px; font-weight: 500;">Loading PDF...</div>
                       <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Please wait</div>
                     </div>
-                    <div id="pdf-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #dc2626;">
+                    <div id="pdf-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #fbbf24;">
                       <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
                       <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
                       <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View PDF" to open in new tab</div>
@@ -1024,17 +1189,17 @@ export async function buildSpreadsheet(container, data, opts = {}) {
                 `}
                 
                 <!-- Document Info Card -->
-                <div style="background: #f8f9fa; padding: 16px; border-top: 1px solid #e5e7eb;">
-                  <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #374151;">Document Details</div>
-                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;"><strong>File:</strong> ${docName}</div>
-                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;"><strong>Type:</strong> ${fileType}</div>
-                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;"><strong>Status:</strong> <span id="document-status">Loading...</span></div>
+                <div style="background: #059669; padding: 16px; border-top: 1px solid #065f46;">
+                  <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #ffffff;">Document Details</div>
+                  <div style="font-size: 12px; color: #ffffff; margin-bottom: 4px;"><strong>File:</strong> ${docName}</div>
+                  <div style="font-size: 12px; color: #ffffff; margin-bottom: 4px;"><strong>Type:</strong> ${fileType}</div>
+                  <div style="font-size: 12px; color: #ffffff; margin-bottom: 8px;"><strong>Status:</strong> <span id="document-status">Loading...</span></div>
                   
                   <!-- Quick Actions -->
                   <div style="display: flex; gap: 8px; margin-top: 12px; justify-content: center;">
                     <button id="preview-quick-view-btn" data-doc-url="${docUrl}" style="
                       padding: 6px 12px; 
-                      background: #1a73e8; 
+                      background: #10b981; 
                       color: white; 
                       border: none; 
                       border-radius: 4px; 
@@ -1047,7 +1212,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
                     </button>
                     <button id="preview-quick-download-btn" data-doc-url="${docUrl}" data-doc-name="${docName}" style="
                       padding: 6px 12px; 
-                      background: #34a853; 
+                      background: #059669; 
                       color: white; 
                       border: none; 
                       border-radius: 4px; 
@@ -1060,7 +1225,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
                     </button>
                     <button id="preview-quick-copy-btn" data-doc-url="${docUrl}" style="
                       padding: 6px 12px; 
-                      background: #ea4335; 
+                      background: #047857; 
                       color: white; 
                       border: none; 
                       border-radius: 4px; 
@@ -1076,7 +1241,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
               </div>
             ` : `
               <div style="flex: 1; display: flex; align-items: center; justify-content: center; background: #f5f5f5; min-height: 200px;">
-                <div style="text-align: center; color: #666;">
+                <div style="text-align: center; color: #ffffff;">
                   <div style="font-size: 48px; margin-bottom: 12px;">📄</div>
                   <div style="font-size: 16px; font-weight: 500;">Document Preview</div>
                   <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">No document available</div>
@@ -1089,7 +1254,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
             <button id="preview-open-doc-btn" data-doc-url="${docUrl}" style="
               flex: 1;
               padding: 12px 20px;
-              background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+              background: linear-gradient(135deg, #10b981 0%, #059669 100%);
               color: white;
               border: none;
               border-radius: 8px;
@@ -1097,13 +1262,13 @@ export async function buildSpreadsheet(container, data, opts = {}) {
               font-size: 14px;
               font-weight: 600;
               transition: all 0.2s ease;
-              box-shadow: 0 2px 8px rgba(26,115,232,0.3);
+              box-shadow: 0 2px 8px rgba(16,185,129,0.3);
             ">Open Document</button>
             <button id="preview-download-btn" data-doc-url="${docUrl}" data-doc-name="${docName}" style="
               padding: 12px 20px;
-              background: #f8f9fa;
-              color: #374151;
-              border: 1px solid #d1d5db;
+              background: #059669;
+              color: #ffffff;
+              border: 1px solid #047857;
               border-radius: 8px;
               cursor: pointer;
               font-size: 14px;
@@ -1411,8 +1576,8 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           right: 0;
           width: 400px;
           height: 100vh;
-          background: #ffffff;
-          border-left: 1px solid #e0e0e0;
+          background: #10b981;
+          border-left: 1px solid #059669;
           box-shadow: -4px 0 12px rgba(0,0,0,0.1);
           z-index: 2147483647;
           display: none;
@@ -1432,12 +1597,12 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           width: 32px;
           height: 32px;
           border: none;
-          background: #f5f5f5;
+          background: #059669;
           border-radius: 50%;
           cursor: pointer;
           font-size: 18px;
           font-weight: bold;
-          color: #666;
+          color: #ffffff;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1459,20 +1624,20 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       const previewContent = `
         <div style="flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto;">
           <div style="margin-bottom: 20px;">
-            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #1f2937;">Document Preview</h3>
-            <p style="margin: 0; font-size: 14px; color: #6b7280;">${docName}</p>
+            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #ffffff;">Document Preview</h3>
+            <p style="margin: 0; font-size: 14px; color: #ffffff;">${docName}</p>
           </div>
           
-          <div style="flex: 1; display: flex; flex-direction: column; background: #f8f9fa; border-radius: 8px; overflow: hidden; margin-bottom: 20px; position: relative;">
-            <div style="flex: 1; min-height: 300px; position: relative; background: #f8f9fa; border-radius: 8px 8px 0 0; overflow: hidden;">
+          <div style="flex: 1; display: flex; flex-direction: column; background: #059669; border-radius: 8px; overflow: hidden; margin-bottom: 20px; position: relative;">
+            <div style="flex: 1; min-height: 300px; position: relative; background: #059669; border-radius: 8px 8px 0 0; overflow: hidden;">
               <!-- PDF Viewer Container -->
-              <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #fff;">
-                <div id="pdf-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">
+              <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #10b981;">
+                <div id="pdf-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ffffff;">
                   <div style="font-size: 24px; margin-bottom: 12px;">📄</div>
                   <div style="font-size: 16px; font-weight: 500;">Loading PDF...</div>
                   <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Please wait</div>
                 </div>
-                <div id="pdf-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #dc2626;">
+                <div id="pdf-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #fbbf24;">
                   <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
                   <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
                   <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View PDF" to open in new tab</div>
@@ -1484,11 +1649,11 @@ export async function buildSpreadsheet(container, data, opts = {}) {
               </div>
               
               <!-- Document Info Card -->
-              <div style="background: #f8f9fa; padding: 16px; border-top: 1px solid #e5e7eb;">
-                <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #374151;">Document Details</div>
-                <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;"><strong>File:</strong> ${docName}</div>
-                <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;"><strong>Type:</strong> PDF Document</div>
-                <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;"><strong>Status:</strong> <span id="document-status">Loading...</span></div>
+              <div style="background: #059669; padding: 16px; border-top: 1px solid #065f46;">
+                <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #ffffff;">Document Details</div>
+                <div style="font-size: 12px; color: #ffffff; margin-bottom: 4px;"><strong>File:</strong> ${docName}</div>
+                <div style="font-size: 12px; color: #ffffff; margin-bottom: 4px;"><strong>Type:</strong> PDF Document</div>
+                <div style="font-size: 12px; color: #ffffff; margin-bottom: 8px;"><strong>Status:</strong> <span id="document-status">Loading...</span></div>
                 
                 <!-- Quick Actions -->
                 <div style="display: flex; gap: 8px; margin-top: 12px; justify-content: center;">
@@ -1540,7 +1705,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
             <button id="preview-open-doc-btn" data-object-url="${objectUrl}" style="
               flex: 1;
               padding: 12px 20px;
-              background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+              background: linear-gradient(135deg, #10b981 0%, #059669 100%);
               color: white;
               border: none;
               border-radius: 8px;
@@ -1548,13 +1713,13 @@ export async function buildSpreadsheet(container, data, opts = {}) {
               font-size: 14px;
               font-weight: 600;
               transition: all 0.2s ease;
-              box-shadow: 0 2px 8px rgba(26,115,232,0.3);
+              box-shadow: 0 2px 8px rgba(16,185,129,0.3);
             ">Open Document</button>
             <button id="preview-download-btn" data-object-url="${objectUrl}" data-doc-name="${docName}" style="
               padding: 12px 20px;
-              background: #f8f9fa;
-              color: #374151;
-              border: 1px solid #d1d5db;
+              background: #059669;
+              color: #ffffff;
+              border: 1px solid #047857;
               border-radius: 8px;
               cursor: pointer;
               font-size: 14px;
@@ -1793,246 +1958,30 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   };
 }
 
-// Create a Shadow DOM container for complete CSS isolation
-async function setupShadowDOMContainer(container) {
-  console.log('[SHADOW DOM] Creating shadow DOM container for CSS isolation...');
+// Create a clean container for jspreadsheet with proper CSS loading and containment
+async function setupCleanContainer(container) {
+  console.log('[CONTAINER] Creating clean container for jspreadsheet...');
   
-  // Create shadow host element
-  const shadowHost = document.createElement('div');
-  shadowHost.style.cssText = `
+  // Load necessary CSS and JS files
+  await loadJspreadsheetAssets();
+  
+  // Create a main wrapper container with proper containment
+  const mainWrapper = document.createElement('div');
+  mainWrapper.className = 'jspreadsheet-main-wrapper';
+  mainWrapper.style.cssText = `
     width: 100%;
     height: 100%;
     position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 100px);
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   `;
   
-  // Attach shadow DOM for complete isolation
-  const shadowRoot = shadowHost.attachShadow({ mode: 'open' });
-  
-  // Load CSS content from local files and inject into shadow DOM
-  const loadLocalCSS = async () => {
-    try {
-      // Context Guard: If the extension context is invalidated, stop immediately.
-      if (!chrome.runtime?.id) {
-        console.warn('[SHADOW DOM] Extension context invalidated. Halting CSS load.');
-        return false;
-      }
-
-      console.log('[SHADOW DOM] Loading local CSS files...');
-      
-    // Get CSS and JS file URLs
-    const jspreadsheetUrl = chrome.runtime.getURL('jspreadsheet.css');
-    const jsuitesUrl = chrome.runtime.getURL('jsuites.css');
-    const jsuitesJsUrl = chrome.runtime.getURL('jsuites.js');
-    const stampThemeUrl = chrome.runtime.getURL('stamp-spreadsheet-theme.css');
-      
-      console.log('[SHADOW DOM] CSS and JS URLs:', {
-        jspreadsheet: jspreadsheetUrl,
-        jsuites: jsuitesUrl,
-        jsuitesJs: jsuitesJsUrl,
-        stampTheme: stampThemeUrl
-      });
-      
-      // Read jspreadsheet CSS content with better error handling
-      const jspreadsheetResponse = await fetch(jspreadsheetUrl);
-      if (!jspreadsheetResponse.ok) {
-        throw new Error(`Failed to fetch jspreadsheet.css: ${jspreadsheetResponse.status} ${jspreadsheetResponse.statusText}`);
-      }
-      const jspreadsheetCss = await jspreadsheetResponse.text();
-      console.log('[SHADOW DOM] ✅ jspreadsheet.css loaded, size:', jspreadsheetCss.length);
-      
-      // Read jsuites CSS content with better error handling
-      const jsuitesResponse = await fetch(jsuitesUrl);
-      if (!jsuitesResponse.ok) {
-        throw new Error(`Failed to fetch jsuites.css: ${jsuitesResponse.status} ${jsuitesResponse.statusText}`);
-      }
-      const jsuitesCss = await jsuitesResponse.text();
-      console.log('[SHADOW DOM] ✅ jsuites.css loaded, size:', jsuitesCss.length);
-      
-      // Read stamp theme CSS content with better error handling
-      const stampThemeResponse = await fetch(stampThemeUrl);
-      if (!stampThemeResponse.ok) {
-        throw new Error(`Failed to fetch stamp-spreadsheet-theme.css: ${stampThemeResponse.status} ${stampThemeResponse.statusText}`);
-      }
-      const stampThemeCss = await stampThemeResponse.text();
-    console.log('[SHADOW DOM] ✅ stamp-spreadsheet-theme.css loaded, size:', stampThemeCss.length);
-    console.log('[SHADOW DOM] Theme CSS preview:', stampThemeCss.substring(0, 200) + '...');
-
-    // Load jsuites.js library for dropdown functionality
-    const jsuitesJsResponse = await fetch(jsuitesJsUrl);
-    if (!jsuitesJsResponse.ok) {
-      throw new Error(`Failed to fetch jsuites.js: ${jsuitesJsResponse.status} ${jsuitesJsResponse.statusText}`);
-    }
-    console.log('[SHADOW DOM] ✅ jsuites.js available at:', jsuitesJsUrl);
-
-    // Create script element for jsuites (load as external script to avoid CSP issues)
-    const jsuitesScript = document.createElement('script');
-    jsuitesScript.src = jsuitesJsUrl;
-    jsuitesScript.type = 'text/javascript';
-    shadowRoot.appendChild(jsuitesScript);
-    
-    // Wait for jsuites to load before proceeding
-    await new Promise(resolve => {
-      jsuitesScript.onload = resolve;
-      setTimeout(resolve, 100); // Fallback timeout
-    });
-
-    // Create style element with combined CSS content
-      const styleElement = document.createElement('style');
-      styleElement.textContent = `
-        /* Material Icons - Required for toolbar */
-        @import url("https://fonts.googleapis.com/css?family=Material+Icons");
-        
-        /* jspreadsheet.css */
-        ${jspreadsheetCss}
-        
-        /* jsuites.css */
-        ${jsuitesCss}
-        
-        /* stamp-spreadsheet-theme.css - Custom green theme (loaded last for override) */
-        ${stampThemeCss}
-      `;
-      styleElement.setAttribute('data-theme', 'stamp-green');
-      shadowRoot.appendChild(styleElement);
-      
-      console.log('[SHADOW DOM] ✅ Local CSS files loaded successfully');
-      return true;
-    } catch (err) {
-      console.error('[SHADOW DOM] Failed to load local CSS files:', err);
-      return false;
-    }
-  };
-
-  // Minimal inline CSS fallback injected into the Shadow DOM if local CSS fails
-  function injectMinimalCSSFallback() {
-    const style = document.createElement('style');
-    style.textContent = `
-      :host { all: initial; }
-      .jspreadsheet-clean-container {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        color: #111827;
-        background: #ffffff;
-      }
-      /* Basic table appearance so jspreadsheet remains readable without full CSS */
-      .jexcel, .jspreadsheet, .jss_container, .jss_worksheet {
-        font-size: 12px;
-        line-height: 1.2;
-      }
-      .jexcel td, .jspreadsheet td, .jexcel th, .jspreadsheet th {
-        border: 1px solid #e5e7eb;
-        padding: 2px 6px;
-        height: 16px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        background: #fff;
-      }
-      .jexcel tr, .jspreadsheet tr { height: 16px; }
-      .jexcel thead th, .jspreadsheet thead th,
-      .jexcel thead td, .jspreadsheet thead td,
-      .jss_worksheet thead td {
-        background: #10b981 !important;
-        color: white !important;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      /* Keep filter row green but ensure filter icons are visible */
-      .jexcel thead tr.jss_filter td, .jspreadsheet thead tr.jss_filter td,
-      .jss_worksheet thead tr.jss_filter td {
-        background: #10b981 !important;
-        color: white !important;
-        font-weight: normal !important;
-        text-transform: none !important;
-        letter-spacing: normal !important;
-        font-size: 12px !important;
-        text-align: left !important;
-        border: 1px solid #047857 !important;
-      }
-      /* Ensure filter icons are visible on green background */
-      .jss_worksheet .jss_column_filter {
-        background-repeat: no-repeat !important;
-        background-position: top 50% right 5px !important;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' width='18px' height='18px'%3E%3Cpath d='M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z'/%3E%3Cpath d='M0 0h24v24H0z' fill='none'/%3E%3C/svg%3E") !important;
-        text-overflow: ellipsis !important;
-        overflow: hidden !important;
-        padding: 0px !important;
-        padding-left: 6px !important;
-        padding-right: 20px !important;
-      }
-      .jexcel .selected, .jspreadsheet .selected { outline: 2px solid #10b981; }
-      .jexcel .highlight, .jspreadsheet .highlight { background: #f3f4f6; }
-      .jss_highlight { background: #fef3c7 !important; border: 1px solid #f59e0b !important; }
-      
-      /* Minimal Pagination and Search Controls Styling */
-      .jss_filter, .jss_pagination {
-        margin: 8px 0;
-      }
-      .jss_filter input, .jss_pagination select {
-        border: 1px solid #d1d5db;
-        border-radius: 4px;
-        padding: 4px 6px;
-        font-size: 14px;
-      }
-      .jss_pagination > div > div {
-        border: 1px solid #d1d5db;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-      .jss_page_selected {
-        background: #10b981;
-        color: white;
-        border-color: #10b981;
-      }
-      
-      /* Fix dropdown z-index issues - Much higher values */
-      .jdropdown-container {
-        z-index: 999999 !important;
-        position: relative !important;
-      }
-      .jdropdown-backdrop {
-        z-index: 999998 !important;
-      }
-      .jcontextmenu {
-        z-index: 999997 !important;
-      }
-      .jtoolbar-container {
-        z-index: 999996 !important;
-      }
-      .jdropdown-focus .jdropdown-container {
-        z-index: 999999 !important;
-      }
-      .jdropdown-searchbar.jdropdown-focus {
-        z-index: 999998 !important;
-      }
-      .jdropdown-searchbar.jdropdown-focus .jdropdown-container-header {
-        z-index: 999999 !important;
-      }
-      .jtoolbar .jdropdown {
-        position: relative !important;
-        z-index: 999995 !important;
-      }
-      .jtoolbar .jdropdown-focus {
-        z-index: 999999 !important;
-      }
-      .jss_toolbar .jdropdown-container,
-      .jss_toolbar .jdropdown-backdrop,
-      .jss_toolbar .jcontextmenu {
-        z-index: 999999 !important;
-      }
-      .jdropdown,
-      .jdropdown-menu,
-      .jdropdown-content,
-      .jdropdown-item {
-        z-index: 999999 !important;
-      }
-      .jss_toolbar {
-        z-index: 999990 !important;
-        position: relative !important;
-      }
-    `;
-    shadowRoot.appendChild(style);
-  }
-
   // Create a clean container element for jspreadsheet
   const cleanContainer = document.createElement('div');
   cleanContainer.className = 'jspreadsheet-clean-container jspreadsheet-container';
@@ -2040,25 +1989,432 @@ async function setupShadowDOMContainer(container) {
     width: 100%;
     height: 100%;
     position: relative;
-    overflow-x: hidden;
+    overflow-x: auto;
     overflow-y: auto;
-    max-height: 80vh;
+    flex: 1;
+    min-height: 0;
     max-width: 100%;
+    box-sizing: border-box;
   `;
 
-  // Attach the shadow host to the provided container
+  // Clear the container and add our wrapper
   container.innerHTML = '';
-  container.appendChild(shadowHost);
-  shadowRoot.appendChild(cleanContainer);
+  container.appendChild(mainWrapper);
+  mainWrapper.appendChild(cleanContainer);
 
-  // Attempt to load local CSS, and if not available, fall back to a minimal inline style
-  const loaded = await loadLocalCSS();
-  if (!loaded) {
-    console.warn('[SHADOW DOM] Falling back to minimal inline CSS due to load failure');
-    injectMinimalCSSFallback();
+  return { cleanContainer, mainWrapper };
+}
+
+// Load jspreadsheet CSS and JS assets
+async function loadJspreadsheetAssets() {
+    try {
+      // Context Guard: If the extension context is invalidated, stop immediately.
+      if (!chrome.runtime?.id) {
+      console.warn('[ASSETS] Extension context invalidated. Halting asset load.');
+        return false;
+      }
+
+    console.log('[ASSETS] Loading jspreadsheet assets...');
+      
+    // Get CSS and JS file URLs with cache busting
+    const jspreadsheetUrl = chrome.runtime.getURL('jspreadsheet.css?v=' + Date.now());
+    const jsuitesUrl = chrome.runtime.getURL('jsuites.css?v=' + Date.now());
+    const jsuitesJsUrl = chrome.runtime.getURL('jsuites.js?v=' + Date.now());
+    const stampThemeUrl = chrome.runtime.getURL('stamp-spreadsheet-theme.css?v=' + Date.now());
+      
+    console.log('[ASSETS] Asset URLs:', {
+        jspreadsheet: jspreadsheetUrl,
+        jsuites: jsuitesUrl,
+        jsuitesJs: jsuitesJsUrl,
+        stampTheme: stampThemeUrl
+      });
+      
+  // Load jsuites.js first (required for dropdowns)
+  if (!document.querySelector(`script[src="${jsuitesJsUrl}"]`)) {
+    const jsuitesScript = document.createElement('script');
+    jsuitesScript.src = jsuitesJsUrl;
+    jsuitesScript.type = 'text/javascript';
+    document.head.appendChild(jsuitesScript);
+    
+    // Wait for jsuites to load with proper error handling
+    await new Promise((resolve, reject) => {
+      jsuitesScript.onload = () => {
+        console.log('[ASSETS] ✅ jsuites.js loaded successfully');
+        // Ensure jsuites is available globally
+        if (typeof window.jsuites === 'undefined' && typeof jsuites !== 'undefined') {
+          window.jsuites = jsuites;
+        }
+        resolve();
+      };
+      jsuitesScript.onerror = (error) => {
+        console.error('[ASSETS] ❌ Failed to load jsuites.js:', error);
+        reject(error);
+      };
+      // Increased timeout for slower connections
+      setTimeout(() => {
+        if (typeof window.jsuites !== 'undefined' || typeof jsuites !== 'undefined') {
+          console.log('[ASSETS] ✅ jsuites.js loaded (timeout fallback)');
+          resolve();
+        } else {
+          console.warn('[ASSETS] ⚠️ jsuites.js loading timeout - dropdowns may not work');
+          resolve(); // Don't fail completely, just warn
+        }
+      }, 3000);
+    });
+  } else {
+    console.log('[ASSETS] ✅ jsuites.js already loaded');
   }
+    
+    // Load CSS files
+    const cssFiles = [
+      { url: jspreadsheetUrl, name: 'jspreadsheet.css' },
+      { url: jsuitesUrl, name: 'jsuites.css' },
+      { url: stampThemeUrl, name: 'stamp-spreadsheet-theme.css' }
+    ];
+    
+    for (const cssFile of cssFiles) {
+      if (!document.querySelector(`link[href*="${cssFile.name}"]`)) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = cssFile.url;
+        document.head.appendChild(link);
+        console.log(`[ASSETS] ✅ ${cssFile.name} loaded with URL: ${cssFile.url}`);
+        
+        // Add debugging to check if styles are applied
+        link.onload = () => {
+          console.log(`[ASSETS] ✅ ${cssFile.name} CSS loaded and applied`);
+          // Check if our styles are present
+          if (cssFile.name === 'jspreadsheet.css') {
+            setTimeout(() => {
+              const testElement = document.querySelector('.jss_worksheet');
+              if (testElement) {
+                const computedStyle = window.getComputedStyle(testElement);
+                console.log('[DEBUG] jss_worksheet min-width:', computedStyle.minWidth);
+                console.log('[DEBUG] jss_worksheet overflow-x:', computedStyle.overflowX);
+              }
+            }, 1000);
+          }
+        };
+      }
+    }
+    
+    // Load Material Icons font
+    if (!document.querySelector('link[href*="Material+Icons"]')) {
+      const materialIconsLink = document.createElement('link');
+      materialIconsLink.href = 'https://fonts.googleapis.com/css?family=Material+Icons';
+      materialIconsLink.rel = 'stylesheet';
+      document.head.appendChild(materialIconsLink);
+      console.log('[ASSETS] ✅ Material Icons font loaded');
+    }
+    
+    // Add fullscreen CSS styles
+    if (!document.querySelector('#jspreadsheet-fullscreen-styles')) {
+      const fullscreenStyles = document.createElement('style');
+      fullscreenStyles.id = 'jspreadsheet-fullscreen-styles';
+      fullscreenStyles.textContent = `
+        /* Fullscreen mode styling */
+        .jspreadsheet-main-wrapper.fullscreen {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          z-index: 999999 !important;
+          background: #ffffff !important;
+          display: flex !important;
+          flex-direction: column !important;
+          max-height: none !important;
+          border: none !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+        }
 
-  return { cleanContainer, shadowRoot };
+        .jspreadsheet-main-wrapper.fullscreen .jss_toolbar {
+          flex-shrink: 0 !important;
+        }
+
+        .jspreadsheet-main-wrapper.fullscreen .jss_filter {
+          flex-shrink: 0 !important;
+        }
+
+        .jspreadsheet-main-wrapper.fullscreen .jspreadsheet-clean-container {
+          flex: 1 !important;
+          max-height: none !important;
+          height: auto !important;
+        }
+        
+        /* Ensure proper scrolling within the container - NO bottom scrollbar */
+        .jspreadsheet-main-wrapper {
+          overflow: hidden !important;
+          max-height: 100vh !important;
+          height: 100% !important;
+        }
+        
+        .jspreadsheet-clean-container {
+          overflow-x: auto !important;
+          overflow-y: auto !important;
+          max-height: calc(100vh - 200px) !important;
+        }
+        
+        /* Fix dropdown z-index issues */
+        .jdropdown-container,
+        .jdropdown-menu,
+        .jdropdown-content,
+        .jdropdown-backdrop {
+        z-index: 999999 !important;
+        }
+        
+        /* Ensure spreadsheet table has proper width constraints */
+        .jexcel table, .jspreadsheet table {
+          width: 100% !important;
+          min-width: 1200px !important; /* Minimum width to ensure all columns are visible */
+          table-layout: fixed !important;
+        }
+        
+        /* Force horizontal scrolling for table overflow - override jspreadsheet defaults */
+        .jexcel, .jspreadsheet, .jss_container, .jss_worksheet {
+          width: 100% !important;
+          overflow-x: auto !important;
+          overflow-y: auto !important;
+          max-width: 100% !important;
+        }
+        
+        
+        /* Ensure the spreadsheet container forces horizontal scroll */
+      .jspreadsheet-clean-container {
+          overflow-x: auto !important;
+          overflow-y: auto !important;
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+        
+        /* Ensure the spreadsheet container handles overflow properly */
+        .jspreadsheet-clean-container {
+          overflow-x: auto !important;
+          overflow-y: auto !important;
+        }
+        
+        /* Remove any bottom scrollbars from the main wrapper */
+        .jspreadsheet-main-wrapper {
+          overflow: hidden !important;
+        }
+        
+        /* Ensure body and html don't have scrollbars */
+        body, html {
+          overflow-x: hidden !important;
+          max-width: 100% !important;
+        }
+        
+        /* Ensure the main container doesn't cause page overflow */
+        .jspreadsheet-main-wrapper {
+          max-width: 100% !important;
+          box-sizing: border-box !important;
+        }
+        
+        /* Excel-like cell styling */
+      .jexcel td, .jspreadsheet td, .jexcel th, .jspreadsheet th {
+          padding: 2px 3px !important;
+          height: 20px !important;
+          font-size: 11px !important;
+          line-height: 1.1 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          box-sizing: border-box !important;
+          border: 1px solid #ccc !important;
+        }
+        
+        /* Header styling */
+      .jexcel thead th, .jspreadsheet thead th,
+      .jexcel thead td, .jspreadsheet thead td,
+      .jss_worksheet thead td {
+        background: #10b981 !important;
+        color: white !important;
+          font-weight: 700 !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.3px !important;
+          font-size: 10px !important;
+          text-align: center !important;
+          padding: 4px 3px !important;
+          height: 24px !important;
+        }
+        
+        /* Excel-like row styling */
+        .jexcel tbody tr, .jspreadsheet tbody tr {
+          height: 20px !important;
+        }
+        
+        .jexcel tbody tr:nth-child(even) td, .jspreadsheet tbody tr:nth-child(even) td {
+          background-color: #f8f9fa !important;
+        }
+        
+        .jexcel tbody tr:hover td, .jspreadsheet tbody tr:hover td {
+          background-color: #e3f2fd !important;
+        }
+        
+        /* Selection styling */
+        .jexcel .selected, .jspreadsheet .selected {
+          background-color: #1976d2 !important;
+        color: white !important;
+        }
+        
+        /* Responsive column adjustments */
+        @media (max-width: 1400px) {
+          .jexcel td, .jspreadsheet td, .jexcel th, .jspreadsheet th {
+        font-size: 9px !important;
+            padding: 1px 2px !important;
+          }
+        }
+        
+        @media (max-width: 1200px) {
+          .jexcel td, .jspreadsheet td, .jexcel th, .jspreadsheet th {
+            font-size: 8px !important;
+            padding: 1px !important;
+          }
+        }
+        
+        /* Remove all custom scrollbar styling - use browser default */
+        
+        
+        /* Additional table container styling for proper horizontal scrolling */
+        .jspreadsheet-clean-container .jexcel,
+        .jspreadsheet-clean-container .jspreadsheet,
+        .jspreadsheet-clean-container .jss_container,
+        .jspreadsheet-clean-container .jss_worksheet {
+          width: 100% !important;
+          overflow-x: auto !important;
+          overflow-y: auto !important;
+          max-width: 100% !important;
+        }
+        
+        /* Force the table to be contained within the container */
+        .jspreadsheet-clean-container .jexcel table,
+        .jspreadsheet-clean-container .jspreadsheet table {
+          width: 100% !important;
+          min-width: 1200px !important;
+          max-width: none !important;
+        }
+        
+        /* Ensure the table itself can scroll horizontally */
+        .jspreadsheet-clean-container table {
+          min-width: 1200px !important;
+          width: 100% !important;
+        }
+        
+        
+        /* Make sure the spreadsheet container is properly sized */
+        .jspreadsheet-clean-container {
+          width: 100% !important;
+          height: 100% !important;
+        position: relative !important;
+        }
+        
+        /* Ensure no overflow on the main page */
+        .jspreadsheet-main-wrapper {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+        
+        /* Excel-like table borders */
+        .jexcel, .jspreadsheet, .jss_container, .jss_worksheet {
+          border: 1px solid #d0d7de !important;
+          border-radius: 6px !important;
+        }
+        
+        /* Excel-like cell focus */
+        .jexcel td:focus, .jspreadsheet td:focus {
+          outline: 2px solid #1976d2 !important;
+          outline-offset: -2px !important;
+        }
+        
+        /* Excel-like dropdown styling */
+        .jss_worksheet > tbody > tr > td.jss_dropdown {
+          background-repeat: no-repeat !important;
+          background-position: top 50% right 5px !important;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5H7z' fill='%23666'/%3E%3C/svg%3E") !important;
+        }
+        
+        /* Fix dropdown visibility by allowing overflow for dropdown containers */
+        .jss_container {
+          overflow: visible !important;
+        }
+        
+        .jss_worksheet {
+          width: 100% !important;
+          max-width: 100% !important;
+          table-layout: fixed !important;
+          overflow: visible !important;
+        }
+        
+        .jss_overflow > tbody > tr > td {
+          overflow: visible !important;
+        }
+        
+        .jss_worksheet > tbody > tr > td:last-child {
+          overflow: visible !important;
+        }
+        
+        /* Allow dropdowns to overflow the container */
+        .jspreadsheet-clean-container {
+          overflow-x: auto !important;
+          overflow-y: auto !important;
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+        
+        /* Ensure dropdown content can overflow */
+        .jspreadsheet-clean-container .jss_content {
+          overflow: visible !important;
+          width: 100% !important;
+        }
+        
+        /* Critical: Allow dropdowns to escape container bounds */
+        .jss_worksheet > tbody > tr > td.jss_dropdown {
+          overflow: visible !important;
+          position: relative !important;
+        }
+        
+        /* Ensure dropdown containers can appear outside their parent */
+        .jdropdown-container {
+          position: fixed !important;
+          z-index: 999999 !important;
+        }
+        
+        /* Constrain all jspreadsheet elements to prevent overflow */
+        .jspreadsheet-main-wrapper * {
+          max-width: 100% !important;
+          box-sizing: border-box !important;
+        }
+        
+        /* Ensure toolbar doesn't cause overflow */
+        .jspreadsheet-main-wrapper .jss_toolbar {
+          overflow-x: auto !important;
+          overflow-y: hidden !important;
+          max-width: 100% !important;
+        }
+        
+        /* Ensure filter bar doesn't cause overflow */
+        .jspreadsheet-main-wrapper .jss_filter {
+          overflow-x: auto !important;
+          max-width: 100% !important;
+        }
+        
+        /* Ensure pagination doesn't cause overflow */
+        .jspreadsheet-main-wrapper .jss_pagination {
+          overflow-x: auto !important;
+          max-width: 100% !important;
+        }
+      `;
+      document.head.appendChild(fullscreenStyles);
+      console.log('[ASSETS] ✅ Fullscreen styles added');
+    }
+    
+    console.log('[ASSETS] ✅ All jspreadsheet assets loaded successfully');
+    return true;
+  } catch (err) {
+    console.error('[ASSETS] Failed to load jspreadsheet assets:', err);
+    return false;
+  }
 }
 // Calculate optimal dimensions based on available space
 function calculateOptimalDimensions(container) {
