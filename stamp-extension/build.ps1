@@ -27,31 +27,51 @@ if ($env:PREFER_GOOGLE_CLIENT -eq "true") {
     $env:FINAL_CLIENT_ID = $env:GOOGLE_CLIENT_ID
     $env:FINAL_CLIENT_SECRET = $env:GOOGLE_CLIENT_SECRET
     $env:FINAL_CHROME_CLIENT_ID = $env:GOOGLE_CHROME_CLIENT_ID
-    Write-Host "   Selected CLIENT_ID: $($env:FINAL_CLIENT_ID)" -ForegroundColor Cyan
+    if ($env:FINAL_CLIENT_ID) {
+        Write-Host "   Selected CLIENT_ID: $($env:FINAL_CLIENT_ID.Substring(0, [Math]::Min(10, $env:FINAL_CLIENT_ID.Length)))..." -ForegroundColor Cyan
+    } else {
+        Write-Host "   Selected CLIENT_ID: (not set)" -ForegroundColor Cyan
+    }
     if ($env:FINAL_CLIENT_SECRET) {
         Write-Host "   Selected CLIENT_SECRET: $($env:FINAL_CLIENT_SECRET.Substring(0, [Math]::Min(10, $env:FINAL_CLIENT_SECRET.Length)))..." -ForegroundColor Cyan
     } else {
         Write-Host "   Selected CLIENT_SECRET: (not set)" -ForegroundColor Cyan
     }
-    Write-Host "   Selected CHROME_CLIENT_ID: $($env:FINAL_CHROME_CLIENT_ID)" -ForegroundColor Cyan
+    if ($env:FINAL_CHROME_CLIENT_ID) {
+        Write-Host "   Selected CHROME_CLIENT_ID: $($env:FINAL_CHROME_CLIENT_ID.Substring(0, [Math]::Min(10, $env:FINAL_CHROME_CLIENT_ID.Length)))..." -ForegroundColor Cyan
+    } else {
+        Write-Host "   Selected CHROME_CLIENT_ID: (not set)" -ForegroundColor Cyan
+    }
 } else {
     Write-Host "=> Using OAuth client credentials" -ForegroundColor Green
     $env:FINAL_CLIENT_ID = $env:OAUTH_CLIENT_ID
     $env:FINAL_CLIENT_SECRET = $env:OAUTH_CLIENT_SECRET
     $env:FINAL_CHROME_CLIENT_ID = $env:OAUTH_CHROME_CLIENT_ID
-    Write-Host "   Selected CLIENT_ID: $($env:FINAL_CLIENT_ID)" -ForegroundColor Cyan
+    if ($env:FINAL_CLIENT_ID) {
+        Write-Host "   Selected CLIENT_ID: $($env:FINAL_CLIENT_ID.Substring(0, [Math]::Min(10, $env:FINAL_CLIENT_ID.Length)))..." -ForegroundColor Cyan
+    } else {
+        Write-Host "   Selected CLIENT_ID: (not set)" -ForegroundColor Cyan
+    }
     if ($env:FINAL_CLIENT_SECRET) {
         Write-Host "   Selected CLIENT_SECRET: $($env:FINAL_CLIENT_SECRET.Substring(0, [Math]::Min(10, $env:FINAL_CLIENT_SECRET.Length)))..." -ForegroundColor Cyan
     } else {
         Write-Host "   Selected CLIENT_SECRET: (not set)" -ForegroundColor Cyan
     }
-    Write-Host "   Selected CHROME_CLIENT_ID: $($env:FINAL_CHROME_CLIENT_ID)" -ForegroundColor Cyan
+    if ($env:FINAL_CHROME_CLIENT_ID) {
+        Write-Host "   Selected CHROME_CLIENT_ID: $($env:FINAL_CHROME_CLIENT_ID.Substring(0, [Math]::Min(10, $env:FINAL_CHROME_CLIENT_ID.Length)))..." -ForegroundColor Cyan
+    } else {
+        Write-Host "   Selected CHROME_CLIENT_ID: (not set)" -ForegroundColor Cyan
+    }
 }
 
 Write-Host "Starting extension build..." -ForegroundColor Green
 Write-Host "   Value of API_ENDPOINT is: '$($env:API_ENDPOINT)'" -ForegroundColor Cyan
 Write-Host "   Value of AUTH_ENDPOINT is: '$($env:AUTH_ENDPOINT)'" -ForegroundColor Cyan
-Write-Host "   Value of FINAL_CHROME_CLIENT_ID is: '$($env:FINAL_CHROME_CLIENT_ID)'" -ForegroundColor Cyan
+if ($env:FINAL_CHROME_CLIENT_ID) {
+    Write-Host "   Value of FINAL_CHROME_CLIENT_ID is: '$($env:FINAL_CHROME_CLIENT_ID.Substring(0, [Math]::Min(10, $env:FINAL_CHROME_CLIENT_ID.Length)))...'" -ForegroundColor Cyan
+} else {
+    Write-Host "   Value of FINAL_CHROME_CLIENT_ID is: (not set)" -ForegroundColor Cyan
+}
 
 # The 'dist' directory will contain the ready-to-load extension.
 # Recreating it ensures a clean build from scratch.
@@ -64,7 +84,11 @@ New-Item -ItemType Directory -Path "dist" | Out-Null
 # Note: For dual OAuth flow, we use separate client IDs for Chrome extension and web OAuth
 # The FINAL_CLIENT_ID and FINAL_CLIENT_SECRET are used by the content script for web OAuth
 # The Chrome extension OAuth client ID is manually set in manifest.json
-Write-Host "   Chrome OAuth client ID: '$($env:FINAL_CHROME_CLIENT_ID)'" -ForegroundColor Cyan
+if ($env:FINAL_CHROME_CLIENT_ID) {
+    Write-Host "   Chrome OAuth client ID: '$($env:FINAL_CHROME_CLIENT_ID.Substring(0, [Math]::Min(10, $env:FINAL_CHROME_CLIENT_ID.Length)))...'" -ForegroundColor Cyan
+} else {
+    Write-Host "   Chrome OAuth client ID: (not set)" -ForegroundColor Cyan
+}
 
 Write-Host "=> Installing dependencies..." -ForegroundColor Green
 npm install
