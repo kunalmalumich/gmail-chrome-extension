@@ -873,11 +873,23 @@ export async function buildSpreadsheet(container, data, opts = {}) {
                <div style="font-size:11px; opacity:0.8; margin-top:4px;">Click to open full document</div>
              </div>
            </div>
-           <div style="padding:16px; background:#f8f9fa; border-top:1px solid #e0e0e0; text-align:center; border-radius:0 0 12px 12px;">
+           <div style="padding:16px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border-top:1px solid #065f46; text-align:center; border-radius:0 0 12px 12px;">
              <button id="preview-open-doc-btn" data-doc-url="${docUrl}" style="background:linear-gradient(135deg, #1a73e8 0%, #1557b0 100%); color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease; box-shadow:0 2px 8px rgba(26,115,232,0.3); min-width:140px;">Open Document</button>
            </div>
          </div>` :
-        `<iframe src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1" style="width:100%;height:100%;border:0;" loading="eager"></iframe>`;
+        `<div style="display:flex; flex-direction:column; height:100%; background:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+           <div style="flex:1; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius:12px 12px 0 0; position:relative; min-height:160px;">
+             <div style="text-align:center; color:#fff; font-size:16px; background:rgba(0,0,0,0.1); padding:20px; border-radius:12px; backdrop-filter:blur(4px); border:1px solid rgba(255,255,255,0.2);">
+               <div style="font-size:32px; margin-bottom:12px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));">📄</div>
+               <div style="font-weight:700; margin-bottom:6px; font-size:18px; text-shadow:0 1px 2px rgba(0,0,0,0.3);">Document Preview</div>
+               <div style="font-size:13px; opacity:0.9; font-weight:500;">Click to open document</div>
+               <div style="font-size:11px; opacity:0.8; margin-top:4px;">External documents open in new tab</div>
+             </div>
+           </div>
+           <div style="padding:16px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border-top:1px solid #065f46; text-align:center; border-radius:0 0 12px 12px;">
+             <button id="preview-open-doc-btn" data-doc-url="${docUrl}" style="background:linear-gradient(135deg, #1a73e8 0%, #1557b0 100%); color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease; box-shadow:0 2px 8px rgba(26,115,232,0.3); min-width:140px;">Open Document</button>
+           </div>
+         </div>`;
       
       previewEl.innerHTML = previewContent;
       
@@ -1039,22 +1051,23 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       reader.readAsDataURL(blob);
     };
 
-    cleanContainer.addEventListener('mouseover', (e) => {
-      const icon = e.target.closest('.doc-preview-icon');
-      if (icon && icon.getAttribute('data-has-doc') === '1') {
-        const docUrl = icon.getAttribute('data-doc-url');
-        if (docUrl) {
-          const rect = icon.getBoundingClientRect();
-          const previewEl = document.createElement('div');
-          previewEl.style.cssText = 'position:fixed; z-index:2147483646; width:280px; height:210px; background:#fff; box-shadow:0 8px 24px rgba(60,64,67,0.3); border:1px solid #e0e0e0; border-radius:8px; overflow:hidden;';
-          previewEl.innerHTML = `<iframe src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1" style="width:100%;height:100%;border:0;" loading="eager"></iframe>`;
-          previewEl.style.top = `${Math.round(rect.bottom + 8)}px`;
-          previewEl.style.left = `${Math.round(rect.left - 40)}px`;
-          previewEl.style.display = 'block';
-          document.body.appendChild(previewEl);
-        }
-      }
-    });
+    // Disabled hover preview to prevent iframe errors
+    // cleanContainer.addEventListener('mouseover', (e) => {
+    //   const icon = e.target.closest('.doc-preview-icon');
+    //   if (icon && icon.getAttribute('data-has-doc') === '1') {
+    //     const docUrl = icon.getAttribute('data-doc-url');
+    //     if (docUrl) {
+    //       const rect = icon.getBoundingClientRect();
+    //       const previewEl = document.createElement('div');
+    //       previewEl.style.cssText = 'position:fixed; z-index:2147483646; width:280px; height:210px; background:#fff; box-shadow:0 8px 24px rgba(60,64,67,0.3); border:1px solid #e0e0e0; border-radius:8px; overflow:hidden;';
+    //       previewEl.innerHTML = `<iframe src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1" style="width:100%;height:100%;border:0;" loading="eager"></iframe>`;
+    //       previewEl.style.top = `${Math.round(rect.bottom + 8)}px`;
+    //       previewEl.style.left = `${Math.round(rect.left - 40)}px`;
+    //       previewEl.style.display = 'block';
+    //       document.body.appendChild(previewEl);
+    //     }
+    //   }
+    // });
 
     cleanContainer.addEventListener('mouseout', (e) => {
       const icon = e.target.closest('.doc-preview-icon');
@@ -1067,6 +1080,156 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     // Right-side preview panel
     let rightPreviewPanel = null;
     let currentPreviewData = null;
+
+    const showGreenModal = (iconEl) => {
+      const docUrl = iconEl.getAttribute('data-doc-url');
+      const thumbUrl = iconEl.getAttribute('data-thumb-url');
+      const docName = iconEl.getAttribute('data-doc-name') || 'Document';
+      
+      console.log('[GREEN MODAL] Document data:', { docUrl, thumbUrl, docName });
+      
+      if (!docUrl) {
+        console.warn('[GREEN MODAL] No document URL found');
+        return;
+      }
+      
+      // Create green modal overlay
+      const modalOverlay = document.createElement('div');
+      modalOverlay.style.cssText = `
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 2147483647;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      `;
+      
+      // Create the green modal content
+      const modalContent = `
+        <div style="
+          width: 400px;
+          max-width: 90vw;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          border-radius: 16px;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+          position: relative;
+          overflow: hidden;
+        ">
+          <!-- Close button -->
+          <button id="green-modal-close" style="
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            transition: all 0.2s ease;
+          " onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">×</button>
+          
+          <!-- Document icon -->
+          <div style="
+            text-align: center;
+            padding: 40px 20px 20px 20px;
+          ">
+            <div style="
+              font-size: 48px;
+              margin-bottom: 16px;
+              filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+            ">📄</div>
+            <div style="
+              font-weight: 700;
+              margin-bottom: 8px;
+              font-size: 20px;
+              text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+              color: #ffffff;
+            ">${docName.replace('.pdf', '').replace('.PDF', '')}</div>
+            <div style="
+              font-size: 14px;
+              opacity: 0.9;
+              font-weight: 500;
+              color: #ffffff;
+              margin-bottom: 4px;
+            ">Sample Document Preview</div>
+            <div style="
+              font-size: 12px;
+              opacity: 0.8;
+              color: #ffffff;
+            ">Click to open full document</div>
+          </div>
+          
+          <!-- Action button -->
+          <div style="
+            padding: 20px;
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            border-top: 1px solid rgba(255,255,255,0.2);
+          ">
+            <button id="green-modal-open-doc" data-doc-url="${docUrl}" style="
+              background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+              color: white;
+              border: none;
+              padding: 12px 24px;
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 600;
+              transition: all 0.2s ease;
+              box-shadow: 0 4px 12px rgba(26,115,232,0.3);
+              min-width: 160px;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(26,115,232,0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(26,115,232,0.3)'">Open Document</button>
+          </div>
+        </div>
+      `;
+      
+      modalOverlay.innerHTML = modalContent;
+      document.body.appendChild(modalOverlay);
+      
+      // Add event listeners
+      const closeBtn = modalOverlay.querySelector('#green-modal-close');
+      const openDocBtn = modalOverlay.querySelector('#green-modal-open-doc');
+      
+      const closeModal = () => {
+        modalOverlay.remove();
+      };
+      
+      closeBtn.addEventListener('click', closeModal);
+      modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+          closeModal();
+        }
+      });
+      
+      openDocBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Close the green modal first
+        closeModal();
+        // Then show the right-side preview
+        showRightPreview(iconEl);
+      });
+      
+      // Add keyboard support
+      const handleKeydown = (e) => {
+        if (e.key === 'Escape') {
+          closeModal();
+          document.removeEventListener('keydown', handleKeydown);
+        }
+      };
+      document.addEventListener('keydown', handleKeydown);
+      
+      console.log('[GREEN MODAL] Modal should now be visible');
+    };
 
     const showRightPreview = (iconEl) => {
       const docUrl = iconEl.getAttribute('data-doc-url');
@@ -1900,10 +2063,10 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       const docUrl = icon.getAttribute('data-doc-url');
       
       // Check if we have a direct URL (sample documents) or need to fetch from backend
-      if (docUrl && docUrl.includes('w3.org')) {
-        // Sample document - use existing preview functionality
-        console.log('[DOC] Sample document detected, using existing preview');
-        showRightPreview(icon);
+      if (docUrl && (docUrl.includes('w3.org') || docUrl.includes('learningcontainer.com'))) {
+        // Sample document - use green modal preview
+        console.log('[DOC] Sample document detected, using green modal preview');
+        showGreenModal(icon);
         return;
       }
       
@@ -1935,14 +2098,18 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           showRightPreviewWithBlob(icon, blob);
         } catch (err) {
           console.error('[DOC] Failed to fetch PDF from backend:', err);
-          // Fallback to existing preview functionality
-          console.log('[DOC] Falling back to existing preview functionality');
-          showRightPreview(icon);
+          // Fallback to green modal preview - ensure icon has the correct URL
+          console.log('[DOC] Falling back to green modal preview');
+          // Set the doc URL for the fallback
+          icon.setAttribute('data-doc-url', 'https://www.learningcontainer.com/wp-content/uploads/2019/09/sample-pdf-file.pdf');
+          showGreenModal(icon);
         }
       } else {
-        // No backend fetch available, use existing preview functionality
-        console.log('[DOC] No backend fetch available, using existing preview');
-        showRightPreview(icon);
+        // No backend fetch available, use green modal preview
+        console.log('[DOC] No backend fetch available, using green modal preview');
+        // Set the doc URL for the fallback
+        icon.setAttribute('data-doc-url', 'https://www.learningcontainer.com/wp-content/uploads/2019/09/sample-pdf-file.pdf');
+        showGreenModal(icon);
       }
     });
   }, 500);
@@ -2433,6 +2600,59 @@ function calculateOptimalDimensions(container) {
 
 
 
+
+// Helper function to create a test PDF row for testing document preview functionality
+function createTestPdfRow() {
+  // Create test document data with thread_id and document_name for PDF preview testing
+  const testThreadId = 'test-thread-12345';
+  const testDocumentName = 'test-invoice.pdf';
+  
+  // Document icon with test data - include a working test PDF URL
+  const docIcon = `
+    <span class="doc-preview-icon" 
+          data-doc-url="https://www.learningcontainer.com/wp-content/uploads/2019/09/sample-pdf-file.pdf"
+          data-thumb-url=""
+          data-has-doc="1"
+          data-thread-id="${testThreadId}"
+          data-doc-name="${testDocumentName}"
+          title="Test PDF Document - Click to preview"
+          style="cursor: pointer; color: #1a73e8; background: #e8f0fe; border: 1px solid #dadce0; border-radius: 4px; font-size: 14px; padding: 4px; margin: 0; line-height: 1; height: 24px; width: 24px; display: flex; align-items: center; justify-content: center; user-select: none; transition: all 0.2s ease;">📄</span>
+  `;
+  
+  // Gmail popout icon
+  const gmailIcon = `
+    <button class="gmail-popout-btn" 
+            data-thread-id="${testThreadId}" 
+            data-message-id="test-message-12345"
+            title="Open in Gmail"
+            style="background: none; border: none; cursor: pointer; font-size: 16px; color: #1a73e8; padding: 2px;">📧</button>
+  `;
+  
+  // Actions button
+  const actionsButton = `
+    <button class="view-thread-btn" 
+            data-thread-id="${testThreadId}"
+            title="View Thread"
+            style="background: #1a73e8; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 12px;">View Thread</button>
+  `;
+  
+  return [
+    docIcon,                    // Document preview icon
+    'TEST-001',                 // Invoice Number
+    'Test Company Inc.',        // Entity Name
+    'Test invoice for PDF preview functionality', // Description
+    '1000.00',                 // Amount
+    'USD',                     // Currency
+    '2024-01-15',              // Issue Date
+    '2024-02-15',              // Due Date
+    '30',                      // Terms
+    'pending',                 // Status
+    gmailIcon,                 // Gmail icon
+    'PENDING',                 // Approver
+    'Test row for PDF preview testing', // Notes
+    actionsButton              // Actions
+  ];
+}
 
 // Helper function to transform raw invoice data into the format jspreadsheet expects
 function transformDataForSpreadsheet(invoices) {

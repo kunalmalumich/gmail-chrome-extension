@@ -1,0 +1,69 @@
+{
+  "name": "Stamp",
+  "description": "Stamp helps you manage your entire Accounts Payable inside of Gmail.",
+  "version": "1.0",
+  "manifest_version": 3,
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://*.trystamp.ai/*", "https://*.ngrok.app/*", "https://*.ngrok-free.app/*", "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/*", "http://localhost:*/*", "https://localhost:*/*"],
+      "js": ["oauth-callback-detector.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "permissions": [
+    "identity",
+    "storage",
+    "scripting",
+    "tabs",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://mail.google.com/",
+    "https://*.your-backend.com/",
+    "https://*.trystamp.ai/*",
+    "https://*.ngrok.app/*", 
+    "https://*.ngrok-free.app/*",
+    "https://*.execute-api.us-east-2.amazonaws.com/*",
+    "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/*",
+    "https://nmuo25f2da.execute-api.us-east-2.amazonaws.com/*",
+    "http://localhost:*/*",
+    "https://localhost:*/*"
+  ],
+  "oauth2": {
+    "client_id": "759225635526-gs69pgupgap87o4ul9ud9pv8pjrupcgc.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/userinfo.email"
+    ]
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'"
+  },
+  "web_accessible_resources": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "resources": [
+        "pageWorld.js",
+        "pageWorld.js.map",
+        "stamp-logo.png",
+        "google-logo.png",
+        "jspreadsheet.css",
+        "jsuites.css",
+        "floating-chat/*",
+        "*.map"
+      ]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Stamp Accounts Payable"
+  },
+  "key": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRQzNTMmovdEd0bWpwMVYKOUZEdEJtYlJndjJVZFhoMGpnN0ErRW1SdEZiL3VQVjQzZE9CanRCRFdhRnFXRjB0UTExL2NkM1ArSHZla1EvRgpRQm0rcW1KSG51K01veGMrSlNVNzlQcllZZ1RWTytwdzZrZnRaYkhyOU5IdzdlVGtwK1hpYm9vNC9TNEJ6MUdrCkZ2S2NYQnJibG5EekV6MG1XZU1CQitBTDRITEJrQ1VWckd2dm9XV0xnTUdJNVNBb1hLNE9QaEF1MkpNKzY5MloKdzUreWdWKzVXUWdwbnRsSG5Ucm5PZ0VmRUR4UU05RnNzV21QeTF0V2lUb0w1anFPdjcrMW5GVGMzOVB0d21tcwpZV2V0Z2NQNWtsbGhmMG9uU2l3TEVYdjdXZjIySzg0dytZeUdKYWkvL2R2Z1JaWkxCWnNoKzAwTkpBc1p1Mmc1Ci9zZWdmQU1uQWdNQkFBRUNnZ0VBTE5GSENMTDhTZFRZT3JLazhQZk9QeTlJd3JxZ2E5dHFWeHUrblY1Ym9XWi8KdXdCK1hXRG1vbmt4Z3plOC9McktpMFZ6eDR6SitPYytWR3d5ZjFEWS9Bc3NKcGFnTWNWU1grRXNUcWxVNWpDaQp4OTQ1SFI1dkRUTk0vQnluQ1pQV0hYSUs0UmxpM1BWczBITDkrbVo0K0xWRncrR3g0NFU2QU1BRXM5SzdMSUdnCnlmbW9PWkdPQUpTUkxwbDlGUnNKTDhERkh3VU8wUGd2dTVCK1B6NUV5VEwvRTdOTlRDZ0Y3L085R3FWMGMxN3kKUUlqTDY5WC96RmlMRVhLSDR6algvQUpOclB0bGs1cks2UHhuMkFaN2trZ2RiWXBHbWtwK2J1eC93UE8zUW44Lwp5SWZ5cEFYdEdVM2llekkvTHhiRjVMUzBzeEk3UGNJMWM4UnlubHZaMFFLQmdRRGpPbDJFZkh3RmZGMTdoMXZvCkU2K25wc3ZqdHdwZHJTbFgvZ0c0YmxBb3lRRlUzbWhLblV3cmVLa1JkbEJYTXE0NDlCWnhCWnZjSG1aa3NXT2UKOC9qMHpobjlaRjV6SGNxTU1iR3ZySEpYL1NZckN1YUNkMVlsa1F1enI4WTlodXMxZVJiUi82QjhhSk53NHZ4eApxZStBODE5bDBnL2srTnY1djJvcXdEQTdGd0tCZ1FET2dPOTZvUG13WWNrL1F2d3RGbzBWMHVmNHFhVjFVYjd1Cm9yWVBmenJHaHdrS1YyTnV2ekVKSzMyZiszQWl0Q3crRU53RUZvWWZSYzVBbHVtQVBBV2M4L3MvNU80aGRodWcKUytXaGhRbDBFc3NZcURCSUlTdVp3YVpseW5TU01oSm1HR2Y2VXdHS2N4NFhHYjRUOUJKcmtkMEplbGZLMkNjbQpmbElGUlhwQ2NRS0JnQTE5b3AzQ0VrNzFFa3ZLUG8rcDA0ejlueTlXNTd1bUUwVlJKR01CMGFxS1BKVUFXMnJLCnFnSU91T0w3aGt1WEM3Yi83dkVvNXhjTGl3TEJjV3UzaW5sbVh5Nm5MZUJoeld2RGE0eEZqY2hobEVtTDdTR2oKMmk2Q3pSSVBCcE1TbHBabktRNnd3YU9CUmZlMjBrd2hUY0gzTVJ2SGZBQVpNbDVDbWhnTnJ3OWpBb0dCQUwyeApmMHRjbUVGSWNuK2tYdFprUXRIclhaLzA1c0x3aHIzYnhmWlNYNEdEQmZEeitha0FCR0Z5REFORF5ka0xQU0QrCmg3MVJtMzhhdHE1cWNyQ1RjbXlOU3gyVWhKTkVWWGhZZitaeHVROWhQQ080VERIV0ZxRTFYRTloUE5nWEd3T2kKSTlHMWNsTG1FSndUejZHd3NVTVRTTUt1R2Z1QnQrVUtZUG5xcXJaaEFvR0FKVHJsaFVQT0thVkU0M3Q4bkNEdQorVFg3NW1LeDVvTGZFMHM1cWliMU9VS3pIdCtLTW9uMlV2QkltbW1kL3diMkNzY01uYjlJajgzQ1pENHRtQnlFCkJheEZsczI3bE9EMEUxSlZHZkdPekkrVUh2MmF6ZTg0UUxLQXFwUWJSRHkzbzlHcHlSSFBMZVNQQ2xhdDNybVYKMWV2a3RUTTlMNHp6bWQraFZLR2p1TFE9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K"
+}

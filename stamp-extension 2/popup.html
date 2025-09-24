@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stamp Accounts Payable</title>
+    <style>
+        body {
+            width: 350px;
+            min-height: 400px;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            margin: 0;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .logo {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 10px;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            margin: 5px 0 0;
+        }
+
+        .content {
+            flex: 1;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .status {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .status-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .status-icon.pending {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .status-icon.installing {
+            background: #dbeafe;
+            color: #3b82f6;
+            animation: pulse 2s infinite;
+        }
+
+        .status-icon.success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .status-icon.error {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-text {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .status-description {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 12px;
+        }
+
+        .button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .button.secondary {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .button.secondary:hover:not(:disabled) {
+            background: #e5e7eb;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-steps {
+            margin: 20px 0;
+        }
+
+        .progress-step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .step-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .step-indicator.pending {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .step-indicator.active {
+            background: #3b82f6;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        .step-indicator.complete {
+            background: #16a34a;
+            color: white;
+        }
+
+        .error-details {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 16px 0;
+            font-size: 13px;
+            color: #991b1b;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .user-info {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .user-info .email {
+            font-weight: 500;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .user-info .date {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">S</div>
+            <h1 class="title">Stamp</h1>
+            <p class="subtitle">Accounts Payable for Gmail</p>
+        </div>
+
+        <div class="content">
+            <!-- Not Installed State -->
+            <div id="not-installed-state" class="hidden">
+                <div class="status">
+                    <div class="status-icon pending">📋</div>
+                    <div class="status-text">Ready to Install</div>
+                    <div class="status-description">
+                        Connect Stamp to your Gmail account to start managing invoices and payments seamlessly.
+                    </div>
+                </div>
+                <button id="install-btn" class="button">Install Stamp</button>
+                <button id="learn-more-btn" class="button secondary">Learn More</button>
+            </div>
+
+            <!-- Installing State -->
+            <div id="installing-state" class="hidden">
+                <div class="status">
+                    <div class="status-icon installing">⚙️</div>
+                    <div class="status-text">Installing Stamp...</div>
+                    <div class="status-description">
+                        Please complete the Google authentication when prompted.
+                    </div>
+                </div>
+                
+                                       <div class="progress-steps">
+                           <div class="progress-step">
+                               <div id="step1-indicator" class="step-indicator pending">1</div>
+                               <span>Web OAuth for backend tokens</span>
+                           </div>
+                           <div class="progress-step">
+                               <div id="step2-indicator" class="step-indicator pending">2</div>
+                               <span>Chrome extension authentication</span>
+                           </div>
+                           <div class="progress-step">
+                               <div id="step3-indicator" class="step-indicator pending">3</div>
+                               <span>Finalizing installation</span>
+                           </div>
+                       </div>
+
+                <button id="cancel-install-btn" class="button secondary">Cancel Installation</button>
+            </div>
+
+            <!-- Installed State -->
+            <div id="installed-state" class="hidden">
+                <div class="status">
+                    <div class="status-icon success">✅</div>
+                    <div class="status-text">Installation Complete</div>
+                    <div class="status-description">
+                        Stamp is successfully connected to your Gmail account.
+                    </div>
+                </div>
+
+                <div id="user-info" class="user-info">
+                    <div class="email" id="user-email">Loading...</div>
+                    <div class="date" id="install-date">Installed: Loading...</div>
+                </div>
+
+                <button id="open-gmail-btn" class="button">Open Gmail</button>
+                <button id="sign-out-btn" class="button secondary">Sign Out</button>
+            </div>
+
+            <!-- Error State -->
+            <div id="error-state" class="hidden">
+                <div class="status">
+                    <div class="status-icon error">❌</div>
+                    <div class="status-text">Installation Failed</div>
+                    <div class="status-description">
+                        There was an issue installing Stamp. Please try again.
+                    </div>
+                </div>
+
+                <div id="error-details" class="error-details hidden">
+                    <div id="error-message">Error details will appear here</div>
+                </div>
+
+                <button id="retry-install-btn" class="button">Try Again</button>
+                <button id="show-error-btn" class="button secondary">Show Error Details</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html> 

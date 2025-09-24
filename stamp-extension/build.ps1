@@ -1,5 +1,5 @@
-# PowerShell build script for stamp-extension
-# Based on build.sh
+# PowerShell Build Script for Stamp Extension
+# Converted from build.sh
 
 # Exit on any error
 $ErrorActionPreference = "Stop"
@@ -10,7 +10,9 @@ if (Test-Path ".env") {
     Write-Host "   .env file found. Loading variables..." -ForegroundColor Yellow
     Get-Content ".env" | ForEach-Object {
         if ($_ -match "^([^#][^=]+)=(.*)$") {
-            [Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
+            $name = $matches[1].Trim()
+            $value = $matches[2].Trim()
+            [Environment]::SetEnvironmentVariable($name, $value, "Process")
         }
     }
 } else {
@@ -22,26 +24,54 @@ if (Test-Path ".env") {
 # Handle client preference logic
 if ($env:PREFER_GOOGLE_CLIENT -eq "true") {
     Write-Host "=> Using Google client credentials" -ForegroundColor Green
-    $FINAL_CLIENT_ID = $env:GOOGLE_CLIENT_ID
-    $FINAL_CLIENT_SECRET = $env:GOOGLE_CLIENT_SECRET
-    $FINAL_CHROME_CLIENT_ID = $env:GOOGLE_CHROME_CLIENT_ID
-    Write-Host "   Selected CLIENT_ID: $FINAL_CLIENT_ID" -ForegroundColor Yellow
-    Write-Host "   Selected CLIENT_SECRET: $($FINAL_CLIENT_SECRET.Substring(0, [Math]::Min(10, $FINAL_CLIENT_SECRET.Length)))..." -ForegroundColor Yellow
-    Write-Host "   Selected CHROME_CLIENT_ID: $FINAL_CHROME_CLIENT_ID" -ForegroundColor Yellow
+    $env:FINAL_CLIENT_ID = $env:GOOGLE_CLIENT_ID
+    $env:FINAL_CLIENT_SECRET = $env:GOOGLE_CLIENT_SECRET
+    $env:FINAL_CHROME_CLIENT_ID = $env:GOOGLE_CHROME_CLIENT_ID
+    if ($env:FINAL_CLIENT_ID) {
+        Write-Host "   Selected CLIENT_ID: $($env:FINAL_CLIENT_ID.Substring(0, [Math]::Min(10, $env:FINAL_CLIENT_ID.Length)))..." -ForegroundColor Cyan
+    } else {
+        Write-Host "   Selected CLIENT_ID: (not set)" -ForegroundColor Cyan
+    }
+    if ($env:FINAL_CLIENT_SECRET) {
+        Write-Host "   Selected CLIENT_SECRET: $($env:FINAL_CLIENT_SECRET.Substring(0, [Math]::Min(10, $env:FINAL_CLIENT_SECRET.Length)))..." -ForegroundColor Cyan
+    } else {
+        Write-Host "   Selected CLIENT_SECRET: (not set)" -ForegroundColor Cyan
+    }
+    if ($env:FINAL_CHROME_CLIENT_ID) {
+        Write-Host "   Selected CHROME_CLIENT_ID: $($env:FINAL_CHROME_CLIENT_ID.Substring(0, [Math]::Min(10, $env:FINAL_CHROME_CLIENT_ID.Length)))..." -ForegroundColor Cyan
+    } else {
+        Write-Host "   Selected CHROME_CLIENT_ID: (not set)" -ForegroundColor Cyan
+    }
 } else {
     Write-Host "=> Using OAuth client credentials" -ForegroundColor Green
-    $FINAL_CLIENT_ID = $env:OAUTH_CLIENT_ID
-    $FINAL_CLIENT_SECRET = $env:OAUTH_CLIENT_SECRET
-    $FINAL_CHROME_CLIENT_ID = $env:OAUTH_CHROME_CLIENT_ID
-    Write-Host "   Selected CLIENT_ID: $FINAL_CLIENT_ID" -ForegroundColor Yellow
-    Write-Host "   Selected CLIENT_SECRET: $($FINAL_CLIENT_SECRET.Substring(0, [Math]::Min(10, $FINAL_CLIENT_SECRET.Length)))..." -ForegroundColor Yellow
-    Write-Host "   Selected CHROME_CLIENT_ID: $FINAL_CHROME_CLIENT_ID" -ForegroundColor Yellow
+    $env:FINAL_CLIENT_ID = $env:OAUTH_CLIENT_ID
+    $env:FINAL_CLIENT_SECRET = $env:OAUTH_CLIENT_SECRET
+    $env:FINAL_CHROME_CLIENT_ID = $env:OAUTH_CHROME_CLIENT_ID
+    if ($env:FINAL_CLIENT_ID) {
+        Write-Host "   Selected CLIENT_ID: $($env:FINAL_CLIENT_ID.Substring(0, [Math]::Min(10, $env:FINAL_CLIENT_ID.Length)))..." -ForegroundColor Cyan
+    } else {
+        Write-Host "   Selected CLIENT_ID: (not set)" -ForegroundColor Cyan
+    }
+    if ($env:FINAL_CLIENT_SECRET) {
+        Write-Host "   Selected CLIENT_SECRET: $($env:FINAL_CLIENT_SECRET.Substring(0, [Math]::Min(10, $env:FINAL_CLIENT_SECRET.Length)))..." -ForegroundColor Cyan
+    } else {
+        Write-Host "   Selected CLIENT_SECRET: (not set)" -ForegroundColor Cyan
+    }
+    if ($env:FINAL_CHROME_CLIENT_ID) {
+        Write-Host "   Selected CHROME_CLIENT_ID: $($env:FINAL_CHROME_CLIENT_ID.Substring(0, [Math]::Min(10, $env:FINAL_CHROME_CLIENT_ID.Length)))..." -ForegroundColor Cyan
+    } else {
+        Write-Host "   Selected CHROME_CLIENT_ID: (not set)" -ForegroundColor Cyan
+    }
 }
 
 Write-Host "Starting extension build..." -ForegroundColor Green
-Write-Host "   Value of API_ENDPOINT is: '$($env:API_ENDPOINT)'" -ForegroundColor Yellow
-Write-Host "   Value of AUTH_ENDPOINT is: '$($env:AUTH_ENDPOINT)'" -ForegroundColor Yellow
-Write-Host "   Value of FINAL_CHROME_CLIENT_ID is: '$FINAL_CHROME_CLIENT_ID'" -ForegroundColor Yellow
+Write-Host "   Value of API_ENDPOINT is: '$($env:API_ENDPOINT)'" -ForegroundColor Cyan
+Write-Host "   Value of AUTH_ENDPOINT is: '$($env:AUTH_ENDPOINT)'" -ForegroundColor Cyan
+if ($env:FINAL_CHROME_CLIENT_ID) {
+    Write-Host "   Value of FINAL_CHROME_CLIENT_ID is: '$($env:FINAL_CHROME_CLIENT_ID.Substring(0, [Math]::Min(10, $env:FINAL_CHROME_CLIENT_ID.Length)))...'" -ForegroundColor Cyan
+} else {
+    Write-Host "   Value of FINAL_CHROME_CLIENT_ID is: (not set)" -ForegroundColor Cyan
+}
 
 # The 'dist' directory will contain the ready-to-load extension.
 # Recreating it ensures a clean build from scratch.
@@ -54,7 +84,11 @@ New-Item -ItemType Directory -Path "dist" | Out-Null
 # Note: For dual OAuth flow, we use separate client IDs for Chrome extension and web OAuth
 # The FINAL_CLIENT_ID and FINAL_CLIENT_SECRET are used by the content script for web OAuth
 # The Chrome extension OAuth client ID is manually set in manifest.json
-Write-Host "   Chrome OAuth client ID: '$($FINAL_CHROME_CLIENT_ID ?? 'NOT_SET')'" -ForegroundColor Yellow
+if ($env:FINAL_CHROME_CLIENT_ID) {
+    Write-Host "   Chrome OAuth client ID: '$($env:FINAL_CHROME_CLIENT_ID.Substring(0, [Math]::Min(10, $env:FINAL_CHROME_CLIENT_ID.Length)))...'" -ForegroundColor Cyan
+} else {
+    Write-Host "   Chrome OAuth client ID: (not set)" -ForegroundColor Cyan
+}
 
 Write-Host "=> Installing dependencies..." -ForegroundColor Green
 npm install
@@ -62,15 +96,15 @@ npm install
 Write-Host "=> Building JavaScript files with esbuild..." -ForegroundColor Green
 # Build content.js with node_modules support
 Write-Host "   Building content.js..." -ForegroundColor Yellow
-npx esbuild content.js --bundle --outfile=dist/content.js --platform=browser --sourcemap --minify=false --define:"CONFIG.API_ENDPOINT='$($env:API_ENDPOINT)'" --define:"CONFIG.AUTH_ENDPOINT='$($env:AUTH_ENDPOINT)'" --define:"CONFIG.CLIENT_ID='$($FINAL_CLIENT_ID ?? '')'" --define:"CONFIG.CLIENT_SECRET='$($FINAL_CLIENT_SECRET ?? '')'" --define:"CONFIG.CHROME_CLIENT_ID='$($FINAL_CHROME_CLIENT_ID ?? '')'"
+& powershell -ExecutionPolicy Bypass -Command ".\node_modules\.bin\esbuild content.js --bundle --outfile=dist/content.js --platform=browser --sourcemap --minify=false"
 
 # Build background.js
 Write-Host "=> Building background.js..." -ForegroundColor Green
-npx esbuild background.js --bundle --outfile=dist/background.js --platform=browser --sourcemap --minify=false --define:"CONFIG.AUTH_ENDPOINT='$($env:AUTH_ENDPOINT)'"
+& powershell -ExecutionPolicy Bypass -Command ".\node_modules\.bin\esbuild background.js --bundle --outfile=dist/background.js --platform=browser --sourcemap --minify=false"
 
 # Build OAuth callback detector
 Write-Host "=> Building oauth-callback-detector.js..." -ForegroundColor Green
-npx esbuild oauth-callback-detector.js --bundle --outfile=dist/oauth-callback-detector.js --platform=browser --sourcemap --minify=false
+& powershell -ExecutionPolicy Bypass -Command ".\node_modules\.bin\esbuild oauth-callback-detector.js --bundle --outfile=dist/oauth-callback-detector.js --platform=browser --sourcemap --minify=false"
 
 Write-Host "=> Copying manifest.json..." -ForegroundColor Green
 # Copy manifest.json to dist directory (no client_id replacement)
@@ -85,7 +119,7 @@ Write-Host "   pageWorld.js files already present in dist/" -ForegroundColor Yel
 
 # Copy any PNG images (like logos)
 Write-Host "   Copying image files..." -ForegroundColor Yellow
-$pngFiles = Get-ChildItem -Path "." -Filter "*.png" -ErrorAction SilentlyContinue
+$pngFiles = Get-ChildItem "*.png" -ErrorAction SilentlyContinue
 if ($pngFiles) {
     Copy-Item "*.png" "dist/"
     Write-Host "   PNG files copied successfully" -ForegroundColor Yellow
@@ -134,6 +168,23 @@ if (Test-Path "popup.js") {
 } else {
     Write-Host "   ERROR: popup.js not found - this will break the extension!" -ForegroundColor Red
     exit 1
+}
+
+# Copy additional required files
+Write-Host "   Copying additional required files..." -ForegroundColor Yellow
+if (Test-Path "stamp-spreadsheet-theme.css") {
+    Copy-Item "stamp-spreadsheet-theme.css" "dist/"
+    Write-Host "   stamp-spreadsheet-theme.css copied successfully" -ForegroundColor Yellow
+}
+
+if (Test-Path "node_modules\@inboxsdk\core\pageWorld.js") {
+    Copy-Item "node_modules\@inboxsdk\core\pageWorld.js" "dist/"
+    Write-Host "   pageWorld.js copied successfully" -ForegroundColor Yellow
+}
+
+if (Test-Path "node_modules\jsuites\dist\jsuites.js") {
+    Copy-Item "node_modules\jsuites\dist\jsuites.js" "dist/"
+    Write-Host "   jsuites.js copied successfully" -ForegroundColor Yellow
 }
 
 Write-Host ""
