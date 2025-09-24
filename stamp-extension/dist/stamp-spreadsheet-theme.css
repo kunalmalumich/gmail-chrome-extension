@@ -101,6 +101,88 @@
   width: 100%;
   max-width: 100%;
   table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* Define specific column widths to prevent text overflow */
+.jexcel table td:nth-child(1), .jspreadsheet table td:nth-child(1),
+.jss_worksheet > tbody > tr > td:nth-child(1),
+.jss_worksheet > thead > tr > td:nth-child(1) {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+}
+
+.jexcel table td:nth-child(2), .jspreadsheet table td:nth-child(2),
+.jss_worksheet > tbody > tr > td:nth-child(2),
+.jss_worksheet > thead > tr > td:nth-child(2) {
+  width: 120px !important;
+  min-width: 120px !important;
+  max-width: 120px !important;
+}
+
+.jexcel table td:nth-child(3), .jspreadsheet table td:nth-child(3),
+.jss_worksheet > tbody > tr > td:nth-child(3),
+.jss_worksheet > thead > tr > td:nth-child(3) {
+  width: 150px !important;
+  min-width: 150px !important;
+  max-width: 150px !important;
+}
+
+.jexcel table td:nth-child(4), .jspreadsheet table td:nth-child(4),
+.jss_worksheet > tbody > tr > td:nth-child(4),
+.jss_worksheet > thead > tr > td:nth-child(4) {
+  width: 120px !important;
+  min-width: 120px !important;
+  max-width: 120px !important;
+}
+
+.jexcel table td:nth-child(5), .jspreadsheet table td:nth-child(5),
+.jss_worksheet > tbody > tr > td:nth-child(5),
+.jss_worksheet > thead > tr > td:nth-child(5) {
+  width: 200px !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
+}
+
+.jexcel table td:nth-child(6), .jspreadsheet table td:nth-child(6),
+.jss_worksheet > tbody > tr > td:nth-child(6),
+.jss_worksheet > thead > tr > td:nth-child(6) {
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+}
+
+.jexcel table td:nth-child(7), .jspreadsheet table td:nth-child(7),
+.jss_worksheet > tbody > tr > td:nth-child(7),
+.jss_worksheet > thead > tr > td:nth-child(7) {
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+}
+
+.jexcel table td:nth-child(8), .jspreadsheet table td:nth-child(8),
+.jss_worksheet > tbody > tr > td:nth-child(8),
+.jss_worksheet > thead > tr > td:nth-child(8) {
+  width: 70px !important;
+  min-width: 70px !important;
+  max-width: 70px !important;
+}
+
+.jexcel table td:nth-child(9), .jspreadsheet table td:nth-child(9),
+.jss_worksheet > tbody > tr > td:nth-child(9),
+.jss_worksheet > thead > tr > td:nth-child(9) {
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+}
+
+.jexcel table td:nth-child(10), .jspreadsheet table td:nth-child(10),
+.jss_worksheet > tbody > tr > td:nth-child(10),
+.jss_worksheet > thead > tr > td:nth-child(10) {
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
 }
 
 .jexcel td, .jspreadsheet td, .jexcel th, .jspreadsheet th {
@@ -110,7 +192,8 @@
   min-height: 18px;
   max-height: 18px;
   white-space: nowrap;
-  word-wrap: break-word;
+  word-wrap: normal;
+  word-break: normal;
   overflow: hidden;
   text-overflow: ellipsis;
   background: #fff;
@@ -118,6 +201,8 @@
   font-size: 10px;
   line-height: 1.0;
   vertical-align: middle;
+  box-sizing: border-box;
+  position: relative;
 }
 
 .jexcel tr, .jspreadsheet tr { 
@@ -502,9 +587,20 @@
 }
 
 /* Critical: Ensure dropdown cells can show dropdowns */
-.jss_worksheet > tbody > tr > td.jss_dropdown {
+.jss_worksheet > tbody > tr > td.jss_dropdown,
+.jexcel td.jss_dropdown, .jspreadsheet td.jss_dropdown {
   overflow: visible !important;
   position: relative !important;
+}
+
+/* Ensure dropdown content is visible but text is still contained */
+.jss_worksheet > tbody > tr > td.jss_dropdown > *:not(.jdropdown-container),
+.jexcel td.jss_dropdown > *:not(.jdropdown-container), 
+.jspreadsheet td.jss_dropdown > *:not(.jdropdown-container) {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
 }
 
 /* Ensure dropdown containers can appear outside their parent */
@@ -545,17 +641,47 @@
   .jss_worksheet > thead > tr > td:nth-child(9) { width: 12%; } /* Issue Date */
 }
 
-/* Force text containment - highest priority overrides */
+/* Force text containment - highest priority overrides for ALL cell states */
 .jexcel td, .jspreadsheet td, .jexcel th, .jspreadsheet th,
 .jss_worksheet > tbody > tr > td,
-.jss_worksheet > thead > tr > td {
+.jss_worksheet > thead > tr > td,
+.jexcel td:not(.jss_editing), .jspreadsheet td:not(.jss_editing),
+.jss_worksheet > tbody > tr > td:not(.jss_editing),
+.jss_worksheet > tbody > tr > td:not(.jss_focus),
+.jexcel td:not(.jss_focus), .jspreadsheet td:not(.jss_focus) {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
   word-wrap: normal !important;
   word-break: normal !important;
-  max-width: none !important;
-  min-width: 0 !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+}
+
+/* Ensure cell content is properly contained */
+.jexcel td > *, .jspreadsheet td > *,
+.jss_worksheet > tbody > tr > td > *,
+.jss_worksheet > thead > tr > td > * {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+}
+
+/* CRITICAL: Force overflow hidden on normal cell display (not editing) */
+.jexcel td:not(.jss_editing):not(.jss_focus) > div,
+.jspreadsheet td:not(.jss_editing):not(.jss_focus) > div,
+.jss_worksheet > tbody > tr > td:not(.jss_editing):not(.jss_focus) > div,
+.jexcel td:not(.jss_editing):not(.jss_focus) > span,
+.jspreadsheet td:not(.jss_editing):not(.jss_focus) > span,
+.jss_worksheet > tbody > tr > td:not(.jss_editing):not(.jss_focus) > span {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+  display: block !important;
+  width: 100% !important;
 }
 
 /* Ensure all form elements respect boundaries */
@@ -579,4 +705,44 @@
 .jss_worksheet > thead > tr > td {
   padding: 1px 2px !important;
   box-sizing: border-box !important;
+}
+
+/* ULTIMATE FIX: Force all non-editing cells to hide overflow */
+.jexcel td:not(.jss_editing):not(.jss_focus),
+.jspreadsheet td:not(.jss_editing):not(.jss_focus),
+.jss_worksheet > tbody > tr > td:not(.jss_editing):not(.jss_focus) {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+  width: auto !important;
+}
+
+/* Ensure text content in cells is contained */
+.jexcel td:not(.jss_editing):not(.jss_focus) *,
+.jspreadsheet td:not(.jss_editing):not(.jss_focus) *,
+.jss_worksheet > tbody > tr > td:not(.jss_editing):not(.jss_focus) * {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+}
+
+/* Allow editing cells to show full content when in edit mode */
+.jexcel td.jss_editing, .jspreadsheet td.jss_editing,
+.jexcel td.jss_focus, .jspreadsheet td.jss_focus,
+.jss_worksheet > tbody > tr > td.jss_editing,
+.jss_worksheet > tbody > tr > td.jss_focus {
+  overflow: visible !important;
+  white-space: normal !important;
+}
+
+.jexcel td.jss_editing input, .jspreadsheet td.jss_editing input,
+.jexcel td.jss_focus input, .jspreadsheet td.jss_focus input,
+.jss_worksheet > tbody > tr > td.jss_editing input,
+.jss_worksheet > tbody > tr > td.jss_focus input {
+  overflow: visible !important;
+  white-space: normal !important;
+  width: 100% !important;
+  max-width: none !important;
 }
