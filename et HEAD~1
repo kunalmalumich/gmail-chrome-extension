@@ -1,0 +1,71 @@
+[33mcommit e8de860c362725136c73c13505c8ae051d1003bd[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mGaurav[m[33m)[m
+Author: Gaurav-trystamp <gaurav@trystamp.ai>
+Date:   Wed Sep 24 23:29:46 2025 +0530
+
+    Update build scripts and extension files
+
+packages/core/.npmignore
+packages/core/README.md
+packages/core/background.d.ts
+packages/core/background.js
+packages/core/inboxsdk.d.ts
+packages/core/package.json
+packages/core/pageWorld.d.ts
+stamp-extension 2/.env.template
+stamp-extension 2/ai-loading-component.js
+stamp-extension 2/api.test.js
+stamp-extension 2/auth.test.js
+stamp-extension 2/background.js
+stamp-extension 2/build.sh
+stamp-extension 2/content.js
+stamp-extension 2/content.js.backup
+stamp-extension 2/debug-oauth-detailed.js
+stamp-extension 2/dist.crx
+stamp-extension 2/dist.pem
+stamp-extension 2/dist.zip
+stamp-extension 2/dist/background.js
+stamp-extension 2/dist/background.js.map
+stamp-extension 2/dist/content.css
+stamp-extension 2/dist/content.css.map
+stamp-extension 2/dist/content.js
+stamp-extension 2/dist/content.js.map
+stamp-extension 2/dist/floating-chat/floating-chat-manager.js
+stamp-extension 2/dist/floating-chat/floating-chat.css
+stamp-extension 2/dist/floating-chat/floating-chat.js
+stamp-extension 2/dist/jspreadsheet.css
+stamp-extension 2/dist/jsuites.css
+stamp-extension 2/dist/manifest.json
+stamp-extension 2/dist/oauth-callback-detector.js
+stamp-extension 2/dist/oauth-callback-detector.js.map
+stamp-extension 2/dist/pageWorld.js
+stamp-extension 2/dist/pageWorld.js.map
+stamp-extension 2/dist/popup.html
+stamp-extension 2/dist/popup.js
+stamp-extension 2/dist/stamp-logo.png
+stamp-extension 2/doc/Label-and-navitem.md
+stamp-extension 2/doc/README.md
+stamp-extension 2/doc/authorization.md
+stamp-extension 2/doc/inboxsdk.md
+stamp-extension 2/doc/spreadsheet-implementaton.md
+stamp-extension 2/floating-chat/floating-chat-manager.js
+stamp-extension 2/floating-chat/floating-chat.css
+stamp-extension 2/floating-chat/floating-chat.js
+stamp-extension 2/jspreadsheet.css
+stamp-extension 2/jsuites.css
+stamp-extension 2/manifest.json
+stamp-extension 2/mock-api.js
+stamp-extension 2/oauth-callback-detector.js
+stamp-extension 2/package-lock.json
+stamp-extension 2/package.json
+stamp-extension 2/popup.html
+stamp-extension 2/popup.js
+stamp-extension 2/spreadsheet-builder.js
+stamp-extension 2/stamp-logo.png
+stamp-extension 2/temp_method.js
+stamp-extension 2/test-labels.js
+stamp-extension 2/thread-data-manager.js
+stamp-extension/build.ps1
+stamp-extension/dist/background.js.map
+stamp-extension/dist/content.js
+stamp-extension/dist/content.js.map
+stamp-extension/spreadsheet-builder.js
