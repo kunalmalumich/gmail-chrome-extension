@@ -72533,7 +72533,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       {
         title: "\u{1F4C4}",
         // Document icon column (preview/open)
-        width: 30,
+        width: 25,
         type: "html",
         readOnly: true,
         fieldName: null,
@@ -72541,8 +72541,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       },
       {
         title: "Invoice #",
-        width: 80,
-        // Excel-like width
+        width: 70,
+        // Compact width
         type: "text",
         fieldName: "invoiceNumber",
         editable: true,
@@ -72550,8 +72550,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       },
       {
         title: "Entity Name",
-        width: 100,
-        // Excel-like width
+        width: 90,
+        // Compact width
         type: "text",
         fieldName: "entityName",
         editable: true,
@@ -72559,8 +72559,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       },
       {
         title: "Vendor Name",
-        width: 120,
-        // Excel-like width
+        width: 100,
+        // Compact width
         type: "text",
         fieldName: "vendor.name",
         editable: true,
@@ -72568,8 +72568,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       },
       {
         title: "Description",
-        width: 150,
-        // Excel-like width
+        width: 120,
+        // Compact width
         type: "text",
         fieldName: "description",
         editable: true,
@@ -72577,8 +72577,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       },
       {
         title: "Period",
-        width: 60,
-        // Excel-like width
+        width: 50,
+        // Compact width
         type: "text",
         fieldName: "period",
         editable: true,
@@ -72586,8 +72586,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       },
       {
         title: "Amount",
-        width: 80,
-        // Excel-like width
+        width: 70,
+        // Compact width
         type: "numeric",
         mask: "$ #,##.00",
         fieldName: "amount",
@@ -72597,7 +72597,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       {
         title: "Currency",
         width: 60,
-        // Excel-like width
+        // Slightly wider for "Currency" header
         type: "dropdown",
         source: ["USD", "INR", "EUR", "GBP", "CAD", "AUD", "JPY", "CNY", "OTHER"],
         fieldName: "currency",
@@ -72611,7 +72611,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       {
         title: "Issue Date",
         width: 80,
-        // Excel-like width
+        // Slightly wider for "Issue Date" header
         type: "calendar",
         options: { format: "YYYY-MM-DD" },
         fieldName: "issueDate",

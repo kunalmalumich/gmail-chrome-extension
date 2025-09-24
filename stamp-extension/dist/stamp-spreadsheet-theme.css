@@ -105,20 +105,25 @@
 
 .jexcel td, .jspreadsheet td, .jexcel th, .jspreadsheet th {
   border: 1px solid #e5e7eb;
-  padding: 1px 3px;
-  height: auto;
-  min-height: 12px;
+  padding: 1px 2px;
+  height: 18px;
+  min-height: 18px;
+  max-height: 18px;
   white-space: nowrap;
   word-wrap: break-word;
   overflow: hidden;
   text-overflow: ellipsis;
   background: #fff;
   transition: background-color 0.2s ease;
+  font-size: 10px;
+  line-height: 1.0;
+  vertical-align: middle;
 }
 
 .jexcel tr, .jspreadsheet tr { 
-  height: auto;
-  min-height: 12px; 
+  height: 18px;
+  min-height: 18px;
+  max-height: 18px;
 }
 
 .jexcel thead th, .jspreadsheet thead th,
@@ -126,11 +131,14 @@
 .jss_worksheet thead td {
   background: #10b981 !important;
   color: white !important;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  font-size: 9px;
+  font-size: 10px;
   text-align: center;
+  height: 20px;
+  padding: 3px 4px;
+  line-height: 1.1;
 }
 
 /* Keep filter row green but ensure filter icons are visible */
@@ -144,6 +152,8 @@
   font-size: 9px !important;
   text-align: left !important;
   border: 1px solid #047857 !important;
+  height: 18px;
+  padding: 1px 2px;
 }
 
 /* Ensure filter icons are visible on green background */
@@ -515,11 +525,58 @@
   }
   
   .jexcel, .jspreadsheet {
-    font-size: 11px;
+    font-size: 9px;
   }
   
   .jexcel td, .jspreadsheet td, .jexcel th, .jspreadsheet th {
-    padding: 2px 4px;
-    height: 18px;
+    padding: 1px 2px;
+    height: 16px;
+    font-size: 8px;
   }
+  
+  /* Adjust column widths for mobile */
+  .jss_worksheet > thead > tr > td:nth-child(2) { width: 15%; } /* Invoice # */
+  .jss_worksheet > thead > tr > td:nth-child(3) { width: 25%; } /* Entity Name */
+  .jss_worksheet > thead > tr > td:nth-child(4) { width: 20%; } /* Vendor Name */
+  .jss_worksheet > thead > tr > td:nth-child(5) { width: 30%; } /* Description */
+  .jss_worksheet > thead > tr > td:nth-child(6) { width: 10%; } /* Period */
+  .jss_worksheet > thead > tr > td:nth-child(7) { width: 12%; } /* Amount */
+  .jss_worksheet > thead > tr > td:nth-child(8) { width: 8%; }  /* Currency */
+  .jss_worksheet > thead > tr > td:nth-child(9) { width: 12%; } /* Issue Date */
+}
+
+/* Force text containment - highest priority overrides */
+.jexcel td, .jspreadsheet td, .jexcel th, .jspreadsheet th,
+.jss_worksheet > tbody > tr > td,
+.jss_worksheet > thead > tr > td {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  word-wrap: normal !important;
+  word-break: normal !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
+
+/* Ensure all form elements respect boundaries */
+.jexcel td input, .jspreadsheet td input,
+.jexcel td select, .jspreadsheet td select,
+.jexcel td textarea, .jspreadsheet td textarea,
+.jss_worksheet > tbody > tr > td > input,
+.jss_worksheet > tbody > tr > td > select,
+.jss_worksheet > tbody > tr > td > textarea {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Force compact padding */
+.jexcel td, .jspreadsheet td, .jexcel th, .jspreadsheet th,
+.jss_worksheet > tbody > tr > td,
+.jss_worksheet > thead > tr > td {
+  padding: 1px 2px !important;
+  box-sizing: border-box !important;
 }

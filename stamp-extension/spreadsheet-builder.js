@@ -25,12 +25,12 @@ export async function buildSpreadsheet(container, data, opts = {}) {
   }
   
   // Define columns with field mapping metadata for edit tracking
-  // Excel-like column widths for better readability (total: ~1200px)
-  // 30+80+100+120+150+60+80+60+80+80+50+80+30+80+120+60 = 1200px
+  // Compact Excel-like column widths to prevent overflow (total: ~1000px)
+  // 25+70+90+100+120+50+70+50+70+70+40+70+25+70+100+50 = 1000px
   const columns = [
     {
       title: '📄', // Document icon column (preview/open)
-      width: 30,
+      width: 25,
       type: 'html',
       readOnly: true,
       fieldName: null,
@@ -38,7 +38,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Invoice #', 
-      width: 80, // Excel-like width
+      width: 70, // Compact width
       type: 'text',
       fieldName: 'invoiceNumber',
       editable: true,
@@ -46,7 +46,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Entity Name', 
-      width: 100, // Excel-like width
+      width: 90, // Compact width
       type: 'text',
       fieldName: 'entityName',
       editable: true,
@@ -54,7 +54,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Vendor Name', 
-      width: 120, // Excel-like width
+      width: 100, // Compact width
       type: 'text',
       fieldName: 'vendor.name',
       editable: true,
@@ -62,7 +62,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Description', 
-      width: 150, // Excel-like width
+      width: 120, // Compact width
       type: 'text',
       fieldName: 'description',
       editable: true,
@@ -70,7 +70,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Period', 
-      width: 60, // Excel-like width
+      width: 50, // Compact width
       type: 'text',
       fieldName: 'period',
       editable: true,
@@ -78,7 +78,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Amount', 
-      width: 80, // Excel-like width
+      width: 70, // Compact width
       type: 'numeric', 
       mask: '$ #,##.00',
       fieldName: 'amount',
@@ -87,7 +87,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     {
       title: 'Currency',
-      width: 60, // Excel-like width
+      width: 60, // Slightly wider for "Currency" header
       type: 'dropdown',
       source: ['USD', 'INR', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CNY', 'OTHER'],
       fieldName: 'currency',
@@ -100,7 +100,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     },
     { 
       title: 'Issue Date', 
-      width: 80, // Excel-like width
+      width: 80, // Slightly wider for "Issue Date" header
       type: 'calendar', 
       options: { format: 'YYYY-MM-DD' },
       fieldName: 'issueDate',
