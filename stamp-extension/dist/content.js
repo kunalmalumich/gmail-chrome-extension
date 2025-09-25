@@ -73603,8 +73603,8 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
                       <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
                       <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View PDF" to open in new tab</div>
                     </div>
-                    <iframe id="pdf-iframe" 
-                      src="${docUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
+                    <iframe id="pdf-google-viewer" 
+                      src="https://docs.google.com/gview?url=${encodeURIComponent(docUrl)}&embedded=true" 
                       style="width: 100%; height: 100%; border: none; display: none;">
                     </iframe>
                   </div>
@@ -73729,32 +73729,32 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             }
           }, 5e3);
         }
-        const pdfIframe = rightPreviewPanel.querySelector("#pdf-iframe");
+        const pdfGoogleViewer = rightPreviewPanel.querySelector("#pdf-google-viewer");
         const pdfLoading = rightPreviewPanel.querySelector("#pdf-loading");
         const pdfError = rightPreviewPanel.querySelector("#pdf-error");
-        if (pdfIframe) {
+        if (pdfGoogleViewer) {
           const handlePdfLoad = () => {
-            console.log("[PREVIEW] PDF loaded successfully");
+            console.log("[PREVIEW] PDF loaded successfully via Google Docs viewer");
             if (pdfLoading) pdfLoading.style.display = "none";
             if (pdfError) pdfError.style.display = "none";
-            if (pdfIframe) pdfIframe.style.display = "block";
+            if (pdfGoogleViewer) pdfGoogleViewer.style.display = "block";
             if (documentStatus) documentStatus.textContent = "Ready to View";
           };
           const handlePdfError = () => {
-            console.log("[PREVIEW] PDF failed to load - likely due to CSP restrictions");
+            console.log("[PREVIEW] PDF failed to load via Google Docs viewer");
             if (pdfLoading) pdfLoading.style.display = "none";
             if (pdfError) pdfError.style.display = "block";
-            if (pdfIframe) pdfIframe.style.display = "none";
+            if (pdfGoogleViewer) pdfGoogleViewer.style.display = "none";
             if (documentStatus) documentStatus.textContent = 'Cannot Embed - Click "View PDF"';
           };
-          pdfIframe.addEventListener("load", handlePdfLoad);
-          pdfIframe.addEventListener("error", handlePdfError);
+          pdfGoogleViewer.addEventListener("load", handlePdfLoad);
+          pdfGoogleViewer.addEventListener("error", handlePdfError);
           setTimeout(() => {
             if (pdfLoading && pdfLoading.style.display !== "none") {
-              console.log("[PREVIEW] PDF loading timeout - likely CSP issue");
+              console.log("[PREVIEW] PDF loading timeout - trying Google Docs viewer");
               handlePdfError();
             }
-          }, 5e3);
+          }, 8e3);
           const originalError = console.error;
           console.error = function(...args) {
             if (args[0] && args[0].includes && args[0].includes("Refused to frame")) {
@@ -73994,10 +73994,16 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
                   <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
                   <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View PDF" to open in new tab</div>
                 </div>
-                <iframe id="pdf-iframe" 
-                  src="${objectUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
+                <object id="pdf-object" 
+                  data="${objectUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
+                  type="application/pdf"
                   style="width: 100%; height: 100%; border: none; display: none;">
-                </iframe>
+                  <embed id="pdf-embed" 
+                    src="${objectUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
+                    type="application/pdf"
+                    style="width: 100%; height: 100%; border: none;">
+                  </embed>
+                </object>
               </div>
               
               <!-- Document Info Card -->
@@ -74082,30 +74088,35 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         </div>
       `;
         rightPreviewPanel.innerHTML = previewContent;
-        const pdfIframe = rightPreviewPanel.querySelector("#pdf-iframe");
+        const pdfObject = rightPreviewPanel.querySelector("#pdf-object");
+        const pdfEmbed = rightPreviewPanel.querySelector("#pdf-embed");
         const pdfLoading = rightPreviewPanel.querySelector("#pdf-loading");
         const pdfError = rightPreviewPanel.querySelector("#pdf-error");
         const documentStatus = rightPreviewPanel.querySelector("#document-status");
-        if (pdfIframe) {
+        if (pdfObject) {
           const handlePdfLoad = () => {
-            console.log("[PREVIEW] PDF blob loaded successfully");
+            console.log("[PREVIEW] PDF blob loaded successfully via object tag");
             if (pdfLoading) pdfLoading.style.display = "none";
             if (pdfError) pdfError.style.display = "none";
-            if (pdfIframe) pdfIframe.style.display = "block";
+            if (pdfObject) pdfObject.style.display = "block";
             if (documentStatus) documentStatus.textContent = "Ready to View";
           };
           const handlePdfError = () => {
-            console.log("[PREVIEW] PDF blob failed to load");
+            console.log("[PREVIEW] PDF blob failed to load via object tag");
             if (pdfLoading) pdfLoading.style.display = "none";
             if (pdfError) pdfError.style.display = "block";
-            if (pdfIframe) pdfIframe.style.display = "none";
+            if (pdfObject) pdfObject.style.display = "none";
             if (documentStatus) documentStatus.textContent = "Failed to Load";
           };
-          pdfIframe.addEventListener("load", handlePdfLoad);
-          pdfIframe.addEventListener("error", handlePdfError);
+          pdfObject.addEventListener("load", handlePdfLoad);
+          pdfObject.addEventListener("error", handlePdfError);
+          if (pdfEmbed) {
+            pdfEmbed.addEventListener("load", handlePdfLoad);
+            pdfEmbed.addEventListener("error", handlePdfError);
+          }
           setTimeout(() => {
             if (pdfLoading && pdfLoading.style.display !== "none") {
-              console.log("[PREVIEW] PDF blob loading timeout");
+              console.log("[PREVIEW] PDF blob loading timeout via object tag");
               handlePdfError();
             }
           }, 5e3);
