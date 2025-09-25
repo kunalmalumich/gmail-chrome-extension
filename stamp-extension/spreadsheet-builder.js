@@ -1722,12 +1722,17 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       }
     };
 
-    // New function to show preview with PDF blob from backend
+    // Enhanced function to show preview with blob from backend (supports both images and PDFs)
     const showRightPreviewWithBlob = (iconEl, blob) => {
       const docName = iconEl.getAttribute('data-doc-name') || 'Document';
       const docUrl = iconEl.getAttribute('data-doc-url');
       
-      console.log('[PREVIEW] Showing preview with PDF blob for:', docName);
+      // Detect file type from blob
+      const isImage = blob.type.startsWith('image/');
+      const isPdf = blob.type === 'application/pdf';
+      const fileType = isImage ? 'Image' : (isPdf ? 'PDF Document' : 'Document');
+      
+      console.log('[PREVIEW] Showing preview with blob for:', docName, 'Type:', fileType);
       
       // Create or update the right preview panel
       if (!rightPreviewPanel) {
@@ -1789,153 +1794,231 @@ export async function buildSpreadsheet(container, data, opts = {}) {
         // Create object URL as fallback
       const objectUrl = URL.createObjectURL(blob);
       
-      // Update preview content with PDF blob
-      const previewContent = `
-        <div style="flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto;">
-          <div style="margin-bottom: 20px;">
-            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #ffffff;">Document Preview</h3>
-            <p style="margin: 0; font-size: 14px; color: #ffffff;">${docName}</p>
-          </div>
-          
-          <div style="flex: 1; display: flex; flex-direction: column; background: #059669; border-radius: 8px; overflow: hidden; margin-bottom: 20px; position: relative;">
-            <div style="flex: 1; min-height: 300px; position: relative; background: #059669; border-radius: 8px 8px 0 0; overflow: hidden;">
-              <!-- PDF Viewer Container -->
-              <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #10b981;">
-                <div id="pdf-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ffffff;">
-                  <div style="font-size: 24px; margin-bottom: 12px;">📄</div>
-                  <div style="font-size: 16px; font-weight: 500;">Loading PDF...</div>
-                  <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Please wait</div>
-                </div>
-                <div id="pdf-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #fbbf24;">
-                  <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
-                  <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
-                  <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View PDF" to open in new tab</div>
-                </div>
-                <iframe id="pdf-iframe" 
-                  src="${dataUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
-                  style="width: 100%; height: 100%; border: none; display: none;">
-                </iframe>
+        // Generate viewer content based on file type
+        let viewerContent = '';
+        if (isImage) {
+          viewerContent = `
+            <!-- Image Viewer Container -->
+            <div id="image-viewer-container" style="width: 100%; height: 100%; position: relative; background: #10b981; display: flex; align-items: center; justify-content: center;">
+              <div id="image-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ffffff;">
+                <div style="font-size: 24px; margin-bottom: 12px;">🖼️</div>
+                <div style="font-size: 16px; font-weight: 500;">Loading Image...</div>
+                <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Please wait</div>
               </div>
-              
-              <!-- Document Info Card -->
-              <div style="background: #059669; padding: 16px; border-top: 1px solid #065f46;">
-                <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #ffffff;">Document Details</div>
-                <div style="font-size: 12px; color: #ffffff; margin-bottom: 4px;"><strong>File:</strong> ${docName}</div>
-                <div style="font-size: 12px; color: #ffffff; margin-bottom: 4px;"><strong>Type:</strong> PDF Document</div>
-                <div style="font-size: 12px; color: #ffffff; margin-bottom: 8px;"><strong>Status:</strong> <span id="document-status">Loading...</span></div>
+              <div id="image-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #fbbf24;">
+                <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
+                <div style="font-size: 16px; font-weight: 500;">Failed to load Image</div>
+                <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View Image" to open in new tab</div>
+              </div>
+              <img id="preview-image" 
+                src="${dataUrl}" 
+                style="max-width: 100%; max-height: 100%; object-fit: contain; display: none; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            </div>
+          `;
+        } else if (isPdf) {
+          viewerContent = `
+            <!-- PDF Viewer Container -->
+            <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #10b981;">
+              <div id="pdf-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ffffff;">
+                <div style="font-size: 24px; margin-bottom: 12px;">📄</div>
+                <div style="font-size: 16px; font-weight: 500;">Loading PDF...</div>
+                <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Please wait</div>
+              </div>
+              <div id="pdf-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #fbbf24;">
+                <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
+                <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
+                <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View PDF" to open in new tab</div>
+              </div>
+              <iframe id="pdf-iframe" 
+                src="${dataUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
+                style="width: 100%; height: 100%; border: none; display: none;">
+              </iframe>
+            </div>
+          `;
+        } else {
+          // Fallback for other file types
+          viewerContent = `
+            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; text-align: center; color: #ffffff;">
+              <div>
+                <div style="font-size: 24px; margin-bottom: 12px;">📄</div>
+                <div style="font-size: 16px; font-weight: 500;">Unsupported File Type</div>
+                <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View Document" to open in new tab</div>
+              </div>
+            </div>
+          `;
+        }
+        
+        // Update preview content with blob
+        const previewContent = `
+          <div style="flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto;">
+            <div style="margin-bottom: 20px;">
+              <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #ffffff;">Document Preview</h3>
+              <p style="margin: 0; font-size: 14px; color: #ffffff;">${docName}</p>
+            </div>
+            
+            <div style="flex: 1; display: flex; flex-direction: column; background: #059669; border-radius: 8px; overflow: hidden; margin-bottom: 20px; position: relative;">
+              <div style="flex: 1; min-height: 300px; position: relative; background: #059669; border-radius: 8px 8px 0 0; overflow: hidden;">
+                ${viewerContent}
                 
-                <!-- Quick Actions -->
-                <div style="display: flex; gap: 8px; margin-top: 12px; justify-content: center;">
-                  <button id="preview-quick-view-btn" data-object-url="${objectUrl}" style="
-                    padding: 6px 12px; 
-                    background: #1a73e8; 
-                    color: white; 
-                    border: none; 
-                    border-radius: 4px; 
-                    cursor: pointer; 
-                    font-size: 11px; 
-                    font-weight: 500;
-                    transition: all 0.2s ease;
-                  ">
-                    View PDF
-                  </button>
-                  <button id="preview-quick-download-btn" data-object-url="${objectUrl}" data-doc-name="${docName}" style="
-                    padding: 6px 12px; 
-                    background: #34a853; 
-                    color: white; 
-                    border: none; 
-                    border-radius: 4px; 
-                    cursor: pointer; 
-                    font-size: 11px; 
-                    font-weight: 500;
-                    transition: all 0.2s ease;
-                  ">
-                    Download
-                  </button>
-                  <button id="preview-quick-copy-btn" data-object-url="${objectUrl}" style="
-                    padding: 6px 12px; 
-                    background: #ea4335; 
-                    color: white; 
-                    border: none; 
-                    border-radius: 4px; 
-                    cursor: pointer; 
-                    font-size: 11px; 
-                    font-weight: 500;
-                    transition: all 0.2s ease;
-                  ">
-                    Copy Link
-                  </button>
+                <!-- Document Info Card -->
+                <div style="background: #059669; padding: 16px; border-top: 1px solid #065f46;">
+                  <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #ffffff;">Document Details</div>
+                  <div style="font-size: 12px; color: #ffffff; margin-bottom: 4px;"><strong>File:</strong> ${docName}</div>
+                  <div style="font-size: 12px; color: #ffffff; margin-bottom: 4px;"><strong>Type:</strong> ${fileType}</div>
+                  <div style="font-size: 12px; color: #ffffff; margin-bottom: 8px;"><strong>Status:</strong> <span id="document-status">Loading...</span></div>
+                  
+                  <!-- Quick Actions -->
+                  <div style="display: flex; gap: 8px; margin-top: 12px; justify-content: center;">
+                    <button id="preview-quick-view-btn" data-object-url="${objectUrl}" style="
+                      padding: 6px 12px; 
+                      background: #1a73e8; 
+                      color: white; 
+                      border: none; 
+                      border-radius: 4px; 
+                      cursor: pointer; 
+                      font-size: 11px; 
+                      font-weight: 500;
+                      transition: all 0.2s ease;
+                    ">
+                      View ${isImage ? 'Image' : (isPdf ? 'PDF' : 'Document')}
+                    </button>
+                    <button id="preview-quick-download-btn" data-object-url="${objectUrl}" data-doc-name="${docName}" style="
+                      padding: 6px 12px; 
+                      background: #34a853; 
+                      color: white; 
+                      border: none; 
+                      border-radius: 4px; 
+                      cursor: pointer; 
+                      font-size: 11px; 
+                      font-weight: 500;
+                      transition: all 0.2s ease;
+                    ">
+                      Download
+                    </button>
+                    <button id="preview-quick-copy-btn" data-object-url="${objectUrl}" style="
+                      padding: 6px 12px; 
+                      background: #ea4335; 
+                      color: white; 
+                      border: none; 
+                      border-radius: 4px; 
+                      cursor: pointer; 
+                      font-size: 11px; 
+                      font-weight: 500;
+                      transition: all 0.2s ease;
+                    ">
+                      Copy Link
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
+            
+            <div style="display: flex; gap: 12px;">
+              <button id="preview-open-doc-btn" data-object-url="${objectUrl}" style="
+                flex: 1;
+                padding: 12px 20px;
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                transition: all 0.2s ease;
+                box-shadow: 0 2px 8px rgba(16,185,129,0.3);
+              ">Open Document</button>
+              <button id="preview-download-btn" data-object-url="${objectUrl}" data-doc-name="${docName}" style="
+                padding: 12px 20px;
+                background: #059669;
+                color: #ffffff;
+                border: 1px solid #047857;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 500;
+                transition: all 0.2s ease;
+              ">Download</button>
+            </div>
           </div>
-          
-          <div style="display: flex; gap: 12px;">
-            <button id="preview-open-doc-btn" data-object-url="${objectUrl}" style="
-              flex: 1;
-              padding: 12px 20px;
-              background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-              color: white;
-              border: none;
-              border-radius: 8px;
-              cursor: pointer;
-              font-size: 14px;
-              font-weight: 600;
-              transition: all 0.2s ease;
-              box-shadow: 0 2px 8px rgba(16,185,129,0.3);
-            ">Open Document</button>
-            <button id="preview-download-btn" data-object-url="${objectUrl}" data-doc-name="${docName}" style="
-              padding: 12px 20px;
-              background: #059669;
-              color: #ffffff;
-              border: 1px solid #047857;
-              border-radius: 8px;
-              cursor: pointer;
-              font-size: 14px;
-              font-weight: 500;
-              transition: all 0.2s ease;
-            ">Download</button>
-          </div>
-        </div>
-      `;
+        `;
       
       rightPreviewPanel.innerHTML = previewContent;
       
-      // Add PDF loading handlers
-      const pdfIframe = rightPreviewPanel.querySelector('#pdf-iframe');
-      const pdfLoading = rightPreviewPanel.querySelector('#pdf-loading');
-      const pdfError = rightPreviewPanel.querySelector('#pdf-error');
-      const documentStatus = rightPreviewPanel.querySelector('#document-status');
-      
-      if (pdfIframe) {
-        const handlePdfLoad = () => {
-          console.log('[PREVIEW] PDF data URL loaded successfully via iframe');
-          if (pdfLoading) pdfLoading.style.display = 'none';
-          if (pdfError) pdfError.style.display = 'none';
-          if (pdfIframe) pdfIframe.style.display = 'block';
-          if (documentStatus) documentStatus.textContent = 'Ready to View';
-        };
+        // Add loading handlers based on file type
+        const documentStatus = rightPreviewPanel.querySelector('#document-status');
         
-        const handlePdfError = () => {
-          console.log('[PREVIEW] PDF data URL failed to load via iframe');
-          if (pdfLoading) pdfLoading.style.display = 'none';
-          if (pdfError) pdfError.style.display = 'block';
-          if (pdfIframe) pdfIframe.style.display = 'none';
-          if (documentStatus) documentStatus.textContent = 'Failed to Load';
-        };
-        
-        // Set up event listeners for iframe
-        pdfIframe.addEventListener('load', handlePdfLoad);
-        pdfIframe.addEventListener('error', handlePdfError);
-        
-        // Timeout fallback
-        setTimeout(() => {
-          if (pdfLoading && pdfLoading.style.display !== 'none') {
-            console.log('[PREVIEW] PDF data URL loading timeout via iframe');
-            handlePdfError();
+        if (isImage) {
+          const previewImage = rightPreviewPanel.querySelector('#preview-image');
+          const imageLoading = rightPreviewPanel.querySelector('#image-loading');
+          const imageError = rightPreviewPanel.querySelector('#image-error');
+          
+          if (previewImage) {
+            const handleImageLoad = () => {
+              console.log('[PREVIEW] Image data URL loaded successfully');
+              if (imageLoading) imageLoading.style.display = 'none';
+              if (imageError) imageError.style.display = 'none';
+              if (previewImage) previewImage.style.display = 'block';
+              if (documentStatus) documentStatus.textContent = 'Ready to View';
+            };
+            
+            const handleImageError = () => {
+              console.log('[PREVIEW] Image data URL failed to load');
+              if (imageLoading) imageLoading.style.display = 'none';
+              if (imageError) imageError.style.display = 'block';
+              if (previewImage) previewImage.style.display = 'none';
+              if (documentStatus) documentStatus.textContent = 'Failed to Load';
+            };
+            
+            // Set up event listeners for image
+            previewImage.addEventListener('load', handleImageLoad);
+            previewImage.addEventListener('error', handleImageError);
+            
+            // Timeout fallback
+            setTimeout(() => {
+              if (imageLoading && imageLoading.style.display !== 'none') {
+                console.log('[PREVIEW] Image loading timeout, showing error');
+                handleImageError();
+              }
+            }, 10000);
           }
-        }, 5000); // 5 second timeout for iframe
-      }
+        } else if (isPdf) {
+          const pdfIframe = rightPreviewPanel.querySelector('#pdf-iframe');
+          const pdfLoading = rightPreviewPanel.querySelector('#pdf-loading');
+          const pdfError = rightPreviewPanel.querySelector('#pdf-error');
+          
+          if (pdfIframe) {
+            const handlePdfLoad = () => {
+              console.log('[PREVIEW] PDF data URL loaded successfully via iframe');
+              if (pdfLoading) pdfLoading.style.display = 'none';
+              if (pdfError) pdfError.style.display = 'none';
+              if (pdfIframe) pdfIframe.style.display = 'block';
+              if (documentStatus) documentStatus.textContent = 'Ready to View';
+            };
+            
+            const handlePdfError = () => {
+              console.log('[PREVIEW] PDF data URL failed to load via iframe');
+              if (pdfLoading) pdfLoading.style.display = 'none';
+              if (pdfError) pdfError.style.display = 'block';
+              if (pdfIframe) pdfIframe.style.display = 'none';
+              if (documentStatus) documentStatus.textContent = 'Failed to Load';
+            };
+            
+            // Set up event listeners for iframe
+            pdfIframe.addEventListener('load', handlePdfLoad);
+            pdfIframe.addEventListener('error', handlePdfError);
+            
+            // Timeout fallback
+            setTimeout(() => {
+              if (pdfLoading && pdfLoading.style.display !== 'none') {
+                console.log('[PREVIEW] PDF loading timeout, showing error');
+                handlePdfError();
+              }
+            }, 10000);
+          }
+        } else {
+          // For other file types, just show ready status
+          if (documentStatus) documentStatus.textContent = 'Ready to View';
+        }
       
       // Add event listeners for buttons (using object URL instead of doc URL)
       const openDocBtn = rightPreviewPanel.querySelector('#preview-open-doc-btn');
@@ -2033,7 +2116,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       }
       
       // Show the panel with animation
-      console.log('[PREVIEW] Showing right preview panel with PDF blob');
+      console.log('[PREVIEW] Showing right preview panel with blob');
       rightPreviewPanel.style.display = 'flex';
       rightPreviewPanel.offsetHeight; // Force reflow
       rightPreviewPanel.style.transform = 'translateX(0)';
@@ -2064,7 +2147,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
             <div style="flex: 1; display: flex; align-items: center; justify-content: center; background: #ffffff; border-radius: 8px;">
               <div style="text-align: center; color: #fbbf24;">
                 <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
-                <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
+                <div style="font-size: 16px; font-weight: 500;">Failed to load Document</div>
                 <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Unable to convert blob to data URL</div>
               </div>
             </div>
