@@ -1,0 +1,168 @@
+#!/bin/bash
+
+# Exit immediately if a command exits with a non-zero status.
+set -e
+
+# Load environment variables from .env file
+echo "=> Checking for .env file..."
+if [ -f .env ]; then
+  echo "   .env file found. Loading variables..."
+  export $(grep -v '^#' .env | xargs)
+else
+  echo "   .env file not found. Using default values."
+  export API_ENDPOINT="http://localhost:8000"
+  export AUTH_ENDPOINT="http://localhost:3000/email-poller" 
+fi
+
+# Handle client preference logic
+if [ "${PREFER_GOOGLE_CLIENT}" = "true" ]; then
+  echo "=> Using Google client credentials"
+  FINAL_CLIENT_ID="${GOOGLE_CLIENT_ID}"
+  FINAL_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET}"
+  FINAL_CHROME_CLIENT_ID="${GOOGLE_CHROME_CLIENT_ID}"
+  if [ -n "${FINAL_CLIENT_ID}" ]; then
+    echo "   Selected CLIENT_ID: ${FINAL_CLIENT_ID:0:10}..."
+  else
+    echo "   Selected CLIENT_ID: (not set)"
+  fi
+  if [ -n "${FINAL_CLIENT_SECRET}" ]; then
+    echo "   Selected CLIENT_SECRET: ${FINAL_CLIENT_SECRET:0:10}..."
+  else
+    echo "   Selected CLIENT_SECRET: (not set)"
+  fi
+  if [ -n "${FINAL_CHROME_CLIENT_ID}" ]; then
+    echo "   Selected CHROME_CLIENT_ID: ${FINAL_CHROME_CLIENT_ID:0:10}..."
+  else
+    echo "   Selected CHROME_CLIENT_ID: (not set)"
+  fi
+else
+  echo "=> Using OAuth client credentials"
+  FINAL_CLIENT_ID="${OAUTH_CLIENT_ID}"
+  FINAL_CLIENT_SECRET="${OAUTH_CLIENT_SECRET}"
+  FINAL_CHROME_CLIENT_ID="${OAUTH_CHROME_CLIENT_ID}"
+  if [ -n "${FINAL_CLIENT_ID}" ]; then
+    echo "   Selected CLIENT_ID: ${FINAL_CLIENT_ID:0:10}..."
+  else
+    echo "   Selected CLIENT_ID: (not set)"
+  fi
+  if [ -n "${FINAL_CLIENT_SECRET}" ]; then
+    echo "   Selected CLIENT_SECRET: ${FINAL_CLIENT_SECRET:0:10}..."
+  else
+    echo "   Selected CLIENT_SECRET: (not set)"
+  fi
+  if [ -n "${FINAL_CHROME_CLIENT_ID}" ]; then
+    echo "   Selected CHROME_CLIENT_ID: ${FINAL_CHROME_CLIENT_ID:0:10}..."
+  else
+    echo "   Selected CHROME_CLIENT_ID: (not set)"
+  fi
+fi
+
+echo "Starting extension build..."
+echo "   Value of API_ENDPOINT is: '${API_ENDPOINT}'"
+echo "   Value of AUTH_ENDPOINT is: '${AUTH_ENDPOINT}'"
+if [ -n "${FINAL_CHROME_CLIENT_ID}" ]; then
+  echo "   Value of FINAL_CHROME_CLIENT_ID is: '${FINAL_CHROME_CLIENT_ID:0:10}...'"
+else
+  echo "   Value of FINAL_CHROME_CLIENT_ID is: (not set)"
+fi
+
+# The 'dist' directory will contain the ready-to-load extension.
+# Recreating it ensures a clean build from scratch.
+echo "=> Cleaning up old build..."
+rm -rf dist
+mkdir -p dist
+
+# Note: For dual OAuth flow, we use separate client IDs for Chrome extension and web OAuth
+# The FINAL_CLIENT_ID and FINAL_CLIENT_SECRET are used by the content script for web OAuth
+# The Chrome extension OAuth client ID is manually set in manifest.json
+if [ -n "${FINAL_CHROME_CLIENT_ID}" ]; then
+  echo "   Chrome OAuth client ID: '${FINAL_CHROME_CLIENT_ID:0:10}...'"
+else
+  echo "   Chrome OAuth client ID: (not set)"
+fi
+
+echo "=> Installing dependencies..."
+npm install
+
+echo "=> Building JavaScript files with esbuild..."
+# Build content.js with node_modules support
+echo "   Building content.js..."
+npx esbuild content.js --bundle --outfile=dist/content.js --platform=browser --sourcemap --minify=false
+
+# Build background.js
+echo "=> Building background.js..."
+npx esbuild background.js --bundle --outfile=dist/background.js --platform=browser --sourcemap --minify=false
+
+# Build OAuth callback detector
+echo "=> Building oauth-callback-detector.js..."
+npx esbuild oauth-callback-detector.js --bundle --outfile=dist/oauth-callback-detector.js --platform=browser --sourcemap --minify=false
+
+echo "=> Copying manifest.json..."
+# Copy manifest.json to dist directory (no client_id replacement)
+cp manifest.json dist/
+echo "   manifest.json copied successfully (client_id left as-is)"
+
+echo "=> Copying extension assets..."
+# Copy the InboxSDK page world script
+echo "   Copying InboxSDK files..."
+# Skip copying pageWorld.js as it's already in dist from previous build
+echo "   pageWorld.js files already present in dist/"
+
+# Copy any PNG images (like logos)
+echo "   Copying image files..."
+cp *.png dist/ 2>/dev/null || echo "   Warning: No PNG files found"
+
+# Copy CSS files for jspreadsheet integration
+echo "   Copying CSS files..."
+cp jspreadsheet.css dist/ 2>/dev/null || echo "   Warning: jspreadsheet.css not found"
+cp jsuites.css dist/ 2>/dev/null || echo "   Warning: jsuites.css not found"
+
+# Copy floating chat files
+echo "   Copying floating chat files..."
+if [ -d "floating-chat" ]; then
+  cp -r floating-chat dist/
+  echo "   Floating chat files copied successfully"
+else
+  echo "   Warning: floating-chat directory not found"
+fi
+
+# Copy popup files (these are essential for the extension to work)
+echo "   Copying popup files..."
+if [ -f "popup.html" ]; then
+  cp popup.html dist/
+  echo "   popup.html copied successfully"
+else
+  echo "   ERROR: popup.html not found - this will break the extension!"
+  exit 1
+fi
+
+if [ -f "popup.js" ]; then
+  cp popup.js dist/
+  echo "   popup.js copied successfully"
+else
+  echo "   ERROR: popup.js not found - this will break the extension!"
+  exit 1
+fi
+
+# Copy additional required files
+echo "   Copying additional required files..."
+if [ -f "stamp-spreadsheet-theme.css" ]; then
+  cp stamp-spreadsheet-theme.css dist/
+  echo "   stamp-spreadsheet-theme.css copied successfully"
+fi
+
+if [ -f "node_modules/@inboxsdk/core/pageWorld.js" ]; then
+  cp node_modules/@inboxsdk/core/pageWorld.js dist/
+  echo "   pageWorld.js copied successfully"
+fi
+
+if [ -f "node_modules/jsuites/dist/jsuites.js" ]; then
+  cp node_modules/jsuites/dist/jsuites.js dist/
+  echo "   jsuites.js copied successfully"
+fi
+
+echo ""
+echo "Build complete! 🎉"
+echo "The complete extension has been built into the 'dist' directory."
+echo "You can now load the 'dist' directory as an unpacked extension in your browser."
+echo "Note: Make sure to manually set the correct client_id in dist/manifest.json if needed."

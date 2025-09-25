@@ -7,7 +7,7 @@
       AUTH_ENDPOINT: "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/prod/email-poller"
     };
   }
-  var AUTH_ENDPOINT = CONFIG?.AUTH_ENDPOINT || "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/prod/email-poller";
+  var AUTH_ENDPOINT = "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/prod/email-poller";
   var webOAuthFlows = /* @__PURE__ */ new Map();
   function getRedirectURL() {
     const redirectUri = chrome.identity.getRedirectURL ? chrome.identity.getRedirectURL() : "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/prod/email-poller/oauth2-callback";
