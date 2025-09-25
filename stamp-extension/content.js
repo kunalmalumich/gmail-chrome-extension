@@ -451,27 +451,62 @@ class ApiClient {
     console.log('[API] 📄 Requesting Gmail attachment PDF from backend:', { threadId, documentName });
     
     try {
-      // Build the correct endpoint with query parameters
+      // Build the backend endpoint
       const endpoint = `/api/finops/files/gmail/attachment?thread_id=${encodeURIComponent(threadId)}&filename=${encodeURIComponent(documentName)}`;
+      const backendUrl = `${this.baseUrl}${endpoint}`;
       
-      // Use GET method instead of POST, and no body needed since we're using query parameters
-      const response = await this.makeAuthenticatedRequest(endpoint, {
-        method: 'GET'
-        // No body needed for GET request with query parameters
+      console.log('[API] 📄 Fetching PDF from backend:', backendUrl);
+      
+      // Use background script to bypass CORS restrictions
+      console.log('[API] 🔄 Sending fetch request to background script...');
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+          type: 'fetchFileForPreview',
+          url: backendUrl
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('[API] ❌ Chrome runtime error:', chrome.runtime.lastError);
+            reject(new Error(chrome.runtime.lastError.message));
+          } else if (response.success) {
+            console.log('[API] ✅ Background script response received:', {
+              hasDataUrl: !!response.dataUrl,
+              mimeType: response.mimeType,
+              fileSize: response.fileSize,
+              originalUrl: response.originalUrl
+            });
+            
+            // Convert data URL back to blob
+            const byteCharacters = atob(response.dataUrl.split(',')[1]);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: response.mimeType || 'application/pdf' });
+            
+            console.log('[API] 🔄 Data URL converted back to blob:', {
+              type: blob.type,
+              size: blob.size,
+              sizeKB: Math.round(blob.size / 1024)
+            });
+            
+            resolve(blob);
+          } else {
+            console.error('[API] ❌ Background script error:', response.error);
+            reject(new Error(response.error || 'Failed to fetch file'));
+          }
+        });
       });
 
-      // Assuming the backend returns the PDF file directly.
-      // If it returns JSON with a URL, this part will need to be adjusted.
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[API] Backend failed to fetch attachment: ${response.status}`, errorText);
-        throw new Error(`Backend failed to fetch attachment: ${response.status} ${errorText}`);
-      }
-
-      console.log('[API] ✅ Successfully received PDF stream from backend.');
-      return await response.blob();
+      console.log('[API] ✅ Successfully received PDF from backend.');
+      console.log('[API] 📊 PDF blob details:', {
+        type: response.type,
+        size: response.size,
+        sizeKB: Math.round(response.size / 1024)
+      });
+      return response;
     } catch (error) {
-      console.error('[API] ❌ Error fetching attachment from backend:', error);
+      console.error('[API] ❌ Error fetching PDF from backend:', error);
       // Re-throw the error so the calling function can handle it.
       throw error;
     }

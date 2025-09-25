@@ -1780,7 +1780,13 @@ export async function buildSpreadsheet(container, data, opts = {}) {
         document.body.appendChild(rightPreviewPanel);
       }
 
-      // Create object URL from blob
+      // Convert blob to data URL for more reliable display
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result;
+        console.log('[PREVIEW] Blob converted to data URL, length:', dataUrl.length);
+        
+        // Create object URL as fallback
       const objectUrl = URL.createObjectURL(blob);
       
       // Update preview content with PDF blob
@@ -1805,16 +1811,10 @@ export async function buildSpreadsheet(container, data, opts = {}) {
                   <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
                   <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View PDF" to open in new tab</div>
                 </div>
-                <object id="pdf-object" 
-                  data="${objectUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
-                  type="application/pdf"
+                <iframe id="pdf-iframe" 
+                  src="${dataUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
                   style="width: 100%; height: 100%; border: none; display: none;">
-                  <embed id="pdf-embed" 
-                    src="${objectUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
-                    type="application/pdf"
-                    style="width: 100%; height: 100%; border: none;">
-                  </embed>
-                </object>
+                </iframe>
               </div>
               
               <!-- Document Info Card -->
@@ -1902,46 +1902,39 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       rightPreviewPanel.innerHTML = previewContent;
       
       // Add PDF loading handlers
-      const pdfObject = rightPreviewPanel.querySelector('#pdf-object');
-      const pdfEmbed = rightPreviewPanel.querySelector('#pdf-embed');
+      const pdfIframe = rightPreviewPanel.querySelector('#pdf-iframe');
       const pdfLoading = rightPreviewPanel.querySelector('#pdf-loading');
       const pdfError = rightPreviewPanel.querySelector('#pdf-error');
       const documentStatus = rightPreviewPanel.querySelector('#document-status');
       
-      if (pdfObject) {
+      if (pdfIframe) {
         const handlePdfLoad = () => {
-          console.log('[PREVIEW] PDF blob loaded successfully via object tag');
+          console.log('[PREVIEW] PDF data URL loaded successfully via iframe');
           if (pdfLoading) pdfLoading.style.display = 'none';
           if (pdfError) pdfError.style.display = 'none';
-          if (pdfObject) pdfObject.style.display = 'block';
+          if (pdfIframe) pdfIframe.style.display = 'block';
           if (documentStatus) documentStatus.textContent = 'Ready to View';
         };
         
         const handlePdfError = () => {
-          console.log('[PREVIEW] PDF blob failed to load via object tag');
+          console.log('[PREVIEW] PDF data URL failed to load via iframe');
           if (pdfLoading) pdfLoading.style.display = 'none';
           if (pdfError) pdfError.style.display = 'block';
-          if (pdfObject) pdfObject.style.display = 'none';
+          if (pdfIframe) pdfIframe.style.display = 'none';
           if (documentStatus) documentStatus.textContent = 'Failed to Load';
         };
         
-        // Set up event listeners for object tag
-        pdfObject.addEventListener('load', handlePdfLoad);
-        pdfObject.addEventListener('error', handlePdfError);
-        
-        // Also set up listeners for embed tag as fallback
-        if (pdfEmbed) {
-          pdfEmbed.addEventListener('load', handlePdfLoad);
-          pdfEmbed.addEventListener('error', handlePdfError);
-        }
+        // Set up event listeners for iframe
+        pdfIframe.addEventListener('load', handlePdfLoad);
+        pdfIframe.addEventListener('error', handlePdfError);
         
         // Timeout fallback
         setTimeout(() => {
           if (pdfLoading && pdfLoading.style.display !== 'none') {
-            console.log('[PREVIEW] PDF blob loading timeout via object tag');
+            console.log('[PREVIEW] PDF data URL loading timeout via iframe');
             handlePdfError();
           }
-        }, 5000); // 5 second timeout for object tag
+        }, 5000); // 5 second timeout for iframe
       }
       
       // Add event listeners for buttons (using object URL instead of doc URL)
@@ -2057,6 +2050,30 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       if (closeBtn) {
         closeBtn.onclick = hideRightPreviewWithCleanup;
       }
+      };
+      
+      reader.onerror = () => {
+        console.error('[PREVIEW] Failed to convert blob to data URL');
+        // Show error state
+        const previewContent = `
+          <div style="flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto;">
+            <div style="margin-bottom: 20px;">
+              <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #ffffff;">Document Preview</h3>
+              <p style="margin: 0; font-size: 14px; color: #ffffff;">${docName}</p>
+            </div>
+            <div style="flex: 1; display: flex; align-items: center; justify-content: center; background: #ffffff; border-radius: 8px;">
+              <div style="text-align: center; color: #fbbf24;">
+                <div style="font-size: 24px; margin-bottom: 12px;">⚠️</div>
+                <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
+                <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Unable to convert blob to data URL</div>
+              </div>
+            </div>
+          </div>
+        `;
+        rightPreviewPanel.innerHTML = previewContent;
+      };
+      
+      reader.readAsDataURL(blob);
     };
 
     cleanContainer.addEventListener('click', async (e) => {
@@ -2073,17 +2090,10 @@ export async function buildSpreadsheet(container, data, opts = {}) {
 
       const threadId = icon.getAttribute('data-thread-id');
       const documentName = icon.getAttribute('data-doc-name');
-      const docUrl = icon.getAttribute('data-doc-url');
       
-      // Check if we have a direct URL (sample documents) or need to fetch from backend
-      if (docUrl && (docUrl.includes('w3.org') || docUrl.includes('learningcontainer.com'))) {
-        // Sample document - use green modal preview
-        console.log('[DOC] Sample document detected, using green modal preview');
-        showGreenModal(icon);
-        return;
-      }
+      // Use blob preview functionality
+      console.log('[DOC] Using blob preview functionality');
       
-      // Real document - try to fetch from backend first
       if (threadId && documentName && opts.fetchPdf) {
         const cacheKey = `${threadId}|${documentName}`;
         
@@ -2095,7 +2105,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           return;
         }
         
-        // No cache: fetch via authenticated client hook
+        // No cache: fetch via backend
         try {
           console.log('[DOC] Fetching PDF from backend:', { threadId, documentName });
           const blob = await opts.fetchPdf({ threadId, documentName });
@@ -2107,22 +2117,17 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           }
           pdfCache.set(cacheKey, blob);
           
-          console.log('[DOC] PDF fetched successfully, showing preview');
+          console.log('[DOC] PDF fetched successfully, showing blob preview');
           showRightPreviewWithBlob(icon, blob);
         } catch (err) {
           console.error('[DOC] Failed to fetch PDF from backend:', err);
-          // Fallback to green modal preview - ensure icon has the correct URL
-          console.log('[DOC] Falling back to green modal preview');
-          // Set the doc URL for the fallback
-          icon.setAttribute('data-doc-url', 'https://www.learningcontainer.com/wp-content/uploads/2019/09/sample-pdf-file.pdf');
-          showGreenModal(icon);
+          // Show error message instead of fallback
+          alert(`Failed to load PDF from backend: ${err.message}`);
         }
       } else {
-        // No backend fetch available, use green modal preview
-        console.log('[DOC] No backend fetch available, using green modal preview');
-        // Set the doc URL for the fallback
-        icon.setAttribute('data-doc-url', 'https://www.learningcontainer.com/wp-content/uploads/2019/09/sample-pdf-file.pdf');
-        showGreenModal(icon);
+        // No backend fetch available
+        console.log('[DOC] No backend fetch available');
+        alert('No PDF fetch function available. Please ensure the backend is properly configured.');
       }
     });
   }, 500);
@@ -2614,65 +2619,14 @@ function calculateOptimalDimensions(container) {
 
 
 
-// Helper function to create a test PDF row for testing document preview functionality
-function createTestPdfRow() {
-  // Create test document data with thread_id and document_name for PDF preview testing
-  const testThreadId = 'test-thread-12345';
-  const testDocumentName = 'test-invoice.pdf';
-  
-  // Document icon with test data - include a working test PDF URL
-  const docIcon = `
-    <span class="doc-preview-icon" 
-          data-doc-url="https://www.learningcontainer.com/wp-content/uploads/2019/09/sample-pdf-file.pdf"
-          data-thumb-url=""
-          data-has-doc="1"
-          data-thread-id="${testThreadId}"
-          data-doc-name="${testDocumentName}"
-          title="Test PDF Document - Click to preview"
-          style="cursor: pointer; color: #1a73e8; background: #e8f0fe; border: 1px solid #dadce0; border-radius: 4px; font-size: 14px; padding: 4px; margin: 0; line-height: 1; height: 24px; width: 24px; display: flex; align-items: center; justify-content: center; user-select: none; transition: all 0.2s ease;">📄</span>
-  `;
-  
-  // Gmail popout icon
-  const gmailIcon = `
-    <button class="gmail-popout-btn" 
-            data-thread-id="${testThreadId}" 
-            data-message-id="test-message-12345"
-            title="Open in Gmail"
-            style="background: none; border: none; cursor: pointer; font-size: 16px; color: #1a73e8; padding: 2px;">📧</button>
-  `;
-  
-  // Actions button
-  const actionsButton = `
-    <button class="view-thread-btn" 
-            data-thread-id="${testThreadId}"
-            title="View Thread"
-            style="background: #1a73e8; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 12px;">View Thread</button>
-  `;
-  
-  return [
-    docIcon,                    // Document preview icon
-    'TEST-001',                 // Invoice Number
-    'Test Company Inc.',        // Entity Name
-    'Test invoice for PDF preview functionality', // Description
-    '1000.00',                 // Amount
-    'USD',                     // Currency
-    '2024-01-15',              // Issue Date
-    '2024-02-15',              // Due Date
-    '30',                      // Terms
-    'pending',                 // Status
-    gmailIcon,                 // Gmail icon
-    'PENDING',                 // Approver
-    'Test row for PDF preview testing', // Notes
-    actionsButton              // Actions
-  ];
-}
 
 // Helper function to transform raw invoice data into the format jspreadsheet expects
 function transformDataForSpreadsheet(invoices) {
     if (!invoices) {
         return [];
     }
-  return invoices.map(invoice => {
+    
+    return invoices.map(invoice => {
     // Handle new document structure with different document types
     const details = invoice.document?.details || {};
     const documentType = invoice.documentType;

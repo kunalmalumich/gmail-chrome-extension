@@ -73946,9 +73946,9 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           transition: transform 0.3s ease;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         `;
-          const closeBtn2 = document.createElement("button");
-          closeBtn2.innerHTML = "\xD7";
-          closeBtn2.style.cssText = `
+          const closeBtn = document.createElement("button");
+          closeBtn.innerHTML = "\xD7";
+          closeBtn.style.cssText = `
           position: absolute;
           top: 16px;
           right: 16px;
@@ -73966,14 +73966,18 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           justify-content: center;
           z-index: 1001;
         `;
-          closeBtn2.addEventListener("click", () => {
+          closeBtn.addEventListener("click", () => {
             hideRightPreview();
           });
-          rightPreviewPanel.appendChild(closeBtn2);
+          rightPreviewPanel.appendChild(closeBtn);
           document.body.appendChild(rightPreviewPanel);
         }
-        const objectUrl = URL.createObjectURL(blob2);
-        const previewContent = `
+        const reader2 = new FileReader();
+        reader2.onload = () => {
+          const dataUrl = reader2.result;
+          console.log("[PREVIEW] Blob converted to data URL, length:", dataUrl.length);
+          const objectUrl = URL.createObjectURL(blob2);
+          const previewContent = `
         <div style="flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto;">
           <div style="margin-bottom: 20px;">
             <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #ffffff;">Document Preview</h3>
@@ -73994,16 +73998,10 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
                   <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
                   <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Click "View PDF" to open in new tab</div>
                 </div>
-                <object id="pdf-object" 
-                  data="${objectUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
-                  type="application/pdf"
+                <iframe id="pdf-iframe" 
+                  src="${dataUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
                   style="width: 100%; height: 100%; border: none; display: none;">
-                  <embed id="pdf-embed" 
-                    src="${objectUrl}#toolbar=0&navpanes=0&scrollbar=0&page=1&view=FitH" 
-                    type="application/pdf"
-                    style="width: 100%; height: 100%; border: none;">
-                  </embed>
-                </object>
+                </iframe>
               </div>
               
               <!-- Document Info Card -->
@@ -74087,103 +74085,98 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           </div>
         </div>
       `;
-        rightPreviewPanel.innerHTML = previewContent;
-        const pdfObject = rightPreviewPanel.querySelector("#pdf-object");
-        const pdfEmbed = rightPreviewPanel.querySelector("#pdf-embed");
-        const pdfLoading = rightPreviewPanel.querySelector("#pdf-loading");
-        const pdfError = rightPreviewPanel.querySelector("#pdf-error");
-        const documentStatus = rightPreviewPanel.querySelector("#document-status");
-        if (pdfObject) {
-          const handlePdfLoad = () => {
-            console.log("[PREVIEW] PDF blob loaded successfully via object tag");
-            if (pdfLoading) pdfLoading.style.display = "none";
-            if (pdfError) pdfError.style.display = "none";
-            if (pdfObject) pdfObject.style.display = "block";
-            if (documentStatus) documentStatus.textContent = "Ready to View";
-          };
-          const handlePdfError = () => {
-            console.log("[PREVIEW] PDF blob failed to load via object tag");
-            if (pdfLoading) pdfLoading.style.display = "none";
-            if (pdfError) pdfError.style.display = "block";
-            if (pdfObject) pdfObject.style.display = "none";
-            if (documentStatus) documentStatus.textContent = "Failed to Load";
-          };
-          pdfObject.addEventListener("load", handlePdfLoad);
-          pdfObject.addEventListener("error", handlePdfError);
-          if (pdfEmbed) {
-            pdfEmbed.addEventListener("load", handlePdfLoad);
-            pdfEmbed.addEventListener("error", handlePdfError);
+          rightPreviewPanel.innerHTML = previewContent;
+          const pdfIframe = rightPreviewPanel.querySelector("#pdf-iframe");
+          const pdfLoading = rightPreviewPanel.querySelector("#pdf-loading");
+          const pdfError = rightPreviewPanel.querySelector("#pdf-error");
+          const documentStatus = rightPreviewPanel.querySelector("#document-status");
+          if (pdfIframe) {
+            const handlePdfLoad = () => {
+              console.log("[PREVIEW] PDF data URL loaded successfully via iframe");
+              if (pdfLoading) pdfLoading.style.display = "none";
+              if (pdfError) pdfError.style.display = "none";
+              if (pdfIframe) pdfIframe.style.display = "block";
+              if (documentStatus) documentStatus.textContent = "Ready to View";
+            };
+            const handlePdfError = () => {
+              console.log("[PREVIEW] PDF data URL failed to load via iframe");
+              if (pdfLoading) pdfLoading.style.display = "none";
+              if (pdfError) pdfError.style.display = "block";
+              if (pdfIframe) pdfIframe.style.display = "none";
+              if (documentStatus) documentStatus.textContent = "Failed to Load";
+            };
+            pdfIframe.addEventListener("load", handlePdfLoad);
+            pdfIframe.addEventListener("error", handlePdfError);
+            setTimeout(() => {
+              if (pdfLoading && pdfLoading.style.display !== "none") {
+                console.log("[PREVIEW] PDF data URL loading timeout via iframe");
+                handlePdfError();
+              }
+            }, 5e3);
           }
-          setTimeout(() => {
-            if (pdfLoading && pdfLoading.style.display !== "none") {
-              console.log("[PREVIEW] PDF blob loading timeout via object tag");
-              handlePdfError();
-            }
-          }, 5e3);
-        }
-        const openDocBtn = rightPreviewPanel.querySelector("#preview-open-doc-btn");
-        const downloadBtn = rightPreviewPanel.querySelector("#preview-download-btn");
-        if (openDocBtn) {
-          openDocBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const objectUrl2 = openDocBtn.getAttribute("data-object-url");
-            if (objectUrl2) {
-              window.open(objectUrl2, "_blank");
-            }
-          });
-        }
-        if (downloadBtn) {
-          downloadBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const objectUrl2 = downloadBtn.getAttribute("data-object-url");
-            const docName2 = downloadBtn.getAttribute("data-doc-name");
-            if (objectUrl2) {
-              const link = document.createElement("a");
-              link.href = objectUrl2;
-              link.download = docName2 || "document.pdf";
-              link.click();
-            }
-          });
-        }
-        const quickViewBtn = rightPreviewPanel.querySelector("#preview-quick-view-btn");
-        const quickDownloadBtn = rightPreviewPanel.querySelector("#preview-quick-download-btn");
-        const quickCopyBtn = rightPreviewPanel.querySelector("#preview-quick-copy-btn");
-        if (quickViewBtn) {
-          quickViewBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const objectUrl2 = quickViewBtn.getAttribute("data-object-url");
-            if (objectUrl2) {
-              window.open(objectUrl2, "_blank");
-            }
-          });
-        }
-        if (quickDownloadBtn) {
-          quickDownloadBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const objectUrl2 = quickDownloadBtn.getAttribute("data-object-url");
-            const docName2 = quickDownloadBtn.getAttribute("data-doc-name");
-            if (objectUrl2) {
-              const link = document.createElement("a");
-              link.href = objectUrl2;
-              link.download = docName2 || "document.pdf";
-              link.click();
-            }
-          });
-        }
-        if (quickCopyBtn) {
-          quickCopyBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const objectUrl2 = quickCopyBtn.getAttribute("data-object-url");
-            if (objectUrl2) {
-              navigator.clipboard.writeText(objectUrl2).then(() => {
-                const notification = document.createElement("div");
-                notification.textContent = "Link copied to clipboard!";
-                notification.style.cssText = `
+          const openDocBtn = rightPreviewPanel.querySelector("#preview-open-doc-btn");
+          const downloadBtn = rightPreviewPanel.querySelector("#preview-download-btn");
+          if (openDocBtn) {
+            openDocBtn.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const objectUrl2 = openDocBtn.getAttribute("data-object-url");
+              if (objectUrl2) {
+                window.open(objectUrl2, "_blank");
+              }
+            });
+          }
+          if (downloadBtn) {
+            downloadBtn.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const objectUrl2 = downloadBtn.getAttribute("data-object-url");
+              const docName2 = downloadBtn.getAttribute("data-doc-name");
+              if (objectUrl2) {
+                const link = document.createElement("a");
+                link.href = objectUrl2;
+                link.download = docName2 || "document.pdf";
+                link.click();
+              }
+            });
+          }
+          const quickViewBtn = rightPreviewPanel.querySelector("#preview-quick-view-btn");
+          const quickDownloadBtn = rightPreviewPanel.querySelector("#preview-quick-download-btn");
+          const quickCopyBtn = rightPreviewPanel.querySelector("#preview-quick-copy-btn");
+          if (quickViewBtn) {
+            quickViewBtn.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const objectUrl2 = quickViewBtn.getAttribute("data-object-url");
+              if (objectUrl2) {
+                window.open(objectUrl2, "_blank");
+              }
+            });
+          }
+          if (quickDownloadBtn) {
+            quickDownloadBtn.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const objectUrl2 = quickDownloadBtn.getAttribute("data-object-url");
+              const docName2 = quickDownloadBtn.getAttribute("data-doc-name");
+              if (objectUrl2) {
+                const link = document.createElement("a");
+                link.href = objectUrl2;
+                link.download = docName2 || "document.pdf";
+                link.click();
+              }
+            });
+          }
+          if (quickCopyBtn) {
+            quickCopyBtn.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const objectUrl2 = quickCopyBtn.getAttribute("data-object-url");
+              if (objectUrl2) {
+                navigator.clipboard.writeText(objectUrl2).then(() => {
+                  const notification = document.createElement("div");
+                  notification.textContent = "Link copied to clipboard!";
+                  notification.style.cssText = `
                 position: fixed;
                 top: 20px;
                 right: 20px;
@@ -74196,29 +74189,50 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
                 z-index: 10000;
                 box-shadow: 0 4px 12px rgba(16,185,129,0.3);
               `;
-                document.body.appendChild(notification);
-                setTimeout(() => {
-                  document.body.removeChild(notification);
-                }, 3e3);
-              }).catch(() => {
-                alert("Failed to copy link. Please copy manually: " + objectUrl2);
-              });
-            }
-          });
-        }
-        console.log("[PREVIEW] Showing right preview panel with PDF blob");
-        rightPreviewPanel.style.display = "flex";
-        rightPreviewPanel.offsetHeight;
-        rightPreviewPanel.style.transform = "translateX(0)";
-        const originalHideRightPreview = hideRightPreview;
-        const hideRightPreviewWithCleanup = () => {
-          URL.revokeObjectURL(objectUrl);
-          originalHideRightPreview();
+                  document.body.appendChild(notification);
+                  setTimeout(() => {
+                    document.body.removeChild(notification);
+                  }, 3e3);
+                }).catch(() => {
+                  alert("Failed to copy link. Please copy manually: " + objectUrl2);
+                });
+              }
+            });
+          }
+          console.log("[PREVIEW] Showing right preview panel with PDF blob");
+          rightPreviewPanel.style.display = "flex";
+          rightPreviewPanel.offsetHeight;
+          rightPreviewPanel.style.transform = "translateX(0)";
+          const originalHideRightPreview = hideRightPreview;
+          const hideRightPreviewWithCleanup = () => {
+            URL.revokeObjectURL(objectUrl);
+            originalHideRightPreview();
+          };
+          const closeBtn = rightPreviewPanel.querySelector("button");
+          if (closeBtn) {
+            closeBtn.onclick = hideRightPreviewWithCleanup;
+          }
         };
-        const closeBtn = rightPreviewPanel.querySelector("button");
-        if (closeBtn) {
-          closeBtn.onclick = hideRightPreviewWithCleanup;
-        }
+        reader2.onerror = () => {
+          console.error("[PREVIEW] Failed to convert blob to data URL");
+          const previewContent = `
+          <div style="flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto;">
+            <div style="margin-bottom: 20px;">
+              <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #ffffff;">Document Preview</h3>
+              <p style="margin: 0; font-size: 14px; color: #ffffff;">${docName}</p>
+            </div>
+            <div style="flex: 1; display: flex; align-items: center; justify-content: center; background: #ffffff; border-radius: 8px;">
+              <div style="text-align: center; color: #fbbf24;">
+                <div style="font-size: 24px; margin-bottom: 12px;">\u26A0\uFE0F</div>
+                <div style="font-size: 16px; font-weight: 500;">Failed to load PDF</div>
+                <div style="font-size: 14px; margin-top: 4px; opacity: 0.8;">Unable to convert blob to data URL</div>
+              </div>
+            </div>
+          </div>
+        `;
+          rightPreviewPanel.innerHTML = previewContent;
+        };
+        reader2.readAsDataURL(blob2);
       };
       cleanContainer.addEventListener("click", async (e) => {
         console.log("[DOC] Click detected on:", e.target);
@@ -74230,12 +74244,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         if (!hasDoc) return;
         const threadId = icon.getAttribute("data-thread-id");
         const documentName = icon.getAttribute("data-doc-name");
-        const docUrl = icon.getAttribute("data-doc-url");
-        if (docUrl && (docUrl.includes("w3.org") || docUrl.includes("learningcontainer.com"))) {
-          console.log("[DOC] Sample document detected, using green modal preview");
-          showGreenModal(icon);
-          return;
-        }
+        console.log("[DOC] \u{1F9EA} TESTING MODE: Using blob preview only");
         if (threadId && documentName && opts.fetchPdf) {
           const cacheKey = `${threadId}|${documentName}`;
           let cachedBlob = pdfCache.get(cacheKey);
@@ -74252,18 +74261,15 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
               pdfCache.delete(firstKey);
             }
             pdfCache.set(cacheKey, blob2);
-            console.log("[DOC] PDF fetched successfully, showing preview");
+            console.log("[DOC] PDF fetched successfully, showing blob preview");
             showRightPreviewWithBlob(icon, blob2);
           } catch (err) {
             console.error("[DOC] Failed to fetch PDF from backend:", err);
-            console.log("[DOC] Falling back to green modal preview");
-            icon.setAttribute("data-doc-url", "https://www.learningcontainer.com/wp-content/uploads/2019/09/sample-pdf-file.pdf");
-            showGreenModal(icon);
+            alert(`Failed to load PDF from backend: ${err.message}`);
           }
         } else {
-          console.log("[DOC] No backend fetch available, using green modal preview");
-          icon.setAttribute("data-doc-url", "https://www.learningcontainer.com/wp-content/uploads/2019/09/sample-pdf-file.pdf");
-          showGreenModal(icon);
+          console.log("[DOC] No backend fetch available");
+          alert("No PDF fetch function available. Please ensure the backend is properly configured.");
         }
       });
     }, 500);
@@ -74716,11 +74722,68 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       // Minimum height
     };
   }
+  function createTestPdfRow() {
+    const testThreadId = "test-thread-12345";
+    const testDocumentName = "test-invoice.pdf";
+    const docIcon = `
+    <span class="doc-preview-icon" 
+          data-thumb-url=""
+          data-has-doc="1"
+          data-thread-id="${testThreadId}"
+          data-doc-name="${testDocumentName}"
+          title="\u{1F9EA} TEST: Click to test blob PDF preview from backend"
+          style="cursor: pointer; color: #ff6b35; background: #fff3e0; border: 2px solid #ff6b35; border-radius: 4px; font-size: 14px; padding: 4px; margin: 0; line-height: 1; height: 24px; width: 24px; display: flex; align-items: center; justify-content: center; user-select: none; transition: all 0.2s ease;">\u{1F9EA}</span>
+  `;
+    const gmailIcon = `
+    <button class="gmail-popout-btn" 
+            data-thread-id="${testThreadId}" 
+            data-message-id="test-message-12345"
+            title="Open in Gmail"
+            style="background: none; border: none; cursor: pointer; font-size: 16px; color: #1a73e8; padding: 2px;">\u{1F4E7}</button>
+  `;
+    const actionsButton = `
+    <button class="view-thread-btn" 
+            data-thread-id="${testThreadId}"
+            title="View Thread"
+            style="background: #1a73e8; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 12px;">View Thread</button>
+  `;
+    return [
+      docIcon,
+      // Document preview icon
+      "TEST-001",
+      // Invoice Number
+      "Test Company Inc.",
+      // Entity Name
+      "Test invoice for PDF preview functionality",
+      // Description
+      "1000.00",
+      // Amount
+      "USD",
+      // Currency
+      "2024-01-15",
+      // Issue Date
+      "2024-02-15",
+      // Due Date
+      "30",
+      // Terms
+      "pending",
+      // Status
+      gmailIcon,
+      // Gmail icon
+      "PENDING",
+      // Approver
+      "Test row for PDF preview testing",
+      // Notes
+      actionsButton
+      // Actions
+    ];
+  }
   function transformDataForSpreadsheet(invoices) {
     if (!invoices) {
       return [];
     }
-    return invoices.map((invoice) => {
+    const testRow = createTestPdfRow();
+    const transformedInvoices = invoices.map((invoice) => {
       const details = invoice.document?.details || {};
       const documentType = invoice.documentType;
       const isReceipt = documentType === "receipt";
@@ -74798,6 +74861,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         statusThreadId ? `<button class="view-thread-btn" data-thread-id="${statusThreadId}">View Thread</button>` : ""
       ];
     });
+    return [testRow, ...transformedInvoices];
   }
   function generateMetaInformation(invoices) {
     if (!invoices || invoices.length === 0) {
@@ -75748,20 +75812,52 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           }
           console.log("[API] \u{1F4C4} Requesting Gmail attachment PDF from backend:", { threadId, documentName });
           try {
-            const endpoint = `/api/finops/files/gmail/attachment?thread_id=${encodeURIComponent(threadId)}&filename=${encodeURIComponent(documentName)}`;
-            const response = await this.makeAuthenticatedRequest(endpoint, {
-              method: "GET"
-              // No body needed for GET request with query parameters
+            const testPdfUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
+            console.log("[API] \u{1F9EA} TESTING MODE: Using test PDF URL via background script:", testPdfUrl);
+            console.log("[API] \u{1F504} Sending fetch request to background script...");
+            const response = await new Promise((resolve, reject) => {
+              chrome.runtime.sendMessage({
+                type: "fetchFileForPreview",
+                url: testPdfUrl
+              }, (response2) => {
+                if (chrome.runtime.lastError) {
+                  console.error("[API] \u274C Chrome runtime error:", chrome.runtime.lastError);
+                  reject(new Error(chrome.runtime.lastError.message));
+                } else if (response2.success) {
+                  console.log("[API] \u2705 Background script response received:", {
+                    hasDataUrl: !!response2.dataUrl,
+                    mimeType: response2.mimeType,
+                    fileSize: response2.fileSize,
+                    originalUrl: response2.originalUrl
+                  });
+                  const byteCharacters = atob(response2.dataUrl.split(",")[1]);
+                  const byteNumbers = new Array(byteCharacters.length);
+                  for (let i2 = 0; i2 < byteCharacters.length; i2++) {
+                    byteNumbers[i2] = byteCharacters.charCodeAt(i2);
+                  }
+                  const byteArray = new Uint8Array(byteNumbers);
+                  const blob2 = new Blob([byteArray], { type: response2.mimeType || "application/pdf" });
+                  console.log("[API] \u{1F504} Data URL converted back to blob:", {
+                    type: blob2.type,
+                    size: blob2.size,
+                    sizeKB: Math.round(blob2.size / 1024)
+                  });
+                  resolve(blob2);
+                } else {
+                  console.error("[API] \u274C Background script error:", response2.error);
+                  reject(new Error(response2.error || "Failed to fetch file"));
+                }
+              });
             });
-            if (!response.ok) {
-              const errorText = await response.text();
-              console.error(`[API] Backend failed to fetch attachment: ${response.status}`, errorText);
-              throw new Error(`Backend failed to fetch attachment: ${response.status} ${errorText}`);
-            }
-            console.log("[API] \u2705 Successfully received PDF stream from backend.");
-            return await response.blob();
+            console.log("[API] \u2705 Successfully received test PDF stream via background script.");
+            console.log("[API] \u{1F4CA} Test PDF blob details:", {
+              type: response.type,
+              size: response.size,
+              sizeKB: Math.round(response.size / 1024)
+            });
+            return response;
           } catch (error) {
-            console.error("[API] \u274C Error fetching attachment from backend:", error);
+            console.error("[API] \u274C Error fetching test PDF:", error);
             throw error;
           }
         }

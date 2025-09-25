@@ -31,7 +31,9 @@
     "https://*.ngrok-free.app/*",
     "https://*.execute-api.us-east-2.amazonaws.com/*",
     "https://70h4jbuv95.execute-api.us-east-2.amazonaws.com/*",
-    "https://nmuo25f2da.execute-api.us-east-2.amazonaws.com/*"
+    "https://nmuo25f2da.execute-api.us-east-2.amazonaws.com/*",
+    "https://www.learningcontainer.com/*",
+    "https://www.w3.org/*"
   ],
   "oauth2": {
     "client_id": "759225635526-gs69pgupgap87o4ul9ud9pv8pjrupcgc.apps.googleusercontent.com",

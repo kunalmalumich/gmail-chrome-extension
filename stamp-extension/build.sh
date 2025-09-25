@@ -81,8 +81,9 @@ echo "   manifest.json copied successfully (client_id left as-is)"
 echo "=> Copying extension assets..."
 # Copy the InboxSDK page world script
 echo "   Copying InboxSDK files..."
-# Skip copying pageWorld.js as it's already in dist from previous build
-echo "   pageWorld.js files already present in dist/"
+cp ../packages/core/pageWorld.js dist/
+cp ../packages/core/pageWorld.js.map dist/
+echo "   pageWorld.js files copied successfully"
 
 # Copy any PNG images (like logos)
 echo "   Copying image files..."
@@ -92,6 +93,7 @@ cp *.png dist/ 2>/dev/null || echo "   Warning: No PNG files found"
 echo "   Copying CSS files..."
 cp jspreadsheet.css dist/ 2>/dev/null || echo "   Warning: jspreadsheet.css not found"
 cp jsuites.css dist/ 2>/dev/null || echo "   Warning: jsuites.css not found"
+cp stamp-spreadsheet-theme.css dist/ 2>/dev/null || echo "   Warning: stamp-spreadsheet-theme.css not found"
 
 # Copy floating chat files
 echo "   Copying floating chat files..."
@@ -119,6 +121,11 @@ else
   echo "   ERROR: popup.js not found - this will break the extension!"
   exit 1
 fi
+
+# Copy additional required files for jsuites/jspreadsheet
+echo "   Copying additional jsuites/jspreadsheet files..."
+cp node_modules/jsuites/dist/jsuites.js dist/ 2>/dev/null || echo "   Warning: node_modules/jsuites/dist/jsuites.js not found"
+cp node_modules/jspreadsheet/dist/jspreadsheet.js dist/ 2>/dev/null || echo "   Warning: node_modules/jspreadsheet/dist/jspreadsheet.js not found"
 
 echo
 echo "Build complete! 🎉"

@@ -17,6 +17,64 @@
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("[Background] Received message:", message.type);
     console.log("[Background] Message details:", { type: message.type, sender: sender.tab?.url || "no-tab" });
+    if (message.type === "fetchFileForPreview" && message.url) {
+      console.log("[Background] Fetching file for preview:", message.url);
+      fetch(message.url, {
+        method: "GET",
+        headers: {
+          "Accept": "application/pdf, image/*, */*",
+          "Accept-Encoding": "gzip, deflate, br",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Sec-Fetch-Dest": "document",
+          "Sec-Fetch-Mode": "navigate",
+          "Sec-Fetch-Site": "cross-site",
+          "Sec-Fetch-User": "?1",
+          "Upgrade-Insecure-Requests": "1"
+        }
+      }).then((response) => {
+        console.log("[Background] Fetch response status:", response.status);
+        console.log("[Background] Fetch response headers:", Object.fromEntries(response.headers.entries()));
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const contentType = response.headers.get("content-type");
+        const contentLength = response.headers.get("content-length");
+        console.log("[Background] File details:", {
+          contentType,
+          contentLength: contentLength ? `${Math.round(contentLength / 1024)}KB` : "unknown"
+        });
+        return response.blob();
+      }).then((blob) => {
+        console.log("[Background] Blob created:", {
+          type: blob.type,
+          size: blob.size,
+          sizeKB: Math.round(blob.size / 1024)
+        });
+        const reader = new FileReader();
+        reader.onload = () => {
+          console.log("[Background] File converted to data URL successfully");
+          sendResponse({
+            success: true,
+            dataUrl: reader.result,
+            mimeType: blob.type,
+            fileSize: blob.size,
+            originalUrl: message.url
+          });
+        };
+        reader.onerror = () => {
+          console.error("[Background] Failed to convert file to data URL");
+          sendResponse({ success: false, error: "Failed to convert file to data URL" });
+        };
+        reader.readAsDataURL(blob);
+      }).catch((error) => {
+        console.error("[Background] Failed to fetch file:", error);
+        sendResponse({ success: false, error: error.message });
+      });
+      return true;
+    }
     if (message.type === "inboxsdk__injectPageWorld" && sender.tab) {
       const promise = new Promise((resolve) => {
         console.log("[Background] Handling InboxSDK page world injection");
