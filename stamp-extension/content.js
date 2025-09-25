@@ -2945,7 +2945,6 @@ class UIManager {
                             <div style="
                         padding: 20px;
                         background: #ffffff;
-                        border-top: 1px solid #f0f0f0;
                             ">
                                 <div style="
                                     display: flex;

@@ -483,7 +483,7 @@
 .jspreadsheet-clean-container,
 .jss_container,
 .jss_worksheet {
-  overflow-x: auto !important;
+  overflow-x: hidden !important;
   overflow-y: auto !important;
 }
 

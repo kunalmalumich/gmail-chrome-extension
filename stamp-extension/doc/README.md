@@ -91,8 +91,6 @@ npm test
 - `background.js`: Background script for OAuth handling
 - `manifest.json`: Extension configuration
 - `build.sh`: Build script
-- `api.test.js`: API client tests
-- `auth.test.js`: Authentication tests
 
 ## Required Assets
 

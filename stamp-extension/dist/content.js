@@ -74244,7 +74244,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         if (!hasDoc) return;
         const threadId = icon.getAttribute("data-thread-id");
         const documentName = icon.getAttribute("data-doc-name");
-        console.log("[DOC] \u{1F9EA} TESTING MODE: Using blob preview only");
+        console.log("[DOC] Using blob preview functionality");
         if (threadId && documentName && opts.fetchPdf) {
           const cacheKey = `${threadId}|${documentName}`;
           let cachedBlob = pdfCache.get(cacheKey);
@@ -74442,7 +74442,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         }
         
         .jspreadsheet-clean-container {
-          overflow-x: auto !important;
+          overflow-x: hidden !important;
           overflow-y: auto !important;
           max-height: calc(100vh - 200px) !important;
         }
@@ -74473,7 +74473,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         
         /* Ensure the spreadsheet container forces horizontal scroll */
       .jspreadsheet-clean-container {
-          overflow-x: auto !important;
+          overflow-x: hidden !important;
           overflow-y: auto !important;
           width: 100% !important;
           max-width: 100% !important;
@@ -74481,7 +74481,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         
         /* Ensure the spreadsheet container handles overflow properly */
         .jspreadsheet-clean-container {
-          overflow-x: auto !important;
+          overflow-x: hidden !important;
           overflow-y: auto !important;
         }
         
@@ -74647,7 +74647,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         
         /* Allow dropdowns to overflow the container */
         .jspreadsheet-clean-container {
-          overflow-x: auto !important;
+          overflow-x: hidden !important;
           overflow-y: auto !important;
           width: 100% !important;
           max-width: 100% !important;
@@ -74722,68 +74722,11 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
       // Minimum height
     };
   }
-  function createTestPdfRow() {
-    const testThreadId = "test-thread-12345";
-    const testDocumentName = "test-invoice.pdf";
-    const docIcon = `
-    <span class="doc-preview-icon" 
-          data-thumb-url=""
-          data-has-doc="1"
-          data-thread-id="${testThreadId}"
-          data-doc-name="${testDocumentName}"
-          title="\u{1F9EA} TEST: Click to test blob PDF preview from backend"
-          style="cursor: pointer; color: #ff6b35; background: #fff3e0; border: 2px solid #ff6b35; border-radius: 4px; font-size: 14px; padding: 4px; margin: 0; line-height: 1; height: 24px; width: 24px; display: flex; align-items: center; justify-content: center; user-select: none; transition: all 0.2s ease;">\u{1F9EA}</span>
-  `;
-    const gmailIcon = `
-    <button class="gmail-popout-btn" 
-            data-thread-id="${testThreadId}" 
-            data-message-id="test-message-12345"
-            title="Open in Gmail"
-            style="background: none; border: none; cursor: pointer; font-size: 16px; color: #1a73e8; padding: 2px;">\u{1F4E7}</button>
-  `;
-    const actionsButton = `
-    <button class="view-thread-btn" 
-            data-thread-id="${testThreadId}"
-            title="View Thread"
-            style="background: #1a73e8; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 12px;">View Thread</button>
-  `;
-    return [
-      docIcon,
-      // Document preview icon
-      "TEST-001",
-      // Invoice Number
-      "Test Company Inc.",
-      // Entity Name
-      "Test invoice for PDF preview functionality",
-      // Description
-      "1000.00",
-      // Amount
-      "USD",
-      // Currency
-      "2024-01-15",
-      // Issue Date
-      "2024-02-15",
-      // Due Date
-      "30",
-      // Terms
-      "pending",
-      // Status
-      gmailIcon,
-      // Gmail icon
-      "PENDING",
-      // Approver
-      "Test row for PDF preview testing",
-      // Notes
-      actionsButton
-      // Actions
-    ];
-  }
   function transformDataForSpreadsheet(invoices) {
     if (!invoices) {
       return [];
     }
-    const testRow = createTestPdfRow();
-    const transformedInvoices = invoices.map((invoice) => {
+    return invoices.map((invoice) => {
       const details = invoice.document?.details || {};
       const documentType = invoice.documentType;
       const isReceipt = documentType === "receipt";
@@ -74861,7 +74804,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         statusThreadId ? `<button class="view-thread-btn" data-thread-id="${statusThreadId}">View Thread</button>` : ""
       ];
     });
-    return [testRow, ...transformedInvoices];
   }
   function generateMetaInformation(invoices) {
     if (!invoices || invoices.length === 0) {
@@ -75812,13 +75754,14 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           }
           console.log("[API] \u{1F4C4} Requesting Gmail attachment PDF from backend:", { threadId, documentName });
           try {
-            const testPdfUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
-            console.log("[API] \u{1F9EA} TESTING MODE: Using test PDF URL via background script:", testPdfUrl);
+            const endpoint = `/api/finops/files/gmail/attachment?thread_id=${encodeURIComponent(threadId)}&filename=${encodeURIComponent(documentName)}`;
+            const backendUrl = `${this.baseUrl}${endpoint}`;
+            console.log("[API] \u{1F4C4} Fetching PDF from backend:", backendUrl);
             console.log("[API] \u{1F504} Sending fetch request to background script...");
             const response = await new Promise((resolve, reject) => {
               chrome.runtime.sendMessage({
                 type: "fetchFileForPreview",
-                url: testPdfUrl
+                url: backendUrl
               }, (response2) => {
                 if (chrome.runtime.lastError) {
                   console.error("[API] \u274C Chrome runtime error:", chrome.runtime.lastError);
@@ -75849,15 +75792,15 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
                 }
               });
             });
-            console.log("[API] \u2705 Successfully received test PDF stream via background script.");
-            console.log("[API] \u{1F4CA} Test PDF blob details:", {
+            console.log("[API] \u2705 Successfully received PDF from backend.");
+            console.log("[API] \u{1F4CA} PDF blob details:", {
               type: response.type,
               size: response.size,
               sizeKB: Math.round(response.size / 1024)
             });
             return response;
           } catch (error) {
-            console.error("[API] \u274C Error fetching test PDF:", error);
+            console.error("[API] \u274C Error fetching PDF from backend:", error);
             throw error;
           }
         }
@@ -77805,7 +77748,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
                             <div style="
                         padding: 20px;
                         background: #ffffff;
-                        border-top: 1px solid #f0f0f0;
                             ">
                                 <div style="
                                     display: flex;

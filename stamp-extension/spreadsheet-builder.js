@@ -2336,7 +2336,7 @@ async function loadJspreadsheetAssets() {
         }
         
         .jspreadsheet-clean-container {
-          overflow-x: auto !important;
+          overflow-x: hidden !important;
           overflow-y: auto !important;
           max-height: calc(100vh - 200px) !important;
         }
@@ -2367,7 +2367,7 @@ async function loadJspreadsheetAssets() {
         
         /* Ensure the spreadsheet container forces horizontal scroll */
       .jspreadsheet-clean-container {
-          overflow-x: auto !important;
+          overflow-x: hidden !important;
           overflow-y: auto !important;
           width: 100% !important;
           max-width: 100% !important;
@@ -2375,7 +2375,7 @@ async function loadJspreadsheetAssets() {
         
         /* Ensure the spreadsheet container handles overflow properly */
         .jspreadsheet-clean-container {
-          overflow-x: auto !important;
+          overflow-x: hidden !important;
           overflow-y: auto !important;
         }
         
@@ -2541,7 +2541,7 @@ async function loadJspreadsheetAssets() {
         
         /* Allow dropdowns to overflow the container */
         .jspreadsheet-clean-container {
-          overflow-x: auto !important;
+          overflow-x: hidden !important;
           overflow-y: auto !important;
           width: 100% !important;
           max-width: 100% !important;
