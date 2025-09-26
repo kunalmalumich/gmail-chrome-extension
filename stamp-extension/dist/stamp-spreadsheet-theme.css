@@ -9,10 +9,13 @@
   background: #ffffff;
 }
 
-/* Toolbar styling */
+/* Toolbar styling - Google Sheets style */
 .jss_toolbar {
-  background: linear-gradient(135deg, #10b981 0%, #059669 50%, #065f46 100%);
-  border-bottom: 2px solid #047857;
+  background: #e8eaed !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid #dadce0 !important;
   padding: 8px 12px;
   display: flex;
   align-items: center;
@@ -25,10 +28,21 @@
   max-width: 100%;
 }
 
+/* Override any green borders on toolbar */
+.jss_toolbar,
+.jspreadsheet .jss_toolbar,
+.jspreadsheet-clean-container .jss_toolbar {
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid #dadce0 !important;
+  background: #e8eaed !important;
+}
+
 .jss_toolbar button {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #5f6368;
   padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
@@ -41,19 +55,21 @@
 }
 
 .jss_toolbar button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
+  background: #bdc1c6 !important;
+  border-color: #bdc1c6 !important;
+  color: #3c4043 !important;
 }
 
 .jss_toolbar button:active {
-  transform: translateY(0);
-  background: rgba(255, 255, 255, 0.3);
+  background: #9aa0a6 !important;
+  border-color: #9aa0a6 !important;
+  color: #3c4043 !important;
 }
 
 .jss_toolbar button.selected {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: #bdc1c6 !important;
+  border-color: #bdc1c6 !important;
+  color: #3c4043 !important;
 }
 
 /* Material Icons in toolbar */
@@ -72,6 +88,7 @@
   -webkit-font-feature-settings: 'liga';
   font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
+  color: #5f6368;
 }
 
 /* Table styling */
@@ -214,7 +231,7 @@
 .jexcel thead th, .jspreadsheet thead th,
 .jexcel thead td, .jspreadsheet thead td,
 .jss_worksheet thead td {
-  background: #10b981 !important;
+  background: #1A8A76 !important;
   color: white !important;
   font-weight: 600;
   text-transform: uppercase;
@@ -229,14 +246,14 @@
 /* Keep filter row green but ensure filter icons are visible */
 .jexcel thead tr.jss_filter td, .jspreadsheet thead tr.jss_filter td,
 .jss_worksheet thead tr.jss_filter td {
-  background: #10b981 !important;
+  background: #1A8A76 !important;
   color: white !important;
   font-weight: normal !important;
   text-transform: none !important;
   letter-spacing: normal !important;
   font-size: 9px !important;
   text-align: left !important;
-  border: 1px solid #047857 !important;
+  border: 1px solid #3BAE9A !important;
   height: 18px;
   padding: 1px 2px;
 }
@@ -260,7 +277,7 @@
 
 /* Selection styling */
 .jexcel .selected, .jspreadsheet .selected { 
-  outline: 2px solid #10b981; 
+  outline: 2px solid #dadce0; 
   outline-offset: -2px;
 }
 
@@ -294,13 +311,13 @@
 
 .jss_pagination > div > div:hover {
   background: #f3f4f6;
-  border-color: #10b981;
+  border-color: #1A8A76;
 }
 
 .jss_page_selected {
-  background: #10b981 !important;
+  background: #1A8A76 !important;
   color: white !important;
-  border-color: #10b981 !important;
+  border-color: #1A8A76 !important;
 }
 
 /* Search styling */
@@ -324,7 +341,7 @@
 
 .jss_filter input:focus {
   outline: none;
-  border-color: #10b981;
+  border-color: #1A8A76;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
@@ -344,8 +361,8 @@
 
 .status-approved {
   background: #d1fae5;
-  color: #065f46;
-  border: 1px solid #10b981;
+  color: #2A9884;
+  border: 1px solid #1A8A76;
 }
 
 .status-rejected {
@@ -364,13 +381,13 @@
 /* Document preview icons */
 .doc-preview-icon {
   cursor: pointer;
-  color: #10b981;
+  color: #1A8A76;
   font-size: 16px;
   transition: color 0.2s ease;
 }
 
 .doc-preview-icon:hover {
-  color: #059669;
+  color: #167866;
 }
 
 /* Remove all custom scrollbar styling - use browser default */
@@ -391,17 +408,17 @@
 .jexcel thead th, .jspreadsheet thead th,
 .jexcel thead td, .jspreadsheet thead td,
 .jss_worksheet thead td {
-  background: #10b981 !important;
+  background: #1A8A76 !important;
   color: white !important;
-  border: 1px solid #047857 !important;
+  border: 1px solid #3BAE9A !important;
 }
 
 /* Keep filter row green in sticky header but ensure filter icons are visible */
 .jexcel thead tr.jss_filter td, .jspreadsheet thead tr.jss_filter td,
 .jss_worksheet thead tr.jss_filter td {
-  background: #10b981 !important;
+  background: #1A8A76 !important;
   color: white !important;
-  border: 1px solid #047857 !important;
+  border: 1px solid #3BAE9A !important;
   font-weight: normal !important;
   text-transform: none !important;
   letter-spacing: normal !important;

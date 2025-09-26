@@ -267,8 +267,74 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     subtree: true
   });
   
+  // Function to save spreadsheet to Google Drive
+  async function saveToGoogleDrive(spreadsheet) {
+    try {
+      console.log('[GOOGLE_DRIVE] Starting save to Google Drive...');
+      
+      // Check if user is authenticated
+      if (!window.uiManager || !window.uiManager.apiClient) {
+        console.error('[GOOGLE_DRIVE] UIManager or apiClient not available');
+        alert('Please ensure you are signed in to use this feature.');
+        return;
+      }
+      
+      // Get the spreadsheet data as CSV
+      const csvData = spreadsheet.getData('csv');
+      console.log('[GOOGLE_DRIVE] CSV data generated:', csvData.substring(0, 100) + '...');
+      
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `stamp-spreadsheet-${timestamp}.csv`;
+      
+      // Create a document card data structure similar to what the business rules expect
+      const documentCardData = {
+        title: filename,
+        type: 'spreadsheet_export',
+        content: csvData,
+        mimeType: 'text/csv',
+        timestamp: new Date().toISOString(),
+        source: 'stamp_spreadsheet_export'
+      };
+      
+      // Check if we have a document storage rule
+      const storageRule = await window.uiManager.apiClient.getDocumentStorageRule();
+      
+      if (!storageRule) {
+        console.log('[GOOGLE_DRIVE] No document storage rule found, using direct storage');
+        // Fallback: try to use a generic storage approach
+        alert('Google Drive storage is not configured. Please contact your administrator to set up document storage rules.');
+        return;
+      }
+      
+      // Prepare the payload for the business rule
+      const payload = {
+        ruleId: storageRule.id,
+        cardData: documentCardData,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log('[GOOGLE_DRIVE] Executing business rule with payload:', payload);
+      
+      // Execute the business rule to store the document
+      const result = await window.uiManager.apiClient.executeBusinessRule(payload);
+      
+      if (result && result.success) {
+        console.log('[GOOGLE_DRIVE] Document stored successfully:', result);
+        alert(`Spreadsheet saved to Google Drive successfully!\nFile: ${filename}`);
+      } else {
+        throw new Error(result?.error || 'Storage failed');
+      }
+      
+    } catch (error) {
+      console.error('[GOOGLE_DRIVE] Error saving to Google Drive:', error);
+      alert(`Error saving to Google Drive: ${error.message}\n\nPlease ensure you are signed in and have the necessary permissions.`);
+    }
+  }
+  
   const spreadsheet = jspreadsheet(cleanContainer, {
     toolbar: true,     // Enable the toolbar with tools
+    allowExport: true, // Enable export functionality
     worksheets: [{
       data: spreadsheetData,
       columns: columns,
@@ -391,15 +457,15 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       const filterRow = worksheet.element.querySelector('thead tr.jss_filter');
       if (filterRow) {
         console.log('[FILTER] Found filter row, ensuring proper styling');
-        filterRow.style.background = '#10b981';
+        filterRow.style.background = '#1A8A76';
         filterRow.style.color = 'white';
         
         // Ensure all filter cells in the row are properly styled
         const filterCellsInRow = filterRow.querySelectorAll('td');
         filterCellsInRow.forEach((cell, index) => {
-          cell.style.background = '#10b981';
+          cell.style.background = '#1A8A76';
           cell.style.color = 'white';
-          cell.style.border = '1px solid #047857';
+          cell.style.border = '1px solid #3BAE9A';
           
           // Add filter icon if not present
           if (!cell.querySelector('.jss_column_filter')) {
@@ -459,7 +525,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           gap: 10px;
           margin: 10px 0;
           padding: 10px;
-          background: #059669;
+          background: #167866;
           border-radius: 4px;
         `;
         
@@ -623,7 +689,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
         gap: 10px;
         margin: 10px 0;
         padding: 10px;
-        background: #059669;
+        background: #167866;
         border-radius: 4px;
       `;
       
@@ -899,8 +965,8 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           right: 0;
           width: 400px;
           height: 100vh;
-          background: #10b981;
-          border-left: 1px solid #059669;
+          background: #1A8A76;
+          border-left: 1px solid #167866;
           box-shadow: -4px 0 12px rgba(0,0,0,0.1);
           z-index: 2147483647;
           display: none;
@@ -920,7 +986,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           width: 32px;
           height: 32px;
           border: none;
-          background: #059669;
+          background: #167866;
           border-radius: 50%;
           cursor: pointer;
           font-size: 18px;
@@ -948,12 +1014,12 @@ export async function buildSpreadsheet(container, data, opts = {}) {
             <p style="margin: 0; font-size: 14px; color: #ffffff;">${docName}</p>
           </div>
           
-          <div style="flex: 1; display: flex; flex-direction: column; background: #059669; border-radius: 8px; overflow: hidden; margin-bottom: 20px; position: relative;">
+          <div style="flex: 1; display: flex; flex-direction: column; background: #167866; border-radius: 8px; overflow: hidden; margin-bottom: 20px; position: relative;">
             ${docUrl ? `
-              <div style="flex: 1; min-height: 300px; position: relative; background: #059669; border-radius: 8px 8px 0 0; overflow: hidden;">
+              <div style="flex: 1; min-height: 300px; position: relative; background: #167866; border-radius: 8px 8px 0 0; overflow: hidden;">
                 ${isImage ? `
                   <!-- Image Viewer Container -->
-                  <div id="image-viewer-container" style="width: 100%; height: 100%; position: relative; background: #10b981; display: flex; align-items: center; justify-content: center;">
+                  <div id="image-viewer-container" style="width: 100%; height: 100%; position: relative; background: #1A8A76; display: flex; align-items: center; justify-content: center;">
                     <div id="image-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ffffff;">
                       <div style="font-size: 24px; margin-bottom: 12px;">🖼️</div>
                       <div style="font-size: 16px; font-weight: 500;">Loading Image...</div>
@@ -970,7 +1036,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
                   </div>
                 ` : `
                   <!-- PDF Viewer Container -->
-                  <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #10b981;">
+                  <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #1A8A76;">
                     <div id="pdf-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ffffff;">
                       <div style="font-size: 24px; margin-bottom: 12px;">📄</div>
                       <div style="font-size: 16px; font-weight: 500;">Loading PDF...</div>
@@ -989,7 +1055,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
                 `}
                 
                 <!-- Document Info Card -->
-                <div style="background: #059669; padding: 16px; border-top: 1px solid #065f46;">
+                <div style="background: #167866; padding: 16px; border-top: 1px solid #065f46;">
                   <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #ffffff;">Document Details</div>
                   <div style="font-size: 12px; color: #ffffff; margin-bottom: 4px;"><strong>File:</strong> ${docName}</div>
                   <div style="font-size: 12px; color: #ffffff; margin-bottom: 4px;"><strong>Type:</strong> ${fileType}</div>
@@ -999,7 +1065,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
                   <div style="display: flex; gap: 8px; margin-top: 12px; justify-content: center;">
                     <button id="preview-quick-view-btn" data-doc-url="${docUrl}" style="
                       padding: 6px 12px; 
-                      background: #10b981; 
+                      background: #1A8A76; 
                       color: white; 
                       border: none; 
                       border-radius: 4px; 
@@ -1012,7 +1078,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
                     </button>
                     <button id="preview-quick-download-btn" data-doc-url="${docUrl}" data-doc-name="${docName}" style="
                       padding: 6px 12px; 
-                      background: #059669; 
+                      background: #167866; 
                       color: white; 
                       border: none; 
                       border-radius: 4px; 
@@ -1025,7 +1091,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
                     </button>
                     <button id="preview-quick-copy-btn" data-doc-url="${docUrl}" style="
                       padding: 6px 12px; 
-                      background: #047857; 
+                      background: #3BAE9A; 
                       color: white; 
                       border: none; 
                       border-radius: 4px; 
@@ -1050,11 +1116,12 @@ export async function buildSpreadsheet(container, data, opts = {}) {
             `}
           </div>
           
-          <div style="display: flex; gap: 12px;">
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
             <button id="preview-open-doc-btn" data-doc-url="${docUrl}" style="
               flex: 1;
+              min-width: 120px;
               padding: 12px 20px;
-              background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+              background: linear-gradient(135deg, #1A8A76 0%, #167866 100%);
               color: white;
               border: none;
               border-radius: 8px;
@@ -1065,16 +1132,42 @@ export async function buildSpreadsheet(container, data, opts = {}) {
               box-shadow: 0 2px 8px rgba(16,185,129,0.3);
             ">Open Document</button>
             <button id="preview-download-btn" data-doc-url="${docUrl}" data-doc-name="${docName}" style="
+              flex: 1;
+              min-width: 120px;
               padding: 12px 20px;
-              background: #059669;
+              background: #167866;
               color: #ffffff;
-              border: 1px solid #047857;
+              border: 1px solid #3BAE9A;
               border-radius: 8px;
               cursor: pointer;
               font-size: 14px;
               font-weight: 500;
               transition: all 0.2s ease;
             ">Download</button>
+            <button id="preview-save-to-drive-btn" data-doc-url="${docUrl}" data-doc-name="${docName}" style="
+              flex: 1;
+              min-width: 120px;
+              padding: 12px 20px;
+              background: linear-gradient(135deg, #4285f4 0%, #1a73e8 100%);
+              border: none;
+              border-radius: 8px;
+              color: white;
+              font-size: 14px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.2s ease;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+            ">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <polyline points="3.27,6.96 12,12.01 20.73,6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+              Save to Drive
+            </button>
           </div>
         </div>
       `;
@@ -1165,6 +1258,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       // Add event listeners for main buttons
       const openDocBtn = rightPreviewPanel.querySelector('#preview-open-doc-btn');
       const downloadBtn = rightPreviewPanel.querySelector('#preview-download-btn');
+      const saveToDriveBtn = rightPreviewPanel.querySelector('#preview-save-to-drive-btn');
       
       if (openDocBtn) {
         openDocBtn.addEventListener('click', (e) => {
@@ -1212,6 +1306,82 @@ export async function buildSpreadsheet(container, data, opts = {}) {
         downloadBtn.addEventListener('mouseleave', () => {
           downloadBtn.style.background = '#f8f9fa';
           downloadBtn.style.borderColor = '#d1d5db';
+        });
+      }
+      
+      if (saveToDriveBtn) {
+        saveToDriveBtn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const docUrl = saveToDriveBtn.getAttribute('data-doc-url');
+          const docName = saveToDriveBtn.getAttribute('data-doc-name');
+          
+          console.log('[SAVE_TO_DRIVE] Save to Drive button clicked:', { docUrl, docName });
+          
+          try {
+            // Check if user is authenticated
+            if (!window.uiManager || !window.uiManager.apiClient) {
+              console.error('[SAVE_TO_DRIVE] UIManager or apiClient not available');
+              alert('Please ensure you are signed in to use this feature.');
+              return;
+            }
+            
+            // Create a document card data structure for the PDF
+            const documentCardData = {
+              title: docName || 'Document',
+              type: 'pdf_document',
+              content: docUrl, // Store the URL as content
+              mimeType: 'application/pdf',
+              timestamp: new Date().toISOString(),
+              source: 'document_preview_export',
+              url: docUrl
+            };
+            
+            // Check if we have a document storage rule
+            const storageRule = await window.uiManager.apiClient.getDocumentStorageRule();
+            
+            if (!storageRule) {
+              console.log('[SAVE_TO_DRIVE] No document storage rule found');
+              alert('Google Drive storage is not configured. Please contact your administrator to set up document storage rules.');
+              return;
+            }
+            
+            // Prepare the payload for the business rule
+            const payload = {
+              ruleId: storageRule.id,
+              cardData: documentCardData,
+              timestamp: new Date().toISOString()
+            };
+            
+            console.log('[SAVE_TO_DRIVE] Executing business rule with payload:', payload);
+            
+            // Execute the business rule to store the document
+            const result = await window.uiManager.apiClient.executeBusinessRule(payload);
+            
+            if (result && result.success) {
+              console.log('[SAVE_TO_DRIVE] Document stored successfully:', result);
+              alert(`Document saved to Google Drive successfully!\nFile: ${docName || 'Document'}`);
+            } else {
+              throw new Error(result?.error || 'Storage failed');
+            }
+            
+          } catch (error) {
+            console.error('[SAVE_TO_DRIVE] Error saving to Google Drive:', error);
+            alert(`Error saving to Google Drive: ${error.message}\n\nPlease ensure you are signed in and have the necessary permissions.`);
+          }
+        });
+        
+        saveToDriveBtn.addEventListener('mouseenter', () => {
+          saveToDriveBtn.style.background = 'linear-gradient(135deg, #1a73e8 0%, #1557b0 100%)';
+          saveToDriveBtn.style.transform = 'translateY(-1px)';
+          saveToDriveBtn.style.boxShadow = '0 4px 12px rgba(66, 133, 244, 0.4)';
+        });
+        
+        saveToDriveBtn.addEventListener('mouseleave', () => {
+          saveToDriveBtn.style.background = 'linear-gradient(135deg, #4285f4 0%, #1a73e8 100%)';
+          saveToDriveBtn.style.transform = 'translateY(0)';
+          saveToDriveBtn.style.boxShadow = 'none';
         });
       }
       
@@ -1309,7 +1479,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
               position: fixed;
               top: 20px;
               right: 20px;
-              background: #10b981;
+              background: #1A8A76;
               color: white;
               padding: 12px 20px;
               border-radius: 8px;
@@ -1381,8 +1551,8 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           right: 0;
           width: 400px;
           height: 100vh;
-          background: #10b981;
-          border-left: 1px solid #059669;
+          background: #1A8A76;
+          border-left: 1px solid #167866;
           box-shadow: -4px 0 12px rgba(0,0,0,0.1);
           z-index: 2147483647;
           display: none;
@@ -1402,7 +1572,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
           width: 32px;
           height: 32px;
           border: none;
-          background: #059669;
+          background: #167866;
           border-radius: 50%;
           cursor: pointer;
           font-size: 18px;
@@ -1436,7 +1606,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
         if (isImage) {
           viewerContent = `
             <!-- Image Viewer Container -->
-            <div id="image-viewer-container" style="width: 100%; height: 100%; position: relative; background: #10b981; display: flex; align-items: center; justify-content: center;">
+            <div id="image-viewer-container" style="width: 100%; height: 100%; position: relative; background: #1A8A76; display: flex; align-items: center; justify-content: center;">
               <div id="image-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ffffff;">
                 <div style="font-size: 24px; margin-bottom: 12px;">🖼️</div>
                 <div style="font-size: 16px; font-weight: 500;">Loading Image...</div>
@@ -1455,7 +1625,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
         } else if (isPdf) {
           viewerContent = `
             <!-- PDF Viewer Container -->
-            <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #10b981;">
+            <div id="pdf-viewer-container" style="width: 100%; height: 100%; position: relative; background: #1A8A76;">
               <div id="pdf-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ffffff;">
                 <div style="font-size: 24px; margin-bottom: 12px;">📄</div>
                 <div style="font-size: 16px; font-weight: 500;">Loading PDF...</div>
@@ -1493,12 +1663,12 @@ export async function buildSpreadsheet(container, data, opts = {}) {
               <p style="margin: 0; font-size: 14px; color: #ffffff;">${docName}</p>
             </div>
             
-            <div style="flex: 1; display: flex; flex-direction: column; background: #059669; border-radius: 8px; overflow: hidden; margin-bottom: 20px; position: relative;">
-              <div style="flex: 1; min-height: 300px; position: relative; background: #059669; border-radius: 8px 8px 0 0; overflow: hidden;">
+            <div style="flex: 1; display: flex; flex-direction: column; background: #167866; border-radius: 8px; overflow: hidden; margin-bottom: 20px; position: relative;">
+              <div style="flex: 1; min-height: 300px; position: relative; background: #167866; border-radius: 8px 8px 0 0; overflow: hidden;">
                 ${viewerContent}
                 
                 <!-- Document Info Card -->
-                <div style="background: #059669; padding: 16px; border-top: 1px solid #065f46;">
+                <div style="background: #167866; padding: 16px; border-top: 1px solid #065f46;">
                   <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #ffffff;">Document Details</div>
                   <div style="font-size: 12px; color: #ffffff; margin-bottom: 4px;"><strong>File:</strong> ${docName}</div>
                   <div style="font-size: 12px; color: #ffffff; margin-bottom: 4px;"><strong>Type:</strong> ${fileType}</div>
@@ -1550,11 +1720,12 @@ export async function buildSpreadsheet(container, data, opts = {}) {
               </div>
             </div>
             
-            <div style="display: flex; gap: 12px;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
               <button id="preview-open-doc-btn" data-object-url="${objectUrl}" style="
                 flex: 1;
+                min-width: 120px;
                 padding: 12px 20px;
-                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                background: linear-gradient(135deg, #1A8A76 0%, #167866 100%);
                 color: white;
                 border: none;
                 border-radius: 8px;
@@ -1565,16 +1736,42 @@ export async function buildSpreadsheet(container, data, opts = {}) {
                 box-shadow: 0 2px 8px rgba(16,185,129,0.3);
               ">Open Document</button>
               <button id="preview-download-btn" data-object-url="${objectUrl}" data-doc-name="${docName}" style="
+                flex: 1;
+                min-width: 120px;
                 padding: 12px 20px;
-                background: #059669;
+                background: #167866;
                 color: #ffffff;
-                border: 1px solid #047857;
+                border: 1px solid #3BAE9A;
                 border-radius: 8px;
                 cursor: pointer;
                 font-size: 14px;
                 font-weight: 500;
                 transition: all 0.2s ease;
               ">Download</button>
+              <button id="preview-save-to-drive-btn" data-object-url="${objectUrl}" data-doc-name="${docName}" style="
+                flex: 1;
+                min-width: 120px;
+                padding: 12px 20px;
+                background: linear-gradient(135deg, #4285f4 0%, #1a73e8 100%);
+                border: none;
+                border-radius: 8px;
+                color: white;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+              ">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27,6.96 12,12.01 20.73,6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+                Save to Drive
+              </button>
             </div>
           </div>
         `;
@@ -1660,6 +1857,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       // Add event listeners for buttons (using object URL instead of doc URL)
       const openDocBtn = rightPreviewPanel.querySelector('#preview-open-doc-btn');
       const downloadBtn = rightPreviewPanel.querySelector('#preview-download-btn');
+      const saveToDriveBtn = rightPreviewPanel.querySelector('#preview-save-to-drive-btn');
       
       if (openDocBtn) {
         openDocBtn.addEventListener('click', (e) => {
@@ -1732,7 +1930,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
                 position: fixed;
                 top: 20px;
                 right: 20px;
-                background: #10b981;
+                background: #1A8A76;
                 color: white;
                 padding: 12px 20px;
                 border-radius: 8px;
@@ -2080,7 +2278,7 @@ async function loadJspreadsheetAssets() {
       .jexcel thead th, .jspreadsheet thead th,
       .jexcel thead td, .jspreadsheet thead td,
       .jss_worksheet thead td {
-        background: #10b981 !important;
+        background: #1A8A76 !important;
         color: white !important;
           font-weight: 700 !important;
           text-transform: uppercase !important;

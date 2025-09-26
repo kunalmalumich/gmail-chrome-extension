@@ -1751,7 +1751,7 @@ class UIManager {
       max-width: 300px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       animation: slideIn 0.3s ease-out;
-      background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+      background: ${type === 'success' ? '#1A8A76' : type === 'error' ? '#ef4444' : '#3b82f6'};
     `;
     
     notification.textContent = message;
@@ -2371,7 +2371,7 @@ class UIManager {
     el.style.textAlign = 'center';
     
     el.innerHTML = `
-      <div style="color: #10b981; font-size: 48px; margin-bottom: 16px;">✅</div>
+      <div style="color: #1A8A76; font-size: 48px; margin-bottom: 16px;">✅</div>
       <h3 style="margin: 0 0 8px 0; color: #1f2937;">Success!</h3>
       <p style="margin: 0; color: #6b7280;">${cardData.title} has been stored in Google Drive.</p>
     `;
@@ -3164,7 +3164,7 @@ startxref
                             <div style="
                                 width: 32px;
                                 height: 32px;
-                                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                                background: linear-gradient(135deg, #1A8A76 0%, #167866 100%);
                                 border-radius: 8px;
                                 display: flex;
                                 align-items: center;
@@ -3393,13 +3393,13 @@ startxref
                     }
                     
                     #question-input:focus {
-                        border-color: #10b981;
+                        border-color: #1A8A76;
                         box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
                         outline: none;
                     }
                     
                     #send-question-btn:hover {
-                        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+                        background: linear-gradient(135deg, #167866 0%, #3BAE9A 100%);
                         transform: translateY(-1px);
                         box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
                     }
