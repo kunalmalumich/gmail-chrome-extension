@@ -72815,8 +72815,8 @@ Please ensure you are signed in and have the necessary permissions.`);
         showPagination: true,
         // Ensure pagination controls are visible
         // === SEARCH CONFIGURATION ===
-        search: true,
-        // Enable search functionality
+        search: false,
+        // Disable default search since we have custom toolbar search
         // === USE JSPREADSHEET DEFAULTS ===
         allowComments: true,
         tableOverflow: true,
@@ -72905,88 +72905,7 @@ Please ensure you are signed in and have the necessary permissions.`);
             });
           }
         }, 1500);
-        console.log("[SEARCH] oncreateworksheet event fired!");
-        console.log("[SEARCH] Worksheet element:", worksheet.element);
-        setTimeout(() => {
-          const existingSearchInput = worksheet.element.querySelector('input[type="text"]') || worksheet.element.querySelector(".jss_search") || worksheet.element.querySelector('input[placeholder*="Search"]') || worksheet.element.querySelector('input[placeholder*="search"]');
-          console.log("[SEARCH] Found existing search input:", !!existingSearchInput);
-          if (existingSearchInput) {
-            existingSearchInput.addEventListener("input", (e) => {
-              const searchTerm = e.target.value;
-              console.log("[SEARCH] Real-time input change:", searchTerm);
-              if (worksheet.search) {
-                worksheet.search(searchTerm);
-              }
-            });
-            existingSearchInput.addEventListener("keydown", (e) => {
-              if (e.key === "Enter") {
-                const searchTerm = e.target.value;
-                console.log("[SEARCH] Enter pressed, searching for:", searchTerm);
-                if (worksheet.search) {
-                  worksheet.search(searchTerm);
-                }
-              }
-            });
-            console.log("[SEARCH] Real-time search functionality added to existing input");
-          } else {
-            console.log("[SEARCH] No existing search input found, creating custom one");
-            const searchContainer = document.createElement("div");
-            searchContainer.style.cssText = `
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin: 10px 0;
-          padding: 10px;
-          background: #167866;
-          border-radius: 4px;
-        `;
-            const searchInput = document.createElement("input");
-            searchInput.type = "text";
-            searchInput.placeholder = "Search invoices...";
-            searchInput.style.cssText = `
-          flex: 1;
-          padding: 8px 12px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          font-size: 14px;
-        `;
-            const searchButton = document.createElement("button");
-            searchButton.textContent = "Search";
-            searchButton.style.cssText = `
-          padding: 8px 16px;
-          background: #007bff;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-        `;
-            const performSearch = () => {
-              const searchTerm = searchInput.value;
-              console.log("[SEARCH] Custom search for:", searchTerm);
-              if (worksheet.search) {
-                worksheet.search(searchTerm);
-              }
-            };
-            searchButton.addEventListener("click", performSearch);
-            searchInput.addEventListener("input", (e) => {
-              const searchTerm = e.target.value;
-              console.log("[SEARCH] Custom real-time search:", searchTerm);
-              if (worksheet.search) {
-                worksheet.search(searchTerm);
-              }
-            });
-            searchInput.addEventListener("keydown", (e) => {
-              if (e.key === "Enter") {
-                performSearch();
-              }
-            });
-            searchContainer.appendChild(searchInput);
-            searchContainer.appendChild(searchButton);
-            worksheet.element.insertBefore(searchContainer, worksheet.element.firstChild);
-            console.log("[SEARCH] Custom search container created");
-          }
-        }, 1e3);
+        console.log("[SEARCH] oncreateworksheet event fired - search integrated in toolbar!");
       },
       // === FIELD EDIT HANDLER (v5 top-level) ===
       onchange: function(instance, cell, x2, y2, value) {
@@ -73027,92 +72946,170 @@ Please ensure you are signed in and have the necessary permissions.`);
       } else {
         console.log("[FULLSCREEN] Fullscreen button not found");
       }
+      const toolbar2 = cleanContainer.querySelector(".jss_toolbar");
+      if (toolbar2) {
+        console.log("[TOOLBAR] Found toolbar, adding search control to far right");
+        const searchContainer = document.createElement("div");
+        searchContainer.className = "jss_toolbar_search";
+        searchContainer.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 4px 8px;
+        min-width: 200px;
+        margin-left: auto;
+        margin-right: 10px;
+      `;
+        const searchIcon = document.createElement("div");
+        searchIcon.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+      `;
+        searchIcon.style.cssText = `
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      `;
+        const searchInput = document.createElement("input");
+        searchInput.type = "text";
+        searchInput.placeholder = "Search invoices...";
+        searchInput.className = "jss_toolbar_search_input";
+        searchInput.style.cssText = `
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 14px;
+        color: #495057;
+        flex: 1;
+        min-width: 0;
+      `;
+        searchContainer.appendChild(searchIcon);
+        searchContainer.appendChild(searchInput);
+        toolbar2.appendChild(searchContainer);
+        const performSearch = (searchTerm) => {
+          console.log("[TOOLBAR SEARCH] Searching for:", searchTerm);
+          if (sheet && sheet.search) {
+            sheet.search(searchTerm);
+          }
+        };
+        searchInput.addEventListener("input", (e) => {
+          const searchTerm = e.target.value;
+          performSearch(searchTerm);
+        });
+        searchInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            const searchTerm = e.target.value;
+            performSearch(searchTerm);
+          }
+        });
+        console.log("[TOOLBAR] Search control added to far right of toolbar");
+      }
+      setTimeout(() => {
+        const defaultSearchElements = cleanContainer.querySelectorAll('.jss_search, .jspreadsheet-search, input[placeholder*="Search"], input[placeholder*="search"]');
+        defaultSearchElements.forEach((element) => {
+          if (!element.closest(".jss_toolbar_search")) {
+            console.log("[TOOLBAR] Removing default search element:", element);
+            element.remove();
+          }
+        });
+        const searchLabels = cleanContainer.querySelectorAll('label:contains("Search"), span:contains("Search:")');
+        searchLabels.forEach((label) => {
+          if (!label.closest(".jss_toolbar_search")) {
+            console.log("[TOOLBAR] Removing search label:", label);
+            label.remove();
+          }
+        });
+        const filterContainers = cleanContainer.querySelectorAll(".jss_filter");
+        filterContainers.forEach((container2) => {
+          const searchInputs = container2.querySelectorAll('input[type="text"]');
+          searchInputs.forEach((input) => {
+            if (!input.closest(".jss_toolbar_search") && (input.placeholder?.toLowerCase().includes("search") || input.previousElementSibling?.textContent?.includes("Search"))) {
+              console.log("[TOOLBAR] Removing duplicate search from filter container:", input);
+              input.remove();
+              const label = input.previousElementSibling;
+              if (label && label.textContent?.includes("Search")) {
+                label.remove();
+              }
+            }
+          });
+        });
+      }, 2e3);
+      setTimeout(() => {
+        const paginationContainer = cleanContainer.querySelector(".jss_pagination");
+        if (paginationContainer) {
+          console.log("[ENTRIES] Found pagination, adding entries dropdown above it");
+          const entriesContainer = document.createElement("div");
+          entriesContainer.className = "jss_entries_control";
+          entriesContainer.style.cssText = `
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 10px;
+          padding: 8px 0;
+          font-size: 14px;
+          color: #495057;
+        `;
+          const entriesLabel = document.createElement("span");
+          entriesLabel.textContent = "Show";
+          entriesLabel.style.cssText = `
+          white-space: nowrap;
+          color: #6c757d;
+        `;
+          const entriesSelect = document.createElement("select");
+          entriesSelect.className = "jss_entries_select";
+          entriesSelect.style.cssText = `
+          border: 1px solid #dee2e6;
+          outline: none;
+          background: #ffffff;
+          font-size: 14px;
+          color: #495057;
+          cursor: pointer;
+          min-width: 60px;
+          padding: 4px 8px;
+          border-radius: 4px;
+        `;
+          const entriesOptions = [10, 25, 50, 100];
+          entriesOptions.forEach((option) => {
+            const optionElement = document.createElement("option");
+            optionElement.value = option;
+            optionElement.textContent = option;
+            if (option === 10) optionElement.selected = true;
+            entriesSelect.appendChild(optionElement);
+          });
+          const entriesSuffix = document.createElement("span");
+          entriesSuffix.textContent = "entries";
+          entriesSuffix.style.cssText = `
+          white-space: nowrap;
+          color: #6c757d;
+        `;
+          entriesContainer.appendChild(entriesLabel);
+          entriesContainer.appendChild(entriesSelect);
+          entriesContainer.appendChild(entriesSuffix);
+          paginationContainer.parentNode.insertBefore(entriesContainer, paginationContainer);
+          entriesSelect.addEventListener("change", (e) => {
+            const newPageSize = parseInt(e.target.value);
+            console.log("[ENTRIES] Changing page size to:", newPageSize);
+            if (sheet && sheet.setPagination) {
+              sheet.setPagination(newPageSize);
+            }
+          });
+          console.log("[ENTRIES] Entries dropdown added above pagination");
+        } else {
+          console.log("[ENTRIES] Pagination container not found, will retry");
+        }
+      }, 1500);
     }, 1e3);
     console.log("[SEARCH DEBUG] Sheet object:", sheet);
     console.log("[SEARCH DEBUG] Search method available:", typeof sheet?.search);
     console.log("[SEARCH DEBUG] ResetSearch method available:", typeof sheet?.resetSearch);
     console.log("[SEARCH DEBUG] ShowSearch method available:", typeof sheet?.showSearch);
-    setTimeout(() => {
-      console.log("[SEARCH FALLBACK] Looking for existing search input");
-      const existingSearchInput = cleanContainer.querySelector('input[type="text"]') || cleanContainer.querySelector(".jss_search") || cleanContainer.querySelector('input[placeholder*="Search"]') || cleanContainer.querySelector('input[placeholder*="search"]');
-      if (existingSearchInput) {
-        console.log("[SEARCH FALLBACK] Found existing search input, adding real-time functionality");
-        existingSearchInput.addEventListener("input", (e) => {
-          const searchTerm = e.target.value;
-          console.log("[SEARCH FALLBACK] Real-time input change:", searchTerm);
-          if (sheet && sheet.search) {
-            sheet.search(searchTerm);
-          }
-        });
-        existingSearchInput.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") {
-            const searchTerm = e.target.value;
-            console.log("[SEARCH FALLBACK] Enter pressed, searching for:", searchTerm);
-            if (sheet && sheet.search) {
-              sheet.search(searchTerm);
-            }
-          }
-        });
-        console.log("[SEARCH FALLBACK] Real-time search added to existing input");
-      } else {
-        console.log("[SEARCH FALLBACK] No existing search found, creating custom one");
-        const searchContainer = document.createElement("div");
-        searchContainer.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin: 10px 0;
-        padding: 10px;
-        background: #167866;
-        border-radius: 4px;
-      `;
-        const searchInput = document.createElement("input");
-        searchInput.type = "text";
-        searchInput.placeholder = "Search invoices...";
-        searchInput.style.cssText = `
-        flex: 1;
-        padding: 8px 12px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 14px;
-      `;
-        const searchButton = document.createElement("button");
-        searchButton.textContent = "Search";
-        searchButton.style.cssText = `
-        padding: 8px 16px;
-        background: #007bff;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-      `;
-        const performSearch = () => {
-          const searchTerm = searchInput.value;
-          console.log("[SEARCH FALLBACK] Custom search for:", searchTerm);
-          if (sheet && sheet.search) {
-            sheet.search(searchTerm);
-          }
-        };
-        searchButton.addEventListener("click", performSearch);
-        searchInput.addEventListener("input", (e) => {
-          const searchTerm = e.target.value;
-          console.log("[SEARCH FALLBACK] Custom real-time search:", searchTerm);
-          if (sheet && sheet.search) {
-            sheet.search(searchTerm);
-          }
-        });
-        searchInput.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") {
-            performSearch();
-          }
-        });
-        searchContainer.appendChild(searchInput);
-        searchContainer.appendChild(searchButton);
-        cleanContainer.insertBefore(searchContainer, cleanContainer.firstChild);
-        console.log("[SEARCH FALLBACK] Custom search container created");
-      }
-    }, 2e3);
     const searchControls = {
       // Search for specific terms
       search: (terms) => {
@@ -74580,11 +74577,155 @@ Please ensure you are signed in and have the necessary permissions.`);
           box-sizing: border-box !important;
         }
         
-        /* Ensure toolbar doesn't cause overflow */
+        /* Ensure toolbar doesn't cause overflow and remove gaps */
         .jspreadsheet-main-wrapper .jss_toolbar {
           overflow-x: auto !important;
           overflow-y: hidden !important;
           max-width: 100% !important;
+          margin-bottom: 0 !important;
+          padding-bottom: 0 !important;
+          border-bottom: none !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          min-height: 40px !important;
+          padding: 8px 12px !important;
+        }
+
+        /* Style toolbar search (far right) */
+        .jspreadsheet-main-wrapper .jss_toolbar_search {
+          margin-left: auto !important;
+          margin-right: 0 !important;
+          align-self: center !important;
+          height: 32px !important;
+          display: flex !important;
+          align-items: center !important;
+        }
+
+        /* Style search container in toolbar */
+        .jspreadsheet-main-wrapper .jss_toolbar_search {
+          display: flex !important;
+          align-items: center !important;
+          gap: 8px !important;
+          background: #f8f9fa !important;
+          border: 1px solid #dee2e6 !important;
+          border-radius: 6px !important;
+          padding: 4px 8px !important;
+          min-width: 200px !important;
+          transition: all 0.2s ease !important;
+        }
+
+        .jspreadsheet-main-wrapper .jss_toolbar_search:hover {
+          border-color: #007bff !important;
+          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1) !important;
+        }
+
+        .jspreadsheet-main-wrapper .jss_toolbar_search:focus-within {
+          border-color: #007bff !important;
+          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2) !important;
+        }
+
+        /* Style search input in toolbar */
+        .jspreadsheet-main-wrapper .jss_toolbar_search_input {
+          border: none !important;
+          outline: none !important;
+          background: transparent !important;
+          font-size: 14px !important;
+          color: #495057 !important;
+          flex: 1 !important;
+          min-width: 0 !important;
+        }
+
+        .jspreadsheet-main-wrapper .jss_toolbar_search_input::placeholder {
+          color: #6c757d !important;
+        }
+
+        /* Hide any default jspreadsheet search elements */
+        .jspreadsheet-main-wrapper .jss_search:not(.jss_toolbar_search_input),
+        .jspreadsheet-main-wrapper .jspreadsheet-search:not(.jss_toolbar_search),
+        .jspreadsheet-main-wrapper input[placeholder*="Search"]:not(.jss_toolbar_search_input),
+        .jspreadsheet-main-wrapper input[placeholder*="search"]:not(.jss_toolbar_search_input) {
+          display: none !important;
+        }
+
+        /* Hide search labels that are not part of our toolbar */
+        .jspreadsheet-main-wrapper label:contains("Search"),
+        .jspreadsheet-main-wrapper span:contains("Search:") {
+          display: none !important;
+        }
+
+        /* Style entries control at bottom */
+        .jspreadsheet-main-wrapper .jss_entries_control {
+          display: flex !important;
+          align-items: center !important;
+          gap: 8px !important;
+          margin-bottom: 10px !important;
+          padding: 8px 0 !important;
+          font-size: 14px !important;
+          color: #495057 !important;
+        }
+
+        .jspreadsheet-main-wrapper .jss_entries_select {
+          border: 1px solid #dee2e6 !important;
+          outline: none !important;
+          background: #ffffff !important;
+          font-size: 14px !important;
+          color: #495057 !important;
+          cursor: pointer !important;
+          min-width: 60px !important;
+          padding: 4px 8px !important;
+          border-radius: 4px !important;
+          transition: all 0.2s ease !important;
+        }
+
+        .jspreadsheet-main-wrapper .jss_entries_select:hover {
+          border-color: #007bff !important;
+          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1) !important;
+        }
+
+        .jspreadsheet-main-wrapper .jss_entries_select:focus {
+          border-color: #007bff !important;
+          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2) !important;
+        }
+
+        /* Remove gap between toolbar and spreadsheet - AGGRESSIVE OVERRIDE */
+        .jspreadsheet-main-wrapper .jss_filter {
+          margin-top: 0 !important;
+          padding-top: 0 !important;
+          margin-bottom: 0 !important;
+          padding-bottom: 0 !important;
+        }
+
+        .jspreadsheet-main-wrapper .jspreadsheet-clean-container {
+          margin-top: 0 !important;
+          padding-top: 0 !important;
+          margin-bottom: 0 !important;
+          padding-bottom: 0 !important;
+        }
+
+        /* Override any jspreadsheet default spacing */
+        .jspreadsheet-main-wrapper .jspreadsheet {
+          margin-top: 0 !important;
+          padding-top: 0 !important;
+        }
+
+        .jspreadsheet-main-wrapper .jspreadsheet table {
+          margin-top: 0 !important;
+          padding-top: 0 !important;
+        }
+
+        /* Ensure no gaps between toolbar and any following elements */
+        .jspreadsheet-main-wrapper .jss_toolbar + * {
+          margin-top: 0 !important;
+          padding-top: 0 !important;
+        }
+
+        /* Override any potential jspreadsheet internal spacing */
+        .jspreadsheet-main-wrapper .jss_toolbar ~ .jss_filter,
+        .jspreadsheet-main-wrapper .jss_toolbar ~ .jspreadsheet,
+        .jspreadsheet-main-wrapper .jss_toolbar ~ .jspreadsheet-clean-container {
+          margin-top: 0 !important;
+          padding-top: 0 !important;
         }
         
         /* Ensure filter bar doesn't cause overflow */
