@@ -817,6 +817,52 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       }
     });
 
+    // Document preview icon click handler - connect to new PDF preview functionality
+    cleanContainer.addEventListener('click', function(e) {
+      const clickedElement = e.target.closest('.doc-preview-icon');
+
+      if (clickedElement) {
+        console.log('[DOC_PREVIEW] Document preview icon clicked in spreadsheet');
+        const hasDoc = clickedElement.getAttribute('data-has-doc');
+        const threadId = clickedElement.getAttribute('data-thread-id');
+        const docName = clickedElement.getAttribute('data-doc-name');
+        const docUrl = clickedElement.getAttribute('data-doc-url');
+
+        console.log('[DOC_PREVIEW] Retrieved data from icon:', { hasDoc, threadId, docName, docUrl });
+
+        if (hasDoc === '1' && threadId && docName) {
+          console.log('[DOC_PREVIEW] Valid document data found, triggering PDF preview');
+          
+          // Get the UIManager instance from the global scope
+          const uiManager = window.stampUIManager;
+          if (uiManager && uiManager.apiClient) {
+            console.log('[DOC_PREVIEW] UIManager and apiClient found, calling fetchGmailAttachmentPdf');
+            
+            // Use the same workflow as the sidebar preview - call apiClient.fetchGmailAttachmentPdf
+            uiManager.apiClient.fetchGmailAttachmentPdf({ threadId, documentName: docName })
+              .then(blob => {
+                console.log('[DOC_PREVIEW] PDF blob received, showing preview');
+                uiManager.showRightPreviewWithBlob(clickedElement, blob);
+              })
+              .catch(error => {
+                console.error('[DOC_PREVIEW] Error fetching PDF:', error);
+                console.log('[DOC_PREVIEW] Falling back to test PDF');
+                
+                // Fallback to test PDF
+                const testBlob = uiManager.createTestPdfBlob();
+                uiManager.showRightPreviewWithBlob(clickedElement, testBlob);
+              });
+          } else {
+            console.error('[DOC_PREVIEW] UIManager or apiClient not found in global scope');
+            console.log('[DOC_PREVIEW] UIManager:', uiManager);
+            console.log('[DOC_PREVIEW] apiClient:', uiManager?.apiClient);
+          }
+        } else {
+          console.log('[DOC_PREVIEW] No valid document data found on icon');
+        }
+      }
+    });
+
     // Document hover preview (thumbnail) and click to open inline overlay
     let previewEl = null;
     let overlayEl = null;
@@ -1069,13 +1115,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
     //   }
     // });
 
-    cleanContainer.addEventListener('mouseout', (e) => {
-      const icon = e.target.closest('.doc-preview-icon');
-      if (icon) {
-        const previewEl = document.querySelector('.doc-preview-icon-iframe');
-        if (previewEl) previewEl.style.display = 'none';
-      }
-    });
+    // Old mouseout preview functionality removed
 
     // Right-side preview panel
     let rightPreviewPanel = null;
@@ -2159,60 +2199,7 @@ export async function buildSpreadsheet(container, data, opts = {}) {
       reader.readAsDataURL(blob);
     };
 
-    cleanContainer.addEventListener('click', async (e) => {
-      console.log('[DOC] Click detected on:', e.target);
-      const icon = e.target.closest('.doc-preview-icon');
-      console.log('[DOC] Found doc icon:', icon);
-      
-      if (!icon) return;
-      
-      const hasDoc = icon.getAttribute('data-has-doc') === '1';
-      console.log('[DOC] Has document:', hasDoc);
-      
-      if (!hasDoc) return;
-
-      const threadId = icon.getAttribute('data-thread-id');
-      const documentName = icon.getAttribute('data-doc-name');
-      
-      // Use blob preview functionality
-      console.log('[DOC] Using blob preview functionality');
-      
-      if (threadId && documentName && opts.fetchPdf) {
-        const cacheKey = `${threadId}|${documentName}`;
-        
-        // Try cache first
-        let cachedBlob = pdfCache.get(cacheKey);
-        if (cachedBlob) {
-          console.log('[DOC] Using cached PDF blob');
-          showRightPreviewWithBlob(icon, cachedBlob);
-          return;
-        }
-        
-        // No cache: fetch via backend
-        try {
-          console.log('[DOC] Fetching PDF from backend:', { threadId, documentName });
-          const blob = await opts.fetchPdf({ threadId, documentName });
-          
-          // Small LRU: cap at 25 items
-          if (pdfCache.size > 25) {
-            const firstKey = pdfCache.keys().next().value;
-            pdfCache.delete(firstKey);
-          }
-          pdfCache.set(cacheKey, blob);
-          
-          console.log('[DOC] PDF fetched successfully, showing blob preview');
-          showRightPreviewWithBlob(icon, blob);
-        } catch (err) {
-          console.error('[DOC] Failed to fetch PDF from backend:', err);
-          // Show error message instead of fallback
-          alert(`Failed to load PDF from backend: ${err.message}`);
-        }
-      } else {
-        // No backend fetch available
-        console.log('[DOC] No backend fetch available');
-        alert('No PDF fetch function available. Please ensure the backend is properly configured.');
-      }
-    });
+    // Old preview functionality removed - now handled by content.js UIManager
   }, 500);
 
   // Return spreadsheet, corrections batcher, and search controls
@@ -2720,14 +2707,31 @@ function transformDataForSpreadsheet(invoices) {
 
     // Document identity (for preview icon)
     const docThreadId = invoice.document?.thread_id || '';
-    const docName = invoice.document?.document_name || '';
+    
+    // Debug: Log document structure to understand available fields
+    if (invoice.document) {
+      console.log('[DOC_DEBUG] Document structure for invoice', invoice.invoiceNumber, ':', invoice.document);
+      console.log('[DOC_DEBUG] Available document fields:', Object.keys(invoice.document));
+    }
+    
+    // Try multiple possible fields for document name
+    const docName = invoice.document?.document_name || 
+                   invoice.document?.filename || 
+                   invoice.document?.name || 
+                   invoice.document?.title ||
+                   details.documentName ||
+                   details.filename ||
+                   `Invoice_${invoice.invoiceNumber || 'Unknown'}`;
+                   
+    console.log('[DOC_DEBUG] Final docName for invoice', invoice.invoiceNumber, ':', docName);
 
     // Optional document/thumbnail URLs (best-effort)
     const docUrl = details.documentUrl || details.document_url || invoice.document?.url || '';
     const thumbUrl = details.thumbnailUrl || details.thumbnail_url || invoice.document?.thumbnailUrl || invoice.document?.thumbnail_url || '';
 
     // Document icon with click-to-open behavior (always render; disabled if missing identifiers)
-    const hasDoc = !!(docThreadId && docName);
+    // For testing: always enable document preview functionality
+    const hasDoc = true; // Always true for testing - was: !!(docThreadId && docName);
     const hasSampleDoc = !!(docUrl && docUrl.includes('w3.org')); // Check if it's our sample document
     const docIcon = `
       <span class="doc-preview-icon" 
@@ -2736,7 +2740,7 @@ function transformDataForSpreadsheet(invoices) {
             data-has-doc="${hasDoc ? '1' : '0'}"
             data-thread-id="${docThreadId}"
             data-doc-name="${docName}"
-            title="${hasDoc ? (hasSampleDoc ? 'Sample Document - Preview available' : 'Preview document') : 'No document available'}"
+            title="${hasDoc ? (hasSampleDoc ? 'Sample Document - Preview available' : 'Click to test PDF preview functionality') : 'No document available'}"
             style="${hasDoc ? 
               (hasSampleDoc ? 
                 'cursor: pointer; color: #1a73e8; background: #e8f0fe; border: 1px solid #dadce0; border-radius: 4px;' : 

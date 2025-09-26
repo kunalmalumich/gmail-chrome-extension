@@ -1273,6 +1273,10 @@ function transformProcessedEntitiesForSidebar(processedEntities) {
  * @returns {string} The HTML string for the card.
  */
 function createEntityCard(cardData, threadId) {
+  console.log('[CREATE_CARD] Creating entity card for:', cardData.title);
+  console.log('[CREATE_CARD] Card data filename:', cardData.filename);
+  console.log('[CREATE_CARD] Thread ID:', threadId);
+  
   const statusConfig = cardData.status ? (INVOICE_STATUS_COLORS[cardData.status] || { backgroundColor: '#E0E0E0', textColor: '#000000', description: '' }) : null;
   const amountFormatted = cardData.hasDetails
     ? new Intl.NumberFormat('en-US', { style: 'currency', currency: cardData.currency }).format(cardData.amount)
@@ -1324,12 +1328,50 @@ function createEntityCard(cardData, threadId) {
           </h4>
           ${sublineHtml}
         </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
         ${statusConfig ? `
         <span class="status-tag" title="${statusConfig.description || ''}" style="display:inline-flex; align-items:center; gap:6px; background-color: ${statusConfig.backgroundColor}; color: ${statusConfig.textColor}; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: capitalize; white-space:nowrap;">
           <span style=\"display:inline-block; width:8px; height:8px; border-radius:50%; background:${statusConfig.textColor === '#000000' ? '#111827' : '#ffffff'}; opacity:0.6;\"></span>
           ${cardData.status.replace(/_/g, ' ')}
         </span>
         ` : ''}
+          ${cardData.filename ? (() => {
+            console.log('[CREATE_CARD] Creating TEST PDF button for filename:', cardData.filename);
+            console.log('[CREATE_CARD] Button will have data-doc-name:', cardData.filename);
+            console.log('[CREATE_CARD] Button will have data-thread-id:', threadId);
+            console.log('[CREATE_CARD] ✅ TEST PDF button HTML will be created');
+            return `
+          <button class="doc-preview-icon" 
+                  data-doc-name="${cardData.filename}" 
+                  data-thread-id="${threadId}"
+                  data-doc-url=""
+                  data-has-doc="1"
+                  style="
+                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                    border: 2px solid #fbbf24;
+                    border-radius: 8px;
+                    padding: 8px 12px;
+                    cursor: pointer;
+                    color: white;
+                    font-size: 13px;
+                    font-weight: 700;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                  "
+                  title="Preview Document - Click to test PDF preview functionality"
+                  onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 16px rgba(245, 158, 11, 0.6)';"
+                  onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(245, 158, 11, 0.4)';"
+                  onclick="console.log('[DIRECT_CLICK] TEST PDF button clicked directly!', this);">
+            🔥 TEST PDF
+          </button>
+          `;
+          })() : ''}
+        </div>
       </div>
     </div>
   `;
@@ -1507,6 +1549,7 @@ class UIManager {
     this.floatingChatManager = null; // Add floating chat manager
     this._messageIndex = new Map(); // Track messageId -> messageView for instant lookup
     this._documentStorageRule = null; // Cache for business rule
+    this.pdfCache = new Map(); // PDF cache for preview functionality
   }
 
   // NOTE: Old reactive message indexing removed in favor of proactive indexing in _indexAllThreadMessages()
@@ -1873,7 +1916,9 @@ class UIManager {
 
   // Method to update the sidebar with invoice details for the current thread
   async handleThreadView(threadView) {
+    console.log('[ThreadView] ===== HANDLE THREAD VIEW CALLED =====');
     const threadId = await threadView.getThreadIDAsync();
+    console.log('[ThreadView] Thread ID:', threadId);
     console.log('[UI] Thread view changed:', threadId);
     // Store current threadView for in-thread actions (scroll/highlight)
     this._currentThreadView = threadView;
@@ -1902,17 +1947,151 @@ class UIManager {
     }
     
     // Transform all entities for the sidebar. Returns an array.
-    const cardDataArray = threadInfo && threadInfo.processedEntities 
+    let cardDataArray = threadInfo && threadInfo.processedEntities 
       ? transformProcessedEntitiesForSidebar(threadInfo.processedEntities)
       : [];
 
+    // Always add test document for PDF preview testing
+    console.log('[PREVIEW] Adding test document for PDF preview testing');
+    console.log('[PREVIEW] Current threadId:', threadId);
+    console.log('[PREVIEW] Current cardDataArray length before adding test:', cardDataArray.length);
+    
+    const testEntity = {
+      type: 'inv',
+      value: 'INV-2024-001',
+      document: {
+        message_id: 'test-message-123',
+        thread_id: threadId,
+        final_status: 'pending_approval',
+        details: {
+          vendor: { name: 'Test Vendor Inc.' },
+          amount: 1250.75,
+          currency: 'USD',
+          filename: 'test-invoice.pdf', // This is important for PDF preview
+          issue_date: '2024-01-15',
+          due_date: '2024-02-15',
+          description: 'Test invoice for software services'
+        }
+      }
+    };
+    console.log('[PREVIEW] Created test entity:', testEntity);
+    
+    const testCardData = transformProcessedEntitiesForSidebar([testEntity]);
+    console.log('[PREVIEW] Transformed test card data:', testCardData);
+    console.log('[PREVIEW] Test card data filename:', testCardData[0]?.filename);
+    
+    cardDataArray.unshift(...testCardData); // Add test document at the beginning
+    console.log('[PREVIEW] Total documents for preview (including test):', cardDataArray.length);
+    console.log('[PREVIEW] Final cardDataArray:', cardDataArray);
+
+    console.log('[ThreadView] Checking if sidebar element exists:', !!this.sidebarElement);
     if (this.sidebarElement) {
+      console.log('[ThreadView] Sidebar element found, looking for preview-content');
+      // Update the preview content with document data
+      const previewContent = this.sidebarElement.querySelector('#preview-content');
+      console.log('[ThreadView] Preview content element found:', !!previewContent);
+      if (previewContent) {
+        if (cardDataArray && cardDataArray.length > 0) {
+          // Show document previews
+          previewContent.innerHTML = this.createSidebarContent(threadId, cardDataArray);
+          
+          // Debug: Check if buttons were created
+          setTimeout(() => {
+            const testButtons = previewContent.querySelectorAll('.doc-preview-icon');
+            console.log('[DEBUG] Found', testButtons.length, 'doc-preview-icon buttons in DOM');
+            testButtons.forEach((btn, index) => {
+              console.log(`[DEBUG] Button ${index}:`, btn);
+              console.log(`[DEBUG] Button ${index} attributes:`, {
+                hasDoc: btn.getAttribute('data-has-doc'),
+                threadId: btn.getAttribute('data-thread-id'),
+                docName: btn.getAttribute('data-doc-name')
+              });
+              
+              // Test if button is clickable by adding a direct click test
+              btn.addEventListener('click', (e) => {
+                console.log('[DIRECT_BUTTON_CLICK] Button clicked directly!', e.target);
+                console.log('[DIRECT_BUTTON_CLICK] Button attributes:', {
+                  hasDoc: btn.getAttribute('data-has-doc'),
+                  threadId: btn.getAttribute('data-thread-id'),
+                  docName: btn.getAttribute('data-doc-name')
+                });
+                e.stopPropagation();
+                
+                // Test the preview functionality directly
+                console.log('[DIRECT_BUTTON_CLICK] Testing preview functionality directly...');
+                const testBlob = this.createTestPdfBlob();
+                this.showRightPreviewWithBlob(btn, testBlob);
+              });
+            });
+            
+            // Also check if the button is visible and has the right text
+            const testButton = previewContent.querySelector('.doc-preview-icon');
+            if (testButton) {
+              console.log('[DEBUG] Test button text content:', testButton.textContent);
+              console.log('[DEBUG] Test button is visible:', testButton.offsetWidth > 0 && testButton.offsetHeight > 0);
+              console.log('[DEBUG] Test button computed style:', window.getComputedStyle(testButton).display);
+            }
+          }, 100);
+          
+          // Attach new event listeners for the cards
+          this.attachCardClickListeners(previewContent);
+        } else {
+          // Show no documents message
+          previewContent.innerHTML = `
+            <div style="padding: 16px;">
+              <div style="text-align: center; padding: 40px 20px; background: #f8f9fa; border-radius: 8px;">
+                <div style="font-size: 48px; margin-bottom: 16px;">📄</div>
+                <h4 style="margin: 0 0 8px 0; color: #333;">No Documents Found</h4>
+                <p style="margin: 0; color: #666; font-size: 14px;">This email thread doesn't contain any recognized documents.</p>
+              </div>
+            </div>
+          `;
+        }
+      } else {
+        // Fallback: replace entire sidebar content (for backward compatibility)
       this.sidebarElement.innerHTML = this.createSidebarContent(threadId, cardDataArray);
       
-
+      // Debug: Check if buttons were created (fallback case)
+      setTimeout(() => {
+        const testButtons = this.sidebarElement.querySelectorAll('.doc-preview-icon');
+        console.log('[DEBUG_FALLBACK] Found', testButtons.length, 'doc-preview-icon buttons in DOM');
+        testButtons.forEach((btn, index) => {
+          console.log(`[DEBUG_FALLBACK] Button ${index}:`, btn);
+          console.log(`[DEBUG_FALLBACK] Button ${index} attributes:`, {
+            hasDoc: btn.getAttribute('data-has-doc'),
+            threadId: btn.getAttribute('data-thread-id'),
+            docName: btn.getAttribute('data-doc-name')
+          });
+          
+          // Test if button is clickable by adding a direct click test
+          btn.addEventListener('click', (e) => {
+            console.log('[DIRECT_BUTTON_CLICK_FALLBACK] Button clicked directly!', e.target);
+            console.log('[DIRECT_BUTTON_CLICK_FALLBACK] Button attributes:', {
+              hasDoc: btn.getAttribute('data-has-doc'),
+              threadId: btn.getAttribute('data-thread-id'),
+              docName: btn.getAttribute('data-doc-name')
+            });
+            e.stopPropagation();
+            
+            // Test the preview functionality directly
+            console.log('[DIRECT_BUTTON_CLICK_FALLBACK] Testing preview functionality directly...');
+            const testBlob = this.createTestPdfBlob();
+            this.showRightPreviewWithBlob(btn, testBlob);
+          });
+        });
+        
+        // Also check if the button is visible and has the right text
+        const testButton = this.sidebarElement.querySelector('.doc-preview-icon');
+        if (testButton) {
+          console.log('[DEBUG_FALLBACK] Test button text content:', testButton.textContent);
+          console.log('[DEBUG_FALLBACK] Test button is visible:', testButton.offsetWidth > 0 && testButton.offsetHeight > 0);
+          console.log('[DEBUG_FALLBACK] Test button computed style:', window.getComputedStyle(testButton).display);
+        }
+      }, 100);
       
       // Attach new event listeners for the cards
       this.attachCardClickListeners(this.sidebarElement);
+      }
       
       // Auto-open the sidebar if there are documents to show
       if (cardDataArray && cardDataArray.length > 0) {
@@ -1932,13 +2111,13 @@ class UIManager {
 
 
 
-  // Method to restore the original chat interface in the sidebar
+  // Method to restore the preview interface in the sidebar
   restoreChatInterface() {
       if (this.sidebarElement) {
-      console.log('[DEBUG] Restoring chat interface using this.sidebarElement');
+      console.log('[DEBUG] Restoring preview interface using this.sidebarElement');
       this.sidebarElement.innerHTML = this.createMainAppContent();
       
-      // Re-attach event listeners for the chat interface
+      // Re-attach event listeners for the preview interface
       this.attachChatEventListeners(this.sidebarElement);
     } else {
       console.log('[DEBUG] this.sidebarElement is not available for restore');
@@ -2250,13 +2429,19 @@ class UIManager {
 
   // Updated method to create sidebar content dynamically
   createSidebarContent(threadId, cardDataArray) {
+    console.log('[SIDEBAR_CONTENT] Creating sidebar content for threadId:', threadId);
+    console.log('[SIDEBAR_CONTENT] Card data array length:', cardDataArray?.length);
+    console.log('[SIDEBAR_CONTENT] Card data array:', cardDataArray);
+    
     // Store the current card data for later use
     this._currentCardData = cardDataArray;
     
     if (cardDataArray && cardDataArray.length > 0) {
-      const cardsHtml = cardDataArray.map(cardData => {
+      const cardsHtml = cardDataArray.map((cardData, index) => {
+        console.log(`[SIDEBAR_CONTENT] Processing card ${index}:`, cardData.title, 'filename:', cardData.filename);
         const cardHtml = createEntityCard(cardData, threadId);
         const cardWithThreadId = cardHtml.replace('class="entity-card"', `class="entity-card" data-thread-id="${threadId}"`);
+        console.log(`[SIDEBAR_CONTENT] Generated HTML for card ${index} (first 200 chars):`, cardWithThreadId.substring(0, 200) + '...');
         
         // Build capsules for invoice entities only
         let capsulesRow = '';
@@ -2372,15 +2557,93 @@ class UIManager {
   // Method to attach card click event listeners
   attachCardClickListeners(container) {
     console.log('[CARD_CLICKS] Attaching click listeners to container');
+    console.log('[CARD_CLICKS] Container has doc-preview-icon elements:', container.querySelectorAll('.doc-preview-icon').length);
+    console.log('[CARD_CLICKS] Container innerHTML preview:', container.innerHTML.substring(0, 200) + '...');
     
     // Remove any existing click listeners
     container.removeEventListener('click', this._cardClickHandler);
     
     // Create a bound version of the click handler
-    this._cardClickHandler = (event) => {
+    this._cardClickHandler = async (event) => {
+        console.log('[CARD_CLICKS] Click handler triggered! Event target:', event.target);
+        console.log('[CARD_CLICKS] Event type:', event.type);
+        console.log('[CARD_CLICKS] Event currentTarget:', event.currentTarget);
         console.log('[CARD_CLICKS] Click event detected on:', event.target);
         
+        // Check for PDF preview icon click first
+        const icon = event.target.closest('.doc-preview-icon');
+        if (icon) {
+            console.log('[DOC] Found doc icon:', icon);
+            console.log('[DOC] Icon attributes:', {
+                hasDoc: icon.getAttribute('data-has-doc'),
+                threadId: icon.getAttribute('data-thread-id'),
+                docName: icon.getAttribute('data-doc-name')
+            });
+            
+            const hasDoc = icon.getAttribute('data-has-doc') === '1';
+            console.log('[DOC] Has document:', hasDoc);
+            
+            if (!hasDoc) return;
+
+            const threadId = icon.getAttribute('data-thread-id');
+            const documentName = icon.getAttribute('data-doc-name');
+            
+            // Use blob preview functionality
+            console.log('[DOC] Using blob preview functionality');
+            
+            if (threadId && documentName && this.apiClient) {
+                const cacheKey = `${threadId}|${documentName}`;
+                
+                // Try cache first
+                let cachedBlob = this.pdfCache.get(cacheKey);
+                if (cachedBlob) {
+                    console.log('[DOC] Using cached PDF blob');
+                    this.showRightPreviewWithBlob(icon, cachedBlob);
+                    return;
+                }
+                
+                // No cache: fetch via backend
+                try {
+                    console.log('[DOC] Fetching PDF from backend:', { threadId, documentName });
+                    const blob = await this.apiClient.fetchGmailAttachmentPdf({ threadId, documentName });
+                    
+                    // Small LRU: cap at 25 items
+                    if (this.pdfCache.size > 25) {
+                        const firstKey = this.pdfCache.keys().next().value;
+                        this.pdfCache.delete(firstKey);
+                    }
+                    this.pdfCache.set(cacheKey, blob);
+                    
+                    console.log('[DOC] PDF fetched successfully, showing blob preview');
+                    this.showRightPreviewWithBlob(icon, blob);
+                } catch (err) {
+                    console.error('[DOC] Failed to fetch PDF from backend:', err);
+                    console.log('[TEST] Using test PDF for preview functionality testing');
+                    
+                    // Use test PDF for testing purposes
+                    const testBlob = this.createTestPdfBlob();
+                    
+                    // Cache the test PDF
+                    if (this.pdfCache.size > 25) {
+                        const firstKey = this.pdfCache.keys().next().value;
+                        this.pdfCache.delete(firstKey);
+                    }
+                    this.pdfCache.set(cacheKey, testBlob);
+                    
+                    console.log('[TEST] Showing test PDF preview');
+                    this.showRightPreviewWithBlob(icon, testBlob);
+                }
+            } else {
+                // No backend fetch available - use test PDF for testing
+                console.log('[DOC] No backend fetch available, using test PDF for testing');
+                const testBlob = this.createTestPdfBlob();
+                console.log('[TEST] Showing test PDF preview (no backend)');
+                this.showRightPreviewWithBlob(icon, testBlob);
+            }
+            return; // Exit early for PDF preview clicks
+        }
         
+        // Handle regular card clicks
         const card = event.target.closest('.entity-card');
         if (card && card.dataset.fullDetails) {
             console.log('[CARD_CLICKS] Card clicked, parsing details...');
@@ -2427,6 +2690,9 @@ class UIManager {
     
     // Attach the click handler
     container.addEventListener('click', this._cardClickHandler);
+    console.log('[CARD_CLICKS] Click listeners attached successfully');
+    console.log('[CARD_CLICKS] Event listener attached to container:', container);
+    console.log('[CARD_CLICKS] Handler function:', this._cardClickHandler);
   }
 
   // Method to attach preview event listeners
@@ -2454,6 +2720,8 @@ class UIManager {
         }
       }
     });
+
+    // PDF Preview functionality moved to attachCardClickListeners for proper re-attachment
 
     // Settings menu functionality
     const settingsBtn = sidebarElement.querySelector('#settings-btn');
@@ -2496,6 +2764,227 @@ class UIManager {
     // Preview functionality - no additional event listeners needed for now
     // The preview content will be updated when threads are opened
 
+  }
+
+  // PDF Preview functionality - display in sidebar panel instead of modal
+  showRightPreviewWithBlob(iconEl, blob) {
+    console.log('[PREVIEW] showRightPreviewWithBlob called with iconEl:', iconEl);
+    console.log('[PREVIEW] showRightPreviewWithBlob called with blob:', blob);
+    console.log('[PREVIEW] Blob type:', blob?.type, 'size:', blob?.size);
+    
+    const docName = iconEl.getAttribute('data-doc-name') || 'Document';
+    
+    console.log('[PREVIEW] Document name:', docName);
+    console.log('[PREVIEW] Displaying preview in sidebar panel instead of modal');
+    
+    // Check if sidebar element exists
+    if (!this.sidebarElement) {
+      console.error('[PREVIEW] Sidebar element not available. Cannot display preview.');
+      return;
+    }
+
+    // Use FileReader to convert blob to data URL
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      
+      console.log('[PREVIEW] ✅ Blob converted to data URL, updating sidebar content');
+      
+      // Create appropriate element based on file type
+      let displayEl;
+      if (blob.type === 'application/pdf') {
+        // For PDFs, use iframe (correct approach) - full size
+        console.log('[PREVIEW] Creating iframe for PDF display in sidebar');
+        displayEl = document.createElement('iframe');
+        displayEl.src = dataUrl;
+        displayEl.style.cssText = 'width: 100%; height: 100%; border: none; position: absolute; top: 0; left: 0;';
+        displayEl.setAttribute('type', 'application/pdf');
+      } else if (blob.type.startsWith('image/')) {
+        // For images, use img element - full size
+        console.log('[PREVIEW] Creating image element for image display in sidebar');
+        displayEl = document.createElement('img');
+        displayEl.src = dataUrl;
+        displayEl.style.cssText = 'width: 100%; height: 100%; object-fit: contain; position: absolute; top: 0; left: 0;';
+      } else {
+        // For other file types, show a message - full size
+        console.log('[PREVIEW] Creating fallback element for unsupported file type in sidebar');
+        displayEl = document.createElement('div');
+        displayEl.style.cssText = 'padding: 20px; text-align: center; color: #666; height: 100%; width: 100%; display: flex; flex-direction: column; justify-content: center; position: absolute; top: 0; left: 0;';
+        displayEl.innerHTML = `
+          <div style="font-size: 48px; margin-bottom: 16px;">📄</div>
+          <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">${docName}</div>
+          <div style="font-size: 14px;">File type: ${blob.type}</div>
+          <div style="font-size: 12px; margin-top: 8px; color: #999;">Preview not available for this file type</div>
+        `;
+      }
+      
+      // Create the preview content with header and close button
+      const previewContent = `
+        <div style="display: flex; flex-direction: column; height: 100%;">
+          <!-- Header with title and close button -->
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e0e0e0; background: #f8f9fa;">
+            <div style="font-weight: 600; color: #333;">${docName}</div>
+            <button id="close-preview-btn" style="
+              background: none; 
+              border: none; 
+              font-size: 18px; 
+              cursor: pointer; 
+              color: #666; 
+              padding: 4px 8px;
+              border-radius: 4px;
+              transition: background-color 0.2s;
+            " onmouseover="this.style.backgroundColor='#e0e0e0'" onmouseout="this.style.backgroundColor='transparent'">
+              ✕
+            </button>
+            </div>
+          
+          <!-- Preview content area -->
+          <div style="flex: 1; padding: 16px; overflow: hidden; position: relative;">
+            <div style="width: 100%; height: 100%; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; position: relative;">
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Update the sidebar content
+      this.sidebarElement.innerHTML = previewContent;
+      
+      // Insert the display element into the preview area
+      const previewArea = this.sidebarElement.querySelector('div[style*="position: relative"]');
+      if (previewArea) {
+        previewArea.appendChild(displayEl);
+        console.log('[PREVIEW] ✅ Display element inserted into preview area');
+      } else {
+        console.error('[PREVIEW] Could not find preview area to insert display element');
+      }
+      
+      // Add close button functionality
+      const closeBtn = this.sidebarElement.querySelector('#close-preview-btn');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+          console.log('[PREVIEW] Close button clicked, resetting sidebar to default');
+          this.resetSidebarToDefault();
+        });
+      }
+      
+      console.log('[PREVIEW] ✅ Sidebar content updated with preview');
+    };
+    
+    console.log('[PREVIEW] Converting blob to data URL...');
+    reader.readAsDataURL(blob);
+  }
+
+  // Reset sidebar to default state
+  resetSidebarToDefault() {
+    if (!this.sidebarElement) return;
+    
+    console.log('[PREVIEW] Resetting sidebar to default state');
+    
+    this.sidebarElement.innerHTML = `
+      <div style="display: flex; flex-direction: column; height: 100%; justify-content: center; align-items: center; text-align: center; padding: 20px; color: #666;">
+        <div style="font-size: 48px; margin-bottom: 16px;">📄</div>
+        <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #333;">Document Preview</div>
+        <div style="font-size: 14px;">Open an email thread to view document previews and details.</div>
+      </div>
+    `;
+  }
+
+  // hideRightPreview function removed - using InboxSDK modal instead
+
+  // Create a test PDF blob for testing purposes
+  createTestPdfBlob() {
+    console.log('[TEST_PDF] Creating test PDF blob...');
+    // Create a simple PDF content as a string
+    const pdfContent = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+/Resources <<
+/Font <<
+/F1 5 0 R
+>>
+>>
+>>
+endobj
+
+4 0 obj
+<<
+/Length 200
+>>
+stream
+BT
+/F1 24 Tf
+100 700 Td
+(Test Invoice Document) Tj
+0 -50 Td
+/F1 12 Tf
+(Invoice #: INV-2024-001) Tj
+0 -20 Td
+(Vendor: Test Vendor Inc.) Tj
+0 -20 Td
+(Amount: $1,250.75) Tj
+0 -20 Td
+(Date: 2024-01-15) Tj
+0 -20 Td
+(Description: Test invoice for software services) Tj
+0 -20 Td
+(This is a test PDF created for preview functionality testing.) Tj
+ET
+endstream
+endobj
+
+5 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000274 00000 n 
+0000000525 00000 n 
+trailer
+<<
+/Size 6
+/Root 1 0 R
+>>
+startxref
+610
+%%EOF`;
+
+    // Convert PDF string to blob
+    const pdfBlob = new Blob([pdfContent], { type: 'application/pdf' });
+    console.log('[TEST] Created test PDF blob:', {
+      type: pdfBlob.type,
+      size: pdfBlob.size,
+      sizeKB: Math.round(pdfBlob.size / 1024)
+    });
+    
+    return pdfBlob;
   }
 
   async handleStreamingResponse(response, assistantDiv) {
@@ -2637,6 +3126,7 @@ class UIManager {
   }
 
   createMainAppContent() {
+        console.log('[MAIN_APP] ===== CREATING MAIN APP CONTENT =====');
         return `
             <div style="
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -2709,7 +3199,7 @@ class UIManager {
                 </div>
 
                 <!-- Main Content - Preview Interface -->
-                <div style="
+                        <div style="
                     display: flex;
                     flex-direction: column;
                     height: calc(100vh - 80px);
@@ -2719,15 +3209,15 @@ class UIManager {
                     <div id="preview-content" style="
                         flex: 1;
                         padding: 0;
-                        overflow-y: auto;
-                        background: #ffffff;
-                    ">
+                                overflow-y: auto;
+                                background: #ffffff;
+                            ">
                         <div style="padding: 16px;">
                             <div style="text-align: center; padding: 40px 20px; background: #f8f9fa; border-radius: 8px;">
                                 <div style="font-size: 48px; margin-bottom: 16px;">📄</div>
                                 <h4 style="margin: 0 0 8px 0; color: #333;">Document Preview</h4>
                                 <p style="margin: 0; color: #666; font-size: 14px;">Open an email thread to view document previews and details.</p>
-                            </div>
+                                    </div>
                         </div>
                     </div>
                 </div>
@@ -2961,6 +3451,7 @@ class UIManager {
   }
 
   renderMainView() {
+    console.log('[UI DEBUG] ===== RENDER MAIN VIEW CALLED =====');
     console.log('[UI DEBUG] 3. Entered renderMainView.');
     const self = this; // Capture the correct 'this' context
 
