@@ -72841,6 +72841,14 @@ Please ensure you are signed in and have the necessary permissions.`);
       }],
       // === SEARCH EVENT HANDLERS ===
       // Let jspreadsheet handle search natively
+      // === JSPREADSHEET PAGINATION EVENT HANDLERS ===
+      onchangepage: function(worksheet, newPage, previousPage, quantityPerPage) {
+        console.log("[JSPREADSHEET] Page changed from", previousPage, "to", newPage, "with", quantityPerPage, "items per page");
+      },
+      onbeforechangepage: function(worksheet, newPage, previousPage, quantityPerPage) {
+        console.log("[JSPREADSHEET] About to change page from", previousPage, "to", newPage, "with", quantityPerPage, "items per page");
+        return true;
+      },
       // === ENHANCE EXISTING SEARCH WITH REAL-TIME FUNCTIONALITY ===
       oncreateworksheet: function(worksheet) {
         console.log("[DROPDOWN] Worksheet created - initializing dropdown functionality");
@@ -73011,6 +73019,19 @@ Please ensure you are signed in and have the necessary permissions.`);
         });
         console.log("[TOOLBAR] Search control added to far right of toolbar");
       }
+      const preserveUIElements = () => {
+        const searchContainer = cleanContainer.querySelector(".jss_toolbar_search");
+        const entriesControl = cleanContainer.querySelector(".jss_entries_control");
+        if (searchContainer) {
+          searchContainer.setAttribute("data-preserve", "true");
+          console.log("[UI PRESERVATION] Search container marked for preservation");
+        }
+        if (entriesControl) {
+          entriesControl.setAttribute("data-preserve", "true");
+          console.log("[UI PRESERVATION] Entries control marked for preservation");
+        }
+      };
+      setTimeout(preserveUIElements, 2e3);
       setTimeout(() => {
         const defaultSearchElements = cleanContainer.querySelectorAll('.jss_search, .jspreadsheet-search, input[placeholder*="Search"], input[placeholder*="search"]');
         defaultSearchElements.forEach((element) => {
@@ -73019,7 +73040,7 @@ Please ensure you are signed in and have the necessary permissions.`);
             element.remove();
           }
         });
-        const searchLabels = cleanContainer.querySelectorAll('label:contains("Search"), span:contains("Search:")');
+        const searchLabels = cleanContainer.querySelectorAll('label[for*="search"], span[class*="search"]');
         searchLabels.forEach((label) => {
           if (!label.closest(".jss_toolbar_search")) {
             console.log("[TOOLBAR] Removing search label:", label);
@@ -73048,8 +73069,8 @@ Please ensure you are signed in and have the necessary permissions.`);
           const entriesContainer = document.createElement("div");
           entriesContainer.className = "jss_entries_control";
           entriesContainer.style.cssText = `
-          display: flex;
-          align-items: center;
+        display: flex;
+        align-items: center;
           gap: 8px;
           margin-bottom: 10px;
           padding: 8px 0;
@@ -73068,12 +73089,12 @@ Please ensure you are signed in and have the necessary permissions.`);
           border: 1px solid #dee2e6;
           outline: none;
           background: #ffffff;
-          font-size: 14px;
+        font-size: 14px;
           color: #495057;
           cursor: pointer;
           min-width: 60px;
           padding: 4px 8px;
-          border-radius: 4px;
+        border-radius: 4px;
         `;
           const entriesOptions = [10, 25, 50, 100];
           entriesOptions.forEach((option) => {
@@ -73096,15 +73117,232 @@ Please ensure you are signed in and have the necessary permissions.`);
           entriesSelect.addEventListener("change", (e) => {
             const newPageSize = parseInt(e.target.value);
             console.log("[ENTRIES] Changing page size to:", newPageSize);
-            if (sheet && sheet.setPagination) {
-              sheet.setPagination(newPageSize);
+            let success = false;
+            if (sheet && typeof sheet.updateSettings === "function") {
+              console.log("[ENTRIES] Using jspreadsheet updateSettings for pagination");
+              sheet.updateSettings({ pagination: newPageSize });
+              success = true;
+            }
+            if (!success && sheet) {
+              if (sheet.worksheets && sheet.worksheets[0]) {
+                console.log("[ENTRIES] Using worksheet direct update");
+                sheet.worksheets[0].pagination = newPageSize;
+                if (typeof sheet.refresh === "function") {
+                  sheet.refresh();
+                }
+                success = true;
+              } else if (sheet.settings) {
+                console.log("[ENTRIES] Using direct settings update");
+                sheet.settings.pagination = newPageSize;
+                if (sheet.worksheets && sheet.worksheets[0]) {
+                  sheet.worksheets[0].pagination = newPageSize;
+                }
+                if (typeof sheet.reload === "function") {
+                  sheet.reload();
+                } else if (typeof sheet.refresh === "function") {
+                  sheet.refresh();
+                }
+                success = true;
+              }
+            }
+            if (!success) {
+              console.log("[ENTRIES] Trying to trigger jspreadsheet pagination events");
+              try {
+                const paginationEvent = new CustomEvent("jspreadsheet-pagination-change", {
+                  detail: { pageSize: newPageSize }
+                });
+                cleanContainer.dispatchEvent(paginationEvent);
+                const paginationInfo = cleanContainer.querySelector(".jss_pagination");
+                if (paginationInfo) {
+                  const currentPage = paginationInfo.textContent.match(/page (\d+)/)?.[1] || "1";
+                  paginationInfo.textContent = `Showing page ${currentPage} of ${newPageSize} entries`;
+                }
+                console.log("[ENTRIES] Pagination event triggered");
+                success = true;
+              } catch (error) {
+                console.log("[ENTRIES] Event-based approach failed:", error);
+              }
+            }
+            if (!success) {
+              console.log("[ENTRIES] All gentle pagination methods failed - pagination may not be supported in this jspreadsheet version");
+            } else {
+              console.log("[ENTRIES] Pagination change successful");
             }
           });
-          console.log("[ENTRIES] Entries dropdown added above pagination");
+          console.log("[ENTRIES] Entries dropdown added above pagination with jspreadsheet native functionality");
         } else {
           console.log("[ENTRIES] Pagination container not found, will retry");
         }
       }, 1500);
+      setTimeout(() => {
+        console.log("[PAGINATION] Looking for jspreadsheet native pagination...");
+        const nativePagination = cleanContainer.querySelector(".jss_pagination") || cleanContainer.querySelector(".jspreadsheet-pagination") || cleanContainer.querySelector('[class*="pagination"]') || cleanContainer.querySelector('div:contains("Showing page")') || cleanContainer.querySelector('div:contains("entries")');
+        console.log("[PAGINATION] Native pagination found:", !!nativePagination);
+        console.log("[PAGINATION] Native pagination element:", nativePagination);
+        if (nativePagination) {
+          console.log("[PAGINATION] Found native pagination, ensuring it stays at bottom");
+          console.log("[PAGINATION] Pagination HTML:", nativePagination.innerHTML);
+          console.log("[PAGINATION] Pagination children:", Array.from(nativePagination.children).map((child) => ({
+            tagName: child.tagName,
+            className: child.className,
+            textContent: child.textContent?.substring(0, 50)
+          })));
+          const container2 = nativePagination.parentNode;
+          if (container2 && container2.lastChild !== nativePagination) {
+            console.log("[PAGINATION] Moving pagination to bottom of container");
+            container2.appendChild(nativePagination);
+          }
+          nativePagination.style.cssText = `
+           margin-top: 10px;
+           padding: 8px 0;
+           text-align: center;
+        font-size: 14px;
+           color: #495057;
+         `;
+          const paginationButtons = nativePagination.querySelectorAll("button, a, span[onclick]");
+          console.log("[PAGINATION] Found pagination buttons:", paginationButtons.length);
+          paginationButtons.forEach((button, index) => {
+            console.log(`[PAGINATION] Button ${index}:`, {
+              tagName: button.tagName,
+              className: button.className,
+              textContent: button.textContent,
+              onclick: button.onclick,
+              hasEventListener: button.onclick !== null
+            });
+            if (!button.onclick && !button.hasAttribute("onclick")) {
+              console.log(`[PAGINATION] Adding click handler to button ${index}`);
+              button.addEventListener("click", (e) => {
+                console.log(`[PAGINATION] Button ${index} clicked:`, button.textContent);
+                if (sheet && typeof sheet.goToPage === "function") {
+                  const pageNumber = parseInt(button.textContent);
+                  if (!isNaN(pageNumber)) {
+                    console.log(`[PAGINATION] Going to page ${pageNumber}`);
+                    sheet.goToPage(pageNumber);
+                  }
+                }
+              });
+            }
+          });
+          console.log("[PAGINATION] Native pagination positioned at bottom with styling and event handlers");
+        } else {
+          console.log("[PAGINATION] Native pagination not found, checking container structure...");
+          console.log("[PAGINATION] Container children:", Array.from(cleanContainer.children).map((child) => ({
+            tagName: child.tagName,
+            className: child.className,
+            textContent: child.textContent?.substring(0, 50)
+          })));
+        }
+      }, 2e3);
+      setTimeout(() => {
+        console.log("[PAGINATION] Retry attempt - looking for native pagination...");
+        const nativePagination = cleanContainer.querySelector(".jss_pagination") || cleanContainer.querySelector(".jspreadsheet-pagination") || cleanContainer.querySelector('[class*="pagination"]') || cleanContainer.querySelector('div:contains("Showing page")') || cleanContainer.querySelector('div:contains("entries")') || cleanContainer.querySelector('div:contains("page")') || cleanContainer.querySelector('div:contains("of")');
+        if (nativePagination) {
+          console.log("[PAGINATION] Retry found native pagination, ensuring it stays at bottom");
+          console.log("[PAGINATION] Retry - Pagination HTML:", nativePagination.innerHTML);
+          const container2 = nativePagination.parentNode;
+          if (container2 && container2.lastChild !== nativePagination) {
+            console.log("[PAGINATION] Retry - Moving pagination to bottom of container");
+            container2.appendChild(nativePagination);
+          }
+          nativePagination.style.cssText = `
+           margin-top: 10px;
+           padding: 8px 0;
+           text-align: center;
+        font-size: 14px;
+           color: #495057;
+         `;
+          if (sheet) {
+            console.log("[PAGINATION] Retry - Sheet object available:", !!sheet);
+            console.log("[PAGINATION] Retry - Available methods:", Object.getOwnPropertyNames(sheet));
+            console.log("[PAGINATION] Retry - page method:", typeof sheet.page);
+            console.log("[PAGINATION] Retry - whichPage method:", typeof sheet.whichPage);
+            console.log("[PAGINATION] Retry - quantiyOfPages method:", typeof sheet.quantiyOfPages);
+            console.log("[PAGINATION] Retry - search method:", typeof sheet.search);
+          }
+          const paginationButtons = nativePagination.querySelectorAll("button, a, span, div");
+          console.log("[PAGINATION] Retry - Found pagination elements:", paginationButtons.length);
+          paginationButtons.forEach((element, index) => {
+            if (element.textContent && element.textContent.trim()) {
+              console.log(`[PAGINATION] Retry - Element ${index}: "${element.textContent.trim()}"`);
+              if (/^\d+$/.test(element.textContent.trim())) {
+                const pageNumber = parseInt(element.textContent.trim());
+                console.log(`[PAGINATION] Retry - Adding handler for page ${pageNumber}`);
+                element.addEventListener("click", (e) => {
+                  e.preventDefault();
+                  console.log(`[PAGINATION] Retry - Page ${pageNumber} clicked`);
+                  if (sheet && typeof sheet.page === "function") {
+                    console.log(`[PAGINATION] Retry - Using sheet.page(${pageNumber})`);
+                    sheet.page(pageNumber);
+                  } else {
+                    console.log("[PAGINATION] Retry - sheet.page method not available");
+                  }
+                });
+              }
+              if (element.textContent.toLowerCase().includes("next") || element.textContent === ">") {
+                element.addEventListener("click", (e) => {
+                  e.preventDefault();
+                  console.log("[PAGINATION] Retry - Next page clicked");
+                  if (sheet && typeof sheet.page === "function" && typeof sheet.whichPage === "function") {
+                    const currentPage = sheet.whichPage();
+                    const nextPage = currentPage + 1;
+                    console.log(`[PAGINATION] Retry - Going to next page: ${nextPage}`);
+                    sheet.page(nextPage);
+                  }
+                });
+              }
+              if (element.textContent.toLowerCase().includes("prev") || element.textContent === "<") {
+                element.addEventListener("click", (e) => {
+                  e.preventDefault();
+                  console.log("[PAGINATION] Retry - Previous page clicked");
+                  if (sheet && typeof sheet.page === "function" && typeof sheet.whichPage === "function") {
+                    const currentPage = sheet.whichPage();
+                    const prevPage = Math.max(1, currentPage - 1);
+                    console.log(`[PAGINATION] Retry - Going to previous page: ${prevPage}`);
+                    sheet.page(prevPage);
+                  }
+                });
+              }
+            }
+          });
+          console.log("[PAGINATION] Retry - Native pagination positioned at bottom with comprehensive handlers");
+        } else {
+          console.log("[PAGINATION] Retry - Still no native pagination found");
+        }
+      }, 4e3);
+      setTimeout(() => {
+        console.log("[PAGINATION] Final attempt - checking if pagination needs to be recreated...");
+        const existingPagination = cleanContainer.querySelector(".jss_pagination");
+        if (existingPagination) {
+          console.log("[PAGINATION] Final - Existing pagination found, checking functionality...");
+          const clickableElements = existingPagination.querySelectorAll("button, a, [onclick], [data-page]");
+          console.log("[PAGINATION] Final - Clickable elements found:", clickableElements.length);
+          if (clickableElements.length === 0) {
+            console.log("[PAGINATION] Final - No clickable elements found, pagination may be broken");
+            if (sheet && typeof sheet.refresh === "function") {
+              console.log("[PAGINATION] Final - Attempting to refresh sheet to recreate pagination");
+              sheet.refresh();
+            }
+          } else {
+            console.log("[PAGINATION] Final - Pagination appears to have clickable elements");
+            clickableElements.forEach((element, index) => {
+              console.log(`[PAGINATION] Final - Element ${index}:`, {
+                tagName: element.tagName,
+                textContent: element.textContent,
+                onclick: element.onclick,
+                hasDataPage: element.hasAttribute("data-page")
+              });
+            });
+          }
+        } else {
+          console.log("[PAGINATION] Final - No pagination found, this may be why it's not working");
+          if (sheet) {
+            console.log("[PAGINATION] Final - Attempting to enable pagination on sheet");
+            if (typeof sheet.updateSettings === "function") {
+              sheet.updateSettings({ showPagination: true, pagination: 10 });
+            }
+          }
+        }
+      }, 6e3);
     }, 1e3);
     console.log("[SEARCH DEBUG] Sheet object:", sheet);
     console.log("[SEARCH DEBUG] Search method available:", typeof sheet?.search);
@@ -74649,9 +74887,20 @@ Please ensure you are signed in and have the necessary permissions.`);
         }
 
         /* Hide search labels that are not part of our toolbar */
-        .jspreadsheet-main-wrapper label:contains("Search"),
-        .jspreadsheet-main-wrapper span:contains("Search:") {
+        .jspreadsheet-main-wrapper label[for*="search"],
+        .jspreadsheet-main-wrapper span[class*="search"] {
           display: none !important;
+        }
+
+        /* Style entries control at bottom */
+        .jspreadsheet-main-wrapper .jss_entries_control {
+          display: flex !important;
+          align-items: center !important;
+          gap: 8px !important;
+          margin-bottom: 10px !important;
+          padding: 8px 0 !important;
+          font-size: 14px !important;
+          color: #495057 !important;
         }
 
         /* Style entries control at bottom */
@@ -74686,6 +74935,51 @@ Please ensure you are signed in and have the necessary permissions.`);
         .jspreadsheet-main-wrapper .jss_entries_select:focus {
           border-color: #007bff !important;
           box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2) !important;
+        }
+
+        /* Style native jspreadsheet pagination at bottom */
+        .jspreadsheet-main-wrapper .jss_pagination {
+          margin-top: 10px !important;
+          padding: 8px 0 !important;
+          text-align: center !important;
+          font-size: 14px !important;
+          color: #495057 !important;
+          order: 999 !important; /* Ensure it stays at bottom */
+        }
+
+        .jspreadsheet-main-wrapper .jspreadsheet-pagination {
+          margin-top: 10px !important;
+          padding: 8px 0 !important;
+          text-align: center !important;
+          font-size: 14px !important;
+          color: #495057 !important;
+          order: 999 !important; /* Ensure it stays at bottom */
+        }
+
+        /* Ensure pagination buttons are styled nicely */
+        .jspreadsheet-main-wrapper .jss_pagination button,
+        .jspreadsheet-main-wrapper .jspreadsheet-pagination button {
+          margin: 0 2px !important;
+          padding: 4px 8px !important;
+          border: 1px solid #dee2e6 !important;
+          background: #ffffff !important;
+          color: #495057 !important;
+          border-radius: 4px !important;
+          cursor: pointer !important;
+          transition: all 0.2s ease !important;
+        }
+
+        .jspreadsheet-main-wrapper .jss_pagination button:hover,
+        .jspreadsheet-main-wrapper .jspreadsheet-pagination button:hover {
+          border-color: #007bff !important;
+          background: #f8f9fa !important;
+        }
+
+        .jspreadsheet-main-wrapper .jss_pagination button.active,
+        .jspreadsheet-main-wrapper .jspreadsheet-pagination button.active {
+          background: #007bff !important;
+          color: #ffffff !important;
+          border-color: #007bff !important;
         }
 
         /* Remove gap between toolbar and spreadsheet - AGGRESSIVE OVERRIDE */
