@@ -61684,9 +61684,9 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
                     var img = new Image();
                     var ctx = canvas.getContext("2d");
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    canvas.toBlob(function(blob2) {
+                    canvas.toBlob(function(blob) {
                       var newImage = document.createElement("img");
-                      newImage.src = window.URL.createObjectURL(blob2);
+                      newImage.src = window.URL.createObjectURL(blob);
                       newImage.title = data.name;
                       newImage.className = "jfile pdf";
                       files[newImage.src] = {
@@ -61723,9 +61723,9 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
                       canvas.height = img.height;
                       var ctx = canvas.getContext("2d");
                       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                      canvas.toBlob(function(blob2) {
+                      canvas.toBlob(function(blob) {
                         var newImage = document.createElement("img");
-                        newImage.src = window.URL.createObjectURL(blob2);
+                        newImage.src = window.URL.createObjectURL(blob);
                         newImage.classList.add("jfile");
                         newImage.setAttribute("tabindex", "900");
                         newImage.setAttribute("width", img.width);
@@ -61748,7 +61748,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
                   }
                 };
                 obj2.addFile = function(files2) {
-                  var reader2 = [];
+                  var reader = [];
                   for (var i3 = 0; i3 < files2.length; i3++) {
                     if (files2[i3].size > obj2.options.maxFileSize) {
                       alert("The file is too big");
@@ -61762,13 +61762,13 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
                         type = 0;
                       }
                       if (type) {
-                        reader2[i3] = new FileReader();
-                        reader2[i3].index = i3;
-                        reader2[i3].type = type;
-                        reader2[i3].name = files2[i3].name;
-                        reader2[i3].date = files2[i3].lastModified;
-                        reader2[i3].size = files2[i3].size;
-                        reader2[i3].addEventListener("load", function(data) {
+                        reader[i3] = new FileReader();
+                        reader[i3].index = i3;
+                        reader[i3].type = type;
+                        reader[i3].name = files2[i3].name;
+                        reader[i3].date = files2[i3].lastModified;
+                        reader[i3].size = files2[i3].size;
+                        reader[i3].addEventListener("load", function(data) {
                           if (data.target.type == 2) {
                             if (obj2.options.acceptFiles == true) {
                               obj2.addPdf(data.target);
@@ -61777,7 +61777,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
                             obj2.addImage(data.target.result);
                           }
                         }, false);
-                        reader2[i3].readAsDataURL(files2[i3]);
+                        reader[i3].readAsDataURL(files2[i3]);
                       } else {
                         alert("The extension is not allowed");
                       }
@@ -73189,9 +73189,9 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             const uiManager = window.stampUIManager;
             if (uiManager && uiManager.apiClient) {
               console.log("[DOC_PREVIEW] UIManager and apiClient found, calling fetchGmailAttachmentPdf");
-              uiManager.apiClient.fetchGmailAttachmentPdf({ threadId, documentName: docName }).then((blob2) => {
+              uiManager.apiClient.fetchGmailAttachmentPdf({ threadId, documentName: docName }).then((blob) => {
                 console.log("[DOC_PREVIEW] PDF blob received, showing preview");
-                uiManager.showRightPreviewWithBlob(clickedElement, blob2);
+                uiManager.showRightPreviewWithBlob(clickedElement, blob);
               }).catch((error) => {
                 console.error("[DOC_PREVIEW] Error fetching PDF:", error);
                 console.log("[DOC_PREVIEW] Falling back to test PDF");
@@ -73208,328 +73208,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           }
         }
       });
-      let previewEl = null;
-      let overlayEl = null;
-      let previewTimeout = null;
-      let isPreviewHovered = false;
-      const showPreview = (iconEl) => {
-        if (previewTimeout) {
-          clearTimeout(previewTimeout);
-          previewTimeout = null;
-        }
-        const docUrl = iconEl.getAttribute("data-doc-url");
-        const thumbUrl = iconEl.getAttribute("data-thumb-url");
-        if (!docUrl) return;
-        const rect = iconEl.getBoundingClientRect();
-        if (!previewEl) {
-          previewEl = document.createElement("div");
-          previewEl.style.cssText = "position:fixed; z-index:2147483646; width:360px; height:280px; background:#fff; box-shadow:0 20px 40px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.05); border:none; border-radius:16px; overflow:hidden; backdrop-filter:blur(12px); transform:scale(1); transition:all 0.2s ease;";
-          document.body.appendChild(previewEl);
-          previewEl.addEventListener("mouseenter", () => {
-            isPreviewHovered = true;
-            if (previewTimeout) {
-              clearTimeout(previewTimeout);
-              previewTimeout = null;
-            }
-          });
-          previewEl.addEventListener("mouseleave", () => {
-            isPreviewHovered = false;
-            previewTimeout = setTimeout(() => {
-              if (!isPreviewHovered) {
-                previewEl.style.display = "none";
-              }
-            }, 100);
-          });
-        }
-        const previewContent = thumbUrl ? `<div style="display:flex; flex-direction:column; height:100%; background:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-           <div style="flex:1; background:url('${thumbUrl}') center/cover; display:flex; align-items:center; justify-content:center; background-color:#4CAF50; border-radius:12px 12px 0 0; position:relative; min-height:160px;">
-             <div style="text-align:center; color:#fff; font-size:16px; background:rgba(0,0,0,0.1); padding:20px; border-radius:12px; backdrop-filter:blur(4px); border:1px solid rgba(255,255,255,0.2);">
-               <div style="font-size:32px; margin-bottom:12px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));">\u{1F4C4}</div>
-               <div style="font-weight:700; margin-bottom:6px; font-size:18px; text-shadow:0 1px 2px rgba(0,0,0,0.3);">Sample Invoice</div>
-               <div style="font-size:13px; opacity:0.9; font-weight:500;">Sample Document Preview</div>
-               <div style="font-size:11px; opacity:0.8; margin-top:4px;">Click to open full document</div>
-             </div>
-           </div>
-           <div style="padding:16px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border-top:1px solid #065f46; text-align:center; border-radius:0 0 12px 12px;">
-             <button id="preview-open-doc-btn" data-doc-url="${docUrl}" style="background:linear-gradient(135deg, #1a73e8 0%, #1557b0 100%); color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease; box-shadow:0 2px 8px rgba(26,115,232,0.3); min-width:140px;">Open Document</button>
-           </div>
-         </div>` : `<div style="display:flex; flex-direction:column; height:100%; background:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-           <div style="flex:1; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius:12px 12px 0 0; position:relative; min-height:160px;">
-             <div style="text-align:center; color:#fff; font-size:16px; background:rgba(0,0,0,0.1); padding:20px; border-radius:12px; backdrop-filter:blur(4px); border:1px solid rgba(255,255,255,0.2);">
-               <div style="font-size:32px; margin-bottom:12px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));">\u{1F4C4}</div>
-               <div style="font-weight:700; margin-bottom:6px; font-size:18px; text-shadow:0 1px 2px rgba(0,0,0,0.3);">Document Preview</div>
-               <div style="font-size:13px; opacity:0.9; font-weight:500;">Click to open document</div>
-               <div style="font-size:11px; opacity:0.8; margin-top:4px;">External documents open in new tab</div>
-             </div>
-           </div>
-           <div style="padding:16px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border-top:1px solid #065f46; text-align:center; border-radius:0 0 12px 12px;">
-             <button id="preview-open-doc-btn" data-doc-url="${docUrl}" style="background:linear-gradient(135deg, #1a73e8 0%, #1557b0 100%); color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; transition:all 0.2s ease; box-shadow:0 2px 8px rgba(26,115,232,0.3); min-width:140px;">Open Document</button>
-           </div>
-         </div>`;
-        previewEl.innerHTML = previewContent;
-        const openDocBtn = previewEl.querySelector("#preview-open-doc-btn");
-        if (openDocBtn) {
-          openDocBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const docUrl2 = openDocBtn.getAttribute("data-doc-url");
-            if (docUrl2) {
-              window.open(docUrl2, "_blank");
-            }
-          });
-          openDocBtn.addEventListener("mouseenter", () => {
-            openDocBtn.style.background = "linear-gradient(135deg, #1557b0 0%, #0d47a1 100%)";
-            openDocBtn.style.transform = "translateY(-2px) scale(1.02)";
-            openDocBtn.style.boxShadow = "0 4px 12px rgba(26,115,232,0.4)";
-          });
-          openDocBtn.addEventListener("mouseleave", () => {
-            openDocBtn.style.background = "linear-gradient(135deg, #1a73e8 0%, #1557b0 100%)";
-            openDocBtn.style.transform = "translateY(0) scale(1)";
-            openDocBtn.style.boxShadow = "0 2px 8px rgba(26,115,232,0.3)";
-          });
-        }
-        const bridge = document.createElement("div");
-        bridge.style.cssText = "position:absolute; z-index:2147483645; width:20px; height:8px; background:transparent; top:-8px; left:10px;";
-        previewEl.appendChild(bridge);
-        bridge.addEventListener("mouseenter", () => {
-          isPreviewHovered = true;
-          if (previewTimeout) {
-            clearTimeout(previewTimeout);
-            previewTimeout = null;
-          }
-        });
-        const rectLeft = Math.max(8, rect.left - 20);
-        previewEl.style.top = `${Math.round(rect.bottom + 4)}px`;
-        previewEl.style.left = `${Math.round(rectLeft)}px`;
-        previewEl.style.display = "block";
-        previewEl.style.opacity = "0";
-        previewEl.style.transform = "scale(0.9) translateY(10px)";
-        requestAnimationFrame(() => {
-          previewEl.style.transition = "all 0.2s ease";
-          previewEl.style.opacity = "1";
-          previewEl.style.transform = "scale(1) translateY(0)";
-        });
-      };
-      const hidePreview = () => {
-        previewTimeout = setTimeout(() => {
-          if (!isPreviewHovered && previewEl) {
-            previewEl.style.display = "none";
-          }
-        }, 150);
-      };
-      const ensureOverlay = () => {
-        if (!overlayEl) {
-          overlayEl = document.createElement("div");
-          overlayEl.style.cssText = "position:fixed; inset:0; background:rgba(32,33,36,0.6); z-index:2147483647; display:flex; align-items:center; justify-content:center;";
-          overlayEl.innerHTML = `
-          <div style="width:80vw; height:80vh; background:#fff; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.35); display:flex; flex-direction:column; overflow:hidden;">
-            <div style="padding:10px; border-bottom:1px solid #e0e0e0; display:flex; align-items:center; justify-content:space-between;">
-              <div style="font-weight:600; color:#202124;">Document Preview</div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <button id="stamp-doc-zoom-out" style="border:none; background:#f3f4f6; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:14px;">\u2212</button>
-                <span id="stamp-doc-zoom-level" style="font-size:14px; color:#374151; min-width:50px; text-align:center;">100%</span>
-                <button id="stamp-doc-zoom-in" style="border:none; background:#f3f4f6; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:14px;">+</button>
-                <button id="stamp-doc-fit-width" style="border:none; background:#e5e7eb; color:#374151; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600; font-size:12px;">Fit Width</button>
-                <button id="stamp-doc-close" style="border:none; background:#eef2f7; color:#1f2937; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600;">Close</button>
-              </div>
-            </div>
-            <div id="stamp-doc-container" style="flex:1; overflow:auto; position:relative;">
-              <iframe id="stamp-doc-frame" src="" style="width:100%; height:100%; border:0; transform-origin:top left;" loading="eager"></iframe>
-            </div>
-          </div>`;
-          document.body.appendChild(overlayEl);
-          let currentZoom = 1;
-          const zoomLevel = overlayEl.querySelector("#stamp-doc-zoom-level");
-          const iframe = overlayEl.querySelector("#stamp-doc-frame");
-          const container2 = overlayEl.querySelector("#stamp-doc-container");
-          const updateZoom = (newZoom) => {
-            currentZoom = Math.max(0.25, Math.min(3, newZoom));
-            iframe.style.transform = `scale(${currentZoom})`;
-            iframe.style.width = `${100 / currentZoom}%`;
-            iframe.style.height = `${100 / currentZoom}%`;
-            zoomLevel.textContent = `${Math.round(currentZoom * 100)}%`;
-          };
-          const fitToWidth = () => {
-            currentZoom = 1;
-            iframe.style.transform = "scale(1)";
-            iframe.style.width = "100%";
-            iframe.style.height = "100%";
-            zoomLevel.textContent = "100%";
-          };
-          overlayEl.querySelector("#stamp-doc-zoom-out").addEventListener("click", (e) => {
-            e.stopPropagation();
-            updateZoom(currentZoom - 0.25);
-          });
-          overlayEl.querySelector("#stamp-doc-zoom-in").addEventListener("click", (e) => {
-            e.stopPropagation();
-            updateZoom(currentZoom + 0.25);
-          });
-          overlayEl.querySelector("#stamp-doc-fit-width").addEventListener("click", (e) => {
-            e.stopPropagation();
-            fitToWidth();
-          });
-          const handleKeydown = (e) => {
-            if (e.key === "Escape") {
-              overlayEl.style.display = "none";
-            } else if (e.key === "+" || e.key === "=") {
-              e.preventDefault();
-              updateZoom(currentZoom + 0.25);
-            } else if (e.key === "-") {
-              e.preventDefault();
-              updateZoom(currentZoom - 0.25);
-            } else if (e.key === "0") {
-              e.preventDefault();
-              fitToWidth();
-            }
-          };
-          overlayEl.addEventListener("keydown", handleKeydown);
-          overlayEl.setAttribute("tabindex", "0");
-          overlayEl.focus();
-          overlayEl.addEventListener("click", (evt) => {
-            if (evt.target && (evt.target.id === "stamp-doc-close" || evt.target === overlayEl)) {
-              overlayEl.style.display = "none";
-              document.removeEventListener("keydown", handleKeydown);
-            }
-          });
-        }
-        ;
-        reader.readAsDataURL(blob);
-      };
-      let rightPreviewPanel = null;
-      let currentPreviewData = null;
-      const showGreenModal = (iconEl) => {
-        const docUrl = iconEl.getAttribute("data-doc-url");
-        const thumbUrl = iconEl.getAttribute("data-thumb-url");
-        const docName = iconEl.getAttribute("data-doc-name") || "Document";
-        console.log("[GREEN MODAL] Document data:", { docUrl, thumbUrl, docName });
-        if (!docUrl) {
-          console.warn("[GREEN MODAL] No document URL found");
-          return;
-        }
-        const modalOverlay = document.createElement("div");
-        modalOverlay.style.cssText = `
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 2147483647;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      `;
-        const modalContent = `
-        <div style="
-          width: 400px;
-          max-width: 90vw;
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          border-radius: 16px;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-          position: relative;
-          overflow: hidden;
-        ">
-          <!-- Close button -->
-          <button id="green-modal-close" style="
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            width: 32px;
-            height: 32px;
-            border: none;
-            background: rgba(255,255,255,0.2);
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 18px;
-            font-weight: bold;
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1001;
-            transition: all 0.2s ease;
-          " onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">\xD7</button>
-          
-          <!-- Document icon -->
-          <div style="
-            text-align: center;
-            padding: 40px 20px 20px 20px;
-          ">
-            <div style="
-              font-size: 48px;
-              margin-bottom: 16px;
-              filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-            ">\u{1F4C4}</div>
-            <div style="
-              font-weight: 700;
-              margin-bottom: 8px;
-              font-size: 20px;
-              text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-              color: #ffffff;
-            ">${docName.replace(".pdf", "").replace(".PDF", "")}</div>
-            <div style="
-              font-size: 14px;
-              opacity: 0.9;
-              font-weight: 500;
-              color: #ffffff;
-              margin-bottom: 4px;
-            ">Sample Document Preview</div>
-            <div style="
-              font-size: 12px;
-              opacity: 0.8;
-              color: #ffffff;
-            ">Click to open full document</div>
-          </div>
-          
-          <!-- Action button -->
-          <div style="
-            padding: 20px;
-            text-align: center;
-            background: rgba(255,255,255,0.1);
-            border-top: 1px solid rgba(255,255,255,0.2);
-          ">
-            <button id="green-modal-open-doc" data-doc-url="${docUrl}" style="
-              background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
-              color: white;
-              border: none;
-              padding: 12px 24px;
-              border-radius: 8px;
-              cursor: pointer;
-              font-size: 14px;
-              font-weight: 600;
-              transition: all 0.2s ease;
-              box-shadow: 0 4px 12px rgba(26,115,232,0.3);
-              min-width: 160px;
-            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(26,115,232,0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(26,115,232,0.3)'">Open Document</button>
-          </div>
-        </div>
-      `;
-        modalOverlay.innerHTML = modalContent;
-        document.body.appendChild(modalOverlay);
-        const closeBtn = modalOverlay.querySelector("#green-modal-close");
-        const openDocBtn = modalOverlay.querySelector("#green-modal-open-doc");
-        const closeModal = () => {
-          modalOverlay.remove();
-        };
-        closeBtn.addEventListener("click", closeModal);
-        modalOverlay.addEventListener("click", (e) => {
-          if (e.target === modalOverlay) {
-            closeModal();
-          }
-        });
-        openDocBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          closeModal();
-          showRightPreview(iconEl);
-        });
-        const handleKeydown = (e) => {
-          if (e.key === "Escape") {
-            closeModal();
-            document.removeEventListener("keydown", handleKeydown);
-          }
-        };
-        document.addEventListener("keydown", handleKeydown);
-        console.log("[GREEN MODAL] Modal should now be visible");
-      };
-      const showRightPreview = (iconEl) => {
+      const showRightPreviewOld = (iconEl) => {
         const docUrl = iconEl.getAttribute("data-doc-url");
         const thumbUrl = iconEl.getAttribute("data-thumb-url");
         const docName = iconEl.getAttribute("data-doc-name") || "Document";
@@ -73949,11 +73628,11 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           }, 300);
         }
       };
-      const showRightPreviewWithBlob = (iconEl, blob2) => {
+      const showRightPreviewWithBlobOld = (iconEl, blob) => {
         const docName = iconEl.getAttribute("data-doc-name") || "Document";
         const docUrl = iconEl.getAttribute("data-doc-url");
-        const isImage = blob2.type.startsWith("image/");
-        const isPdf = blob2.type === "application/pdf";
+        const isImage = blob.type.startsWith("image/");
+        const isPdf = blob.type === "application/pdf";
         const fileType = isImage ? "Image" : isPdf ? "PDF Document" : "Document";
         console.log("[PREVIEW] Showing preview with blob for:", docName, "Type:", fileType);
         if (!rightPreviewPanel) {
@@ -74001,11 +73680,11 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           rightPreviewPanel.appendChild(closeBtn);
           document.body.appendChild(rightPreviewPanel);
         }
-        const reader2 = new FileReader();
-        reader2.onload = () => {
-          const dataUrl = reader2.result;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result;
           console.log("[PREVIEW] Blob converted to data URL, length:", dataUrl.length);
-          const objectUrl = URL.createObjectURL(blob2);
+          const objectUrl = URL.createObjectURL(blob);
           let viewerContent = "";
           if (isImage) {
             viewerContent = `
@@ -74309,7 +73988,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             closeBtn.onclick = hideRightPreviewWithCleanup;
           }
         };
-        reader2.onerror = () => {
+        reader.onerror = () => {
           console.error("[PREVIEW] Failed to convert blob to data URL");
           const previewContent = `
           <div style="flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto;">
@@ -74328,7 +74007,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
         `;
           rightPreviewPanel.innerHTML = previewContent;
         };
-        reader2.readAsDataURL(blob2);
+        reader.readAsDataURL(blob);
       };
     }, 500);
     return {
@@ -75842,13 +75521,13 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
                     byteNumbers[i2] = byteCharacters.charCodeAt(i2);
                   }
                   const byteArray = new Uint8Array(byteNumbers);
-                  const blob2 = new Blob([byteArray], { type: response2.mimeType || "application/pdf" });
+                  const blob = new Blob([byteArray], { type: response2.mimeType || "application/pdf" });
                   console.log("[API] \u{1F504} Data URL converted back to blob:", {
-                    type: blob2.type,
-                    size: blob2.size,
-                    sizeKB: Math.round(blob2.size / 1024)
+                    type: blob.type,
+                    size: blob.size,
+                    sizeKB: Math.round(blob.size / 1024)
                   });
-                  resolve(blob2);
+                  resolve(blob);
                 } else {
                   console.error("[API] \u274C Background script error:", response2.error);
                   reject(new Error(response2.error || "Failed to fetch file"));
@@ -77524,14 +77203,14 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
                 }
                 try {
                   console.log("[DOC] Fetching PDF from backend:", { threadId, documentName });
-                  const blob2 = await this.apiClient.fetchGmailAttachmentPdf({ threadId, documentName });
+                  const blob = await this.apiClient.fetchGmailAttachmentPdf({ threadId, documentName });
                   if (this.pdfCache.size > 25) {
                     const firstKey = this.pdfCache.keys().next().value;
                     this.pdfCache.delete(firstKey);
                   }
-                  this.pdfCache.set(cacheKey, blob2);
+                  this.pdfCache.set(cacheKey, blob);
                   console.log("[DOC] PDF fetched successfully, showing blob preview");
-                  this.showRightPreviewWithBlob(icon, blob2);
+                  this.showRightPreviewWithBlob(icon, blob);
                 } catch (err) {
                   console.error("[DOC] Failed to fetch PDF from backend:", err);
                   console.log("[TEST] Using test PDF for preview functionality testing");
@@ -77639,48 +77318,55 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           });
         }
         // PDF Preview functionality - display in sidebar panel instead of modal
-        showRightPreviewWithBlob(iconEl, blob2) {
+        showRightPreviewWithBlob(iconEl, blob) {
           console.log("[PREVIEW] showRightPreviewWithBlob called with iconEl:", iconEl);
-          console.log("[PREVIEW] showRightPreviewWithBlob called with blob:", blob2);
-          console.log("[PREVIEW] Blob type:", blob2?.type, "size:", blob2?.size);
+          console.log("[PREVIEW] showRightPreviewWithBlob called with blob:", blob);
+          console.log("[PREVIEW] Blob type:", blob?.type, "size:", blob?.size);
           const docName = iconEl.getAttribute("data-doc-name") || "Document";
           console.log("[PREVIEW] Document name:", docName);
           console.log("[PREVIEW] Displaying preview in sidebar panel instead of modal");
           if (!this.sidebarElement) {
-            console.error("[PREVIEW] Sidebar element not available. Cannot display preview.");
-            return;
+            console.error("[PREVIEW] Sidebar element not available. Trying to find it...");
+            const sidebarEl = document.querySelector("#stamp-sidebar-panel");
+            if (sidebarEl) {
+              console.log("[PREVIEW] Found sidebar element in DOM, using it");
+              this.sidebarElement = sidebarEl;
+            } else {
+              console.error("[PREVIEW] Sidebar element not found in DOM. Cannot display preview.");
+              return;
+            }
           }
-          const reader2 = new FileReader();
-          reader2.onload = () => {
-            const dataUrl = reader2.result;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result;
             console.log("[PREVIEW] \u2705 Blob converted to data URL, updating sidebar content");
             let displayEl;
-            if (blob2.type === "application/pdf") {
+            if (blob.type === "application/pdf") {
               console.log("[PREVIEW] Creating iframe for PDF display in sidebar");
               displayEl = document.createElement("iframe");
               displayEl.src = dataUrl;
-              displayEl.style.cssText = "width: 100%; height: 100%; border: none; position: absolute; top: 0; left: 0;";
+              displayEl.style.cssText = "width: 100%; height: 100%; border: none; position: absolute; top: 0; left: 0; z-index: 1;";
               displayEl.setAttribute("type", "application/pdf");
-            } else if (blob2.type.startsWith("image/")) {
+            } else if (blob.type.startsWith("image/")) {
               console.log("[PREVIEW] Creating image element for image display in sidebar");
               displayEl = document.createElement("img");
               displayEl.src = dataUrl;
-              displayEl.style.cssText = "width: 100%; height: 100%; object-fit: contain; position: absolute; top: 0; left: 0;";
+              displayEl.style.cssText = "width: 100%; height: 100%; object-fit: contain; position: absolute; top: 0; left: 0; z-index: 1;";
             } else {
               console.log("[PREVIEW] Creating fallback element for unsupported file type in sidebar");
               displayEl = document.createElement("div");
-              displayEl.style.cssText = "padding: 20px; text-align: center; color: #666; height: 100%; width: 100%; display: flex; flex-direction: column; justify-content: center; position: absolute; top: 0; left: 0;";
+              displayEl.style.cssText = "padding: 20px; text-align: center; color: #666; height: 100%; width: 100%; display: flex; flex-direction: column; justify-content: center; position: absolute; top: 0; left: 0; z-index: 1;";
               displayEl.innerHTML = `
           <div style="font-size: 48px; margin-bottom: 16px;">\u{1F4C4}</div>
           <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">${docName}</div>
-          <div style="font-size: 14px;">File type: ${blob2.type}</div>
+          <div style="font-size: 14px;">File type: ${blob.type}</div>
           <div style="font-size: 12px; margin-top: 8px; color: #999;">Preview not available for this file type</div>
         `;
             }
             const previewContent = `
-        <div style="display: flex; flex-direction: column; height: 100%;">
+        <div style="display: flex; flex-direction: column; height: 100vh; width: 100%;">
           <!-- Header with title and close button -->
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e0e0e0; background: #f8f9fa;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e0e0e0; background: #f8f9fa; flex-shrink: 0;">
             <div style="font-weight: 600; color: #333;">${docName}</div>
             <button id="close-preview-btn" style="
               background: none; 
@@ -77694,22 +77380,20 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             " onmouseover="this.style.backgroundColor='#e0e0e0'" onmouseout="this.style.backgroundColor='transparent'">
               \u2715
             </button>
-            </div>
+          </div>
           
-          <!-- Preview content area -->
-          <div style="flex: 1; padding: 16px; overflow: hidden; position: relative;">
-            <div style="width: 100%; height: 100%; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; position: relative;">
-            </div>
+          <!-- Preview content area - FULL HEIGHT -->
+          <div id="preview-content-area" style="flex: 1; width: 100%; height: calc(100vh - 60px); overflow: hidden; position: relative; background: #fff;">
           </div>
         </div>
       `;
             this.sidebarElement.innerHTML = previewContent;
-            const previewArea = this.sidebarElement.querySelector('div[style*="position: relative"]');
+            const previewArea = this.sidebarElement.querySelector("#preview-content-area");
             if (previewArea) {
               previewArea.appendChild(displayEl);
-              console.log("[PREVIEW] \u2705 Display element inserted into preview area");
+              console.log("[PREVIEW] \u2705 Display element inserted into full preview area");
             } else {
-              console.error("[PREVIEW] Could not find preview area to insert display element");
+              console.error("[PREVIEW] Could not find preview content area to insert display element");
             }
             const closeBtn = this.sidebarElement.querySelector("#close-preview-btn");
             if (closeBtn) {
@@ -77721,11 +77405,18 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             console.log("[PREVIEW] \u2705 Sidebar content updated with preview");
           };
           console.log("[PREVIEW] Converting blob to data URL...");
-          reader2.readAsDataURL(blob2);
+          reader.readAsDataURL(blob);
         }
         // Reset sidebar to default state
         resetSidebarToDefault() {
-          if (!this.sidebarElement) return;
+          if (!this.sidebarElement) {
+            const sidebarEl = document.querySelector("#stamp-sidebar-panel");
+            if (sidebarEl) {
+              this.sidebarElement = sidebarEl;
+            } else {
+              return;
+            }
+          }
           console.log("[PREVIEW] Resetting sidebar to default state");
           this.sidebarElement.innerHTML = `
       <div style="display: flex; flex-direction: column; height: 100%; justify-content: center; align-items: center; text-align: center; padding: 20px; color: #666;">
@@ -77829,7 +77520,7 @@ startxref
         }
         async handleStreamingResponse(response, assistantDiv) {
           console.log("[STREAM] Starting to handle streaming response...");
-          const reader2 = response.body.getReader();
+          const reader = response.body.getReader();
           const decoder = new TextDecoder();
           const mainContent = assistantDiv.querySelector("#main-content");
           let buffer = "";
@@ -77838,7 +77529,7 @@ startxref
           mainContent.textContent = "";
           try {
             while (true) {
-              const { done, value } = await reader2.read();
+              const { done, value } = await reader.read();
               if (done) {
                 console.log("[STREAM] Stream finished.");
                 break;

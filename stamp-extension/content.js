@@ -2779,8 +2779,17 @@ class UIManager {
     
     // Check if sidebar element exists
     if (!this.sidebarElement) {
-      console.error('[PREVIEW] Sidebar element not available. Cannot display preview.');
-      return;
+      console.error('[PREVIEW] Sidebar element not available. Trying to find it...');
+      
+      // Try to find the sidebar element in the DOM
+      const sidebarEl = document.querySelector('#stamp-sidebar-panel');
+      if (sidebarEl) {
+        console.log('[PREVIEW] Found sidebar element in DOM, using it');
+        this.sidebarElement = sidebarEl;
+      } else {
+        console.error('[PREVIEW] Sidebar element not found in DOM. Cannot display preview.');
+        return;
+      }
     }
 
     // Use FileReader to convert blob to data URL
@@ -2797,19 +2806,19 @@ class UIManager {
         console.log('[PREVIEW] Creating iframe for PDF display in sidebar');
         displayEl = document.createElement('iframe');
         displayEl.src = dataUrl;
-        displayEl.style.cssText = 'width: 100%; height: 100%; border: none; position: absolute; top: 0; left: 0;';
+        displayEl.style.cssText = 'width: 100%; height: 100%; border: none; position: absolute; top: 0; left: 0; z-index: 1;';
         displayEl.setAttribute('type', 'application/pdf');
       } else if (blob.type.startsWith('image/')) {
         // For images, use img element - full size
         console.log('[PREVIEW] Creating image element for image display in sidebar');
         displayEl = document.createElement('img');
         displayEl.src = dataUrl;
-        displayEl.style.cssText = 'width: 100%; height: 100%; object-fit: contain; position: absolute; top: 0; left: 0;';
+        displayEl.style.cssText = 'width: 100%; height: 100%; object-fit: contain; position: absolute; top: 0; left: 0; z-index: 1;';
       } else {
         // For other file types, show a message - full size
         console.log('[PREVIEW] Creating fallback element for unsupported file type in sidebar');
         displayEl = document.createElement('div');
-        displayEl.style.cssText = 'padding: 20px; text-align: center; color: #666; height: 100%; width: 100%; display: flex; flex-direction: column; justify-content: center; position: absolute; top: 0; left: 0;';
+        displayEl.style.cssText = 'padding: 20px; text-align: center; color: #666; height: 100%; width: 100%; display: flex; flex-direction: column; justify-content: center; position: absolute; top: 0; left: 0; z-index: 1;';
         displayEl.innerHTML = `
           <div style="font-size: 48px; margin-bottom: 16px;">📄</div>
           <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">${docName}</div>
@@ -2818,11 +2827,11 @@ class UIManager {
         `;
       }
       
-      // Create the preview content with header and close button
+      // Create the preview content with header and close button - FULL PANEL
       const previewContent = `
-        <div style="display: flex; flex-direction: column; height: 100%;">
+        <div style="display: flex; flex-direction: column; height: 100vh; width: 100%;">
           <!-- Header with title and close button -->
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e0e0e0; background: #f8f9fa;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e0e0e0; background: #f8f9fa; flex-shrink: 0;">
             <div style="font-weight: 600; color: #333;">${docName}</div>
             <button id="close-preview-btn" style="
               background: none; 
@@ -2836,12 +2845,10 @@ class UIManager {
             " onmouseover="this.style.backgroundColor='#e0e0e0'" onmouseout="this.style.backgroundColor='transparent'">
               ✕
             </button>
-            </div>
+          </div>
           
-          <!-- Preview content area -->
-          <div style="flex: 1; padding: 16px; overflow: hidden; position: relative;">
-            <div style="width: 100%; height: 100%; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; position: relative;">
-            </div>
+          <!-- Preview content area - FULL HEIGHT -->
+          <div id="preview-content-area" style="flex: 1; width: 100%; height: calc(100vh - 60px); overflow: hidden; position: relative; background: #fff;">
           </div>
         </div>
       `;
@@ -2850,12 +2857,12 @@ class UIManager {
       this.sidebarElement.innerHTML = previewContent;
       
       // Insert the display element into the preview area
-      const previewArea = this.sidebarElement.querySelector('div[style*="position: relative"]');
+      const previewArea = this.sidebarElement.querySelector('#preview-content-area');
       if (previewArea) {
         previewArea.appendChild(displayEl);
-        console.log('[PREVIEW] ✅ Display element inserted into preview area');
+        console.log('[PREVIEW] ✅ Display element inserted into full preview area');
       } else {
-        console.error('[PREVIEW] Could not find preview area to insert display element');
+        console.error('[PREVIEW] Could not find preview content area to insert display element');
       }
       
       // Add close button functionality
@@ -2876,7 +2883,15 @@ class UIManager {
 
   // Reset sidebar to default state
   resetSidebarToDefault() {
-    if (!this.sidebarElement) return;
+    if (!this.sidebarElement) {
+      // Try to find the sidebar element in the DOM
+      const sidebarEl = document.querySelector('#stamp-sidebar-panel');
+      if (sidebarEl) {
+        this.sidebarElement = sidebarEl;
+      } else {
+        return;
+      }
+    }
     
     console.log('[PREVIEW] Resetting sidebar to default state');
     
