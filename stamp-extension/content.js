@@ -6,6 +6,13 @@ import 'jsuites/dist/jsuites.css';
 import { buildSpreadsheet } from './spreadsheet-builder.js';
 import { ThreadDataManager } from './thread-data-manager.js';
 import { createLoadingController } from './ai-loading-component.js';
+
+// ===== FLOATING CHAT FUNCTIONALITY (COMMENTED OUT) =====
+// Uncomment the following imports when you want to enable floating chat:
+// import { FloatingChat } from './floating-chat/floating-chat.js';
+// import { FloatingChatManager } from './floating-chat/floating-chat-manager.js';
+// import 'floating-chat/floating-chat.css';
+
 // Simple debounce utility function
 function debounce(func, wait) {
   let timeout;
@@ -100,6 +107,474 @@ if (typeof self !== 'undefined') {
 }
 // Direct assignment to global scope (works in most contexts)
 this.SpreadsheetMetaUtils = window.SpreadsheetMetaUtils;
+
+// ===== FLOATING CHAT CLASSES (COMMENTED OUT) =====
+// Uncomment the following classes when you want to enable floating chat:
+
+/*
+class FloatingChat {
+  constructor(apiClient, authService) {
+    console.log('[FLOATING CHAT UI] Constructor called');
+    
+    this.apiClient = apiClient;
+    this.authService = authService;
+    this.messages = [];
+    this.isTyping = false;
+    
+    // This class now acts as a UI builder.
+    // The main container will be created by the render() method.
+    this.container = null;
+  }
+
+  render() {
+    // Create the main container for our chat UI
+    this.container = document.createElement('div');
+    this.container.className = 'stamp-chat-mole-content';
+    
+    // Create messages container
+    this.messagesContainer = document.createElement('div');
+    this.messagesContainer.className = 'floating-chat-messages';
+
+    // Create input container
+    this.inputContainer = document.createElement('div');
+    this.inputContainer.className = 'floating-chat-input-container';
+    
+    this.input = document.createElement('input');
+    this.input.className = 'floating-chat-input';
+    this.input.placeholder = 'Ask a question...';
+    this.input.type = 'text';
+    
+    this.inputContainer.appendChild(this.input);
+
+    // Assemble the component
+    this.container.appendChild(this.messagesContainer);
+    this.container.appendChild(this.inputContainer);
+
+    // Set up event listeners now that elements are created
+    this.setupEventListeners();
+
+    console.log('[FLOATING CHAT UI] Chat UI element rendered and ready.');
+    return this.container;
+  }
+
+  setupEventListeners() {
+    this.input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.sendMessage();
+      }
+    });
+
+    // Add focus listeners to help with event propagation
+    this.input.addEventListener('focus', (e) => e.stopPropagation());
+    this.container.addEventListener('keydown', (e) => e.stopPropagation());
+  }
+
+  addMessage(content, type = 'assistant') {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `floating-chat-message ${type}`;
+    // Basic markdown for bolding and newlines
+    messageDiv.innerHTML = content
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+        .replace(/\n/g, '<br>');
+
+    this.messagesContainer.appendChild(messageDiv);
+    this.messages.push({ content, type });
+    
+    // Auto-scroll to bottom
+    this.scrollToBottom();
+  }
+
+  scrollToBottom() {
+    // Only auto-scroll if the user is near the bottom
+    const isScrolledNearBottom = this.messagesContainer.scrollHeight - this.messagesContainer.clientHeight <= this.messagesContainer.scrollTop + 100;
+
+    if (isScrolledNearBottom) {
+      requestAnimationFrame(() => {
+        this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+      });
+    }
+  }
+
+  showTypingIndicator() {
+    this.isTyping = true;
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'floating-chat-typing-indicator';
+    typingDiv.innerHTML = `
+      <span>Stamp is thinking</span>
+      <div class="floating-chat-typing-dots">
+        <div class="floating-chat-typing-dot"></div>
+        <div class="floating-chat-typing-dot"></div>
+        <div class="floating-chat-typing-dot"></div>
+      </div>
+    `;
+    typingDiv.id = 'typing-indicator';
+    this.messagesContainer.appendChild(typingDiv);
+    this.scrollToBottom();
+  }
+
+  hideTypingIndicator() {
+    this.isTyping = false;
+    const typingIndicator = this.messagesContainer.querySelector('#typing-indicator');
+    if (typingIndicator) {
+      typingIndicator.remove();
+    }
+  }
+
+  async sendMessage() {
+    const message = this.input.value.trim();
+    if (!message) return;
+
+    // Add user message
+    this.addMessage(message, 'user');
+    this.input.value = '';
+
+    // Show typing indicator
+    this.showTypingIndicator();
+
+    try {
+      // Make API call
+      const response = await this.apiClient.makeAuthenticatedRequest('/api/finops/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: message,
+          userEmail: await this.authService.getUserEmail(),
+          installationId: await this.authService.getInstallationId(),
+        }),
+      });
+
+      // Hide typing indicator
+      this.hideTypingIndicator();
+
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/event-stream')) {
+        await this.handleStreamingResponse(response);
+      } else {
+        const data = await response.json();
+        this.handleJsonResponse(data);
+      }
+    } catch (error) {
+      console.error('[FLOATING CHAT] Error sending message:', error);
+      this.hideTypingIndicator();
+      this.addMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+    }
+  }
+
+  handleJsonResponse(data) {
+    console.log('[FLOATING CHAT] Handling JSON response');
+    console.log('[FLOATING CHAT] Parsed response data:', data);
+
+    if (data.response) {
+      this.addMessage(data.response, 'assistant');
+    } else if (data.AGENT_OUTPUT) {
+      this.addMessage(data.AGENT_OUTPUT, 'assistant');
+    } else if (data.answer) {
+      this.addMessage(data.answer, 'assistant');
+    } else {
+      console.warn('[FLOATING CHAT] No recognized response format found in:', data);
+      this.addMessage('I received your question but no response was provided.', 'assistant');
+    }
+  }
+
+  async handleStreamingResponse(response) {
+    console.log('[FLOATING CHAT] Handling streaming response');
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    let buffer = '';
+    let assistantMessageDiv = null;
+    let fullResponse = '';
+
+    const processLine = (line) => {
+        if (!line.startsWith('data: ')) {
+            return;
+        }
+        const jsonString = line.substring(6).trim();
+        if (!jsonString) {
+            return;
+        }
+
+        try {
+            const event = JSON.parse(jsonString);
+            const { type, data } = event;
+
+            if (type === 'reasoning') {
+                const reasoningDiv = document.createElement('div');
+                reasoningDiv.className = 'floating-chat-message assistant reasoning';
+                reasoningDiv.innerHTML = data.content
+                    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                    .replace(/\n/g, '<br>');
+                this.messagesContainer.appendChild(reasoningDiv);
+                this.scrollToBottom();
+            } else if (type === 'content') {
+                if (!assistantMessageDiv) {
+                    assistantMessageDiv = document.createElement('div');
+                    assistantMessageDiv.className = 'floating-chat-message assistant';
+                    this.messagesContainer.appendChild(assistantMessageDiv);
+                }
+
+                if (data.is_final) {
+                    fullResponse = data.content;
+                } else {
+                    fullResponse += data.content;
+                }
+
+                assistantMessageDiv.innerHTML = fullResponse
+                    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                    .replace(/\n/g, '<br>');
+
+                this.scrollToBottom();
+            }
+            // All other event types are ignored.
+        } catch (e) {
+            console.error('Error parsing streaming event:', e, `"${jsonString}"`);
+        }
+    };
+
+    const processText = async () => {
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) {
+                if (buffer) processLine(buffer);
+                // Add the final message to history
+                if (fullResponse) {
+                    this.messages.push({ content: fullResponse, type: 'assistant' });
+                }
+                break;
+            }
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // keep last partial line
+            for (const line of lines) {
+                if (line.trim()) {
+                    processLine(line);
+                }
+            }
+        }
+    };
+
+    await processText();
+  }
+
+  destroy() {
+    // The MoleView's destroy method handles removing the element from the DOM.
+    // We just need to null out our references.
+    console.log('[FLOATING CHAT UI] Destroying chat UI instance.');
+    this.messagesContainer = null;
+    this.inputContainer = null;
+    this.input = null;
+    this.container = null;
+  }
+}
+
+class FloatingChatManager {
+  constructor(uiManager) {
+    console.log('[FLOATING CHAT MANAGER] Constructor called with uiManager:', uiManager);
+    this.uiManager = uiManager;
+    this.floatingChat = null;
+    this.isEnabled = false;
+    
+    this.init();
+  }
+
+  init() {
+    console.log('[FLOATING CHAT MANAGER] Initializing...');
+    // Load CSS
+    this.loadCSS();
+    
+    // Initialize floating chat when user is authenticated
+    this.uiManager.authService.getAuthState().then(authState => {
+      console.log('[FLOATING CHAT MANAGER] Auth state:', authState);
+      if (authState.isLoggedIn) {
+        console.log('[FLOATING CHAT MANAGER] User is logged in, enabling floating chat');
+        this.enableFloatingChat();
+      } else {
+        console.log('[FLOATING CHAT MANAGER] User is not logged in, skipping floating chat');
+      }
+    }).catch(error => {
+      console.error('[FLOATING CHAT MANAGER] Failed to get auth state:', error);
+    });
+
+    // Listen for auth state changes
+    this.setupAuthListener();
+    
+    // Setup keyboard shortcuts
+    this.setupKeyboardShortcuts();
+  }
+
+  loadCSS() {
+    console.log('[FLOATING CHAT MANAGER] Loading CSS...');
+    // Inject CSS if not already loaded
+    if (!document.querySelector('#floating-chat-css')) {
+      const link = document.createElement('link');
+      link.id = 'floating-chat-css';
+      link.rel = 'stylesheet';
+      link.href = chrome.runtime.getURL('floating-chat/floating-chat.css');
+      console.log('[FLOATING CHAT MANAGER] CSS URL:', link.href);
+      document.head.appendChild(link);
+      console.log('[FLOATING CHAT MANAGER] CSS loaded');
+    } else {
+      console.log('[FLOATING CHAT MANAGER] CSS already loaded');
+    }
+  }
+
+  setupAuthListener() {
+    // Listen for auth state changes
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+      if (namespace === 'local' && changes.installationId) {
+        const newValue = changes.installationId.newValue;
+        if (newValue && !this.isEnabled) {
+          this.enableFloatingChat();
+        } else if (!newValue && this.isEnabled) {
+          this.disableFloatingChat();
+        }
+      }
+    });
+  }
+
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Ctrl/Cmd + Shift + C: Toggle floating chat
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        this.toggleFloatingChat();
+      }
+      
+      // Escape: Minimize floating chat (MoleView handles this natively)
+    });
+  }
+
+  enableFloatingChat() {
+    console.log('[FLOATING CHAT MANAGER] enableFloatingChat called, isEnabled:', this.isEnabled);
+    if (this.isEnabled) {
+      console.log('[FLOATING CHAT MANAGER] Already enabled, returning');
+      return;
+    }
+    
+    try {
+      // Step 1: Create an instance of our chat UI builder.
+      this.chatUI = new FloatingChat(
+        this.uiManager.apiClient,
+        this.uiManager.authService
+      );
+
+      // Step 2: Render the chat UI to get the complete HTML element.
+      const chatElement = this.chatUI.render();
+      
+      console.log('[FLOATING CHAT MANAGER] Creating MoleView with pre-built chat element...');
+      
+      // Step 3: Show the MoleView and pass the fully constructed element to it.
+      // This is the correct pattern.
+      this.moleView = this.uiManager.sdk.Widgets.showMoleView({
+        title: 'Stamp Chat',
+        el: chatElement,
+        minimized: false, // Start un-minimized to be visible
+      });
+
+      // Keep a reference for toggling, but don't interact with its elements.
+      this.floatingChat = this.moleView;
+      this.isEnabled = true;
+      
+      console.log('[FLOATING CHAT MANAGER] MoleView created successfully.');
+      
+      // Add a welcome message after a short delay.
+      setTimeout(() => {
+        if (this.chatUI) {
+          console.log('[FLOATING CHAT MANAGER] Adding welcome message...');
+          this.chatUI.addMessage(
+            "Hello! I'm Stamp, your AI assistant. How can I help?",
+            'assistant'
+          );
+        }
+      }, 500);
+      
+    } catch (error) {
+      console.error('[FLOATING CHAT MANAGER] Failed to enable floating chat:', error);
+      console.error('[FLOATING CHAT MANAGER] Error stack:', error.stack);
+    }
+  }
+
+  disableFloatingChat() {
+    if (!this.isEnabled) return;
+    
+    if (this.moleView) {
+      this.moleView.destroy();
+      this.moleView = null;
+    }
+    
+    // Also clean up the chat UI instance if it exists
+    if (this.chatUI) {
+        this.chatUI = null;
+    }
+
+    this.floatingChat = null;
+    this.isEnabled = false;
+    console.log('[FLOATING CHAT] Disabled floating chat');
+  }
+
+  toggleFloatingChat() {
+    if (!this.moleView) {
+      this.enableFloatingChat();
+      return;
+    }
+
+    if (this.moleView.isMinimized()) {
+      this.moleView.setMinimized(false);
+    } else {
+      this.moleView.setMinimized(true);
+    }
+  }
+
+  showFloatingChat() {
+    if (this.moleView) {
+      this.moleView.setMinimized(false);
+    } else {
+      this.enableFloatingChat();
+    }
+  }
+
+  hideFloatingChat() {
+    if (this.moleView) {
+      this.moleView.setMinimized(true);
+    }
+  }
+
+  // Method to add a message programmatically (for testing)
+  addMessage(content, type = 'assistant') {
+    if (this.chatUI) {
+      this.chatUI.addMessage(content, type);
+    }
+  }
+
+  // Method to get current state
+  getState() {
+    if (!this.moleView) {
+      return { enabled: false };
+    }
+    
+    return {
+      enabled: true,
+      isMinimized: this.moleView.isMinimized(),
+      messageCount: this.chatUI ? this.chatUI.messages.length : 0
+      // Position is now handled by MoleView, so we don't track it
+    };
+  }
+
+  // Method to reset floating chat
+  reset() {
+    this.disableFloatingChat();
+    
+    // Clear stored state (if any was used for the old chat)
+    chrome.storage.local.remove(['floatingChatState'], () => {
+      console.log('[FLOATING CHAT] State cleared');
+    });
+  }
+}
+*/
 
 // Function to set the current worksheet (called from spreadsheet-builder.js)
 window.setCurrentWorksheet = function(worksheet) {
@@ -1831,6 +2306,10 @@ class UIManager {
     this.dataManager.apiClient = apiClient;
   }
 
+  // ===== FLOATING CHAT METHODS (COMMENTED OUT) =====
+  // Uncomment the following methods when you want to enable floating chat:
+
+  /*
   initializeFloatingChat() {
     console.log('[FLOATING CHAT] Starting initialization...');
     try {
@@ -1885,6 +2364,17 @@ class UIManager {
       console.log('[TEST] Floating chat manager not initialized');
     }
   }
+  */
+
+  // Test method for floating chat (can be called from console)
+  testFloatingChat() {
+    if (this.floatingChatManager) {
+      console.log('[TEST] Floating chat state:', this.floatingChatManager.getState());
+      this.floatingChatManager.addMessage('This is a test message from the console!', 'assistant');
+    } else {
+      console.log('[TEST] Floating chat manager not initialized');
+    }
+  }
 
   /**
    * Initializes the UI by checking the auth state and rendering the correct view.
@@ -1902,7 +2392,7 @@ class UIManager {
         this.renderMainView();
         
         // Initialize floating chat after main view is rendered
-        this.initializeFloatingChat();
+        // this.initializeFloatingChat(); // COMMENTED OUT - Uncomment to enable floating chat
       } else {
         console.log('[UI DEBUG] 2. User is NOT logged in. Calling renderLoginView.');
         this.renderLoginView();
@@ -4182,6 +4672,10 @@ InboxSDK.load(2, 'sdk_stamp-extension_0b8df882e1').then((sdk) => {
   // Make handleStreamingResponse globally available for floating chat
   window.sharedHandleStreamingResponse = uiManager.handleStreamingResponse.bind(uiManager);
 
+  // ===== FLOATING CHAT GLOBAL FUNCTIONS (COMMENTED OUT) =====
+  // Uncomment the following functions when you want to enable floating chat:
+
+  /*
   // Global test function for console access
   window.testFloatingChat = () => {
     console.log('[GLOBAL TEST] Testing floating chat...');
@@ -4210,6 +4704,7 @@ InboxSDK.load(2, 'sdk_stamp-extension_0b8df882e1').then((sdk) => {
       console.log('[GLOBAL TEST] UIManager or dependencies not available');
     }
   };
+  */
 
   // Add Material Icons for jspreadsheet toolbar
   const materialIconsLink = document.createElement('link');
