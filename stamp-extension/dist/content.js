@@ -77377,7 +77377,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
           };
           container.addEventListener("click", this._cardClickHandler);
         }
-        // Method to attach chat event listeners
+        // Method to attach preview event listeners
         attachChatEventListeners(sidebarElement) {
           const self2 = this;
           sidebarElement.querySelector("#sign-out-btn").addEventListener("click", async () => {
@@ -77424,164 +77424,6 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
             if (e.key === "Escape" && settingsMenu.style.display === "flex") {
               closeSettings();
             }
-          });
-          const questionInput = sidebarElement.querySelector("#question-input");
-          const sendButton = sidebarElement.querySelector("#send-question-btn");
-          const chatOutput = sidebarElement.querySelector("#chat-output");
-          const sendQuestion = async () => {
-            const question = questionInput.value.trim();
-            if (!question) return;
-            const userDiv = document.createElement("div");
-            userDiv.style.cssText = `
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        margin-bottom: 16px;
-        justify-content: flex-end;
-      `;
-            userDiv.innerHTML = `
-        <div style="
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          border-radius: 12px;
-          padding: 16px 20px;
-          max-width: 85%;
-          color: white;
-          box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
-        ">
-          <p style="
-            margin: 0;
-            font-size: 15px;
-            line-height: 1.6;
-            font-weight: 500;
-          ">${question}</p>
-        </div>
-        <div style="
-          width: 32px;
-          height: 32px;
-          background: #f1f5f9;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          font-weight: 600;
-          color: #64748b;
-        ">\u{1F464}</div>
-      `;
-            chatOutput.appendChild(userDiv);
-            questionInput.value = "";
-            questionInput.style.height = "auto";
-            const assistantDiv = document.createElement("div");
-            assistantDiv.style.cssText = `
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        margin-bottom: 16px;
-      `;
-            assistantDiv.innerHTML = `
-        <div style="
-          width: 32px;
-          height: 32px;
-          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          font-weight: 600;
-          color: white;
-        ">\u{1F916}</div>
-        <div style="
-          background: white;
-          border-radius: 12px;
-          padding: 16px 20px;
-          max-width: 85%;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-          flex: 1;
-        ">
-          <div id="progress-indicator" style="display: none;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-              <div style="width: 16px; height: 16px; border: 2px solid #e5e7eb; border-top: 2px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-              <span style="font-size: 14px; color: #6b7280;">Processing...</span>
-            </div>
-          </div>
-          <div id="reasoning-section" style="display: none; margin-bottom: 12px;">
-            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; border-radius: 6px;">
-              <div style="font-weight: 600; color: #92400e; margin-bottom: 4px;">\u{1F914} Reasoning</div>
-              <div id="reasoning-content" style="color: #92400e; font-size: 14px; line-height: 1.5;"></div>
-            </div>
-          </div>
-          <div id="main-content" style="color: #374151; line-height: 1.6; font-size: 15px;"></div>
-          <div id="tool-calls-section" style="display: none; margin-top: 12px;">
-            <div style="background: #f3f4f6; border-left: 4px solid #6b7280; padding: 12px; border-radius: 6px;">
-              <div style="font-weight: 600; color: #374151; margin-bottom: 4px;">\u{1F527} Tool Calls</div>
-              <div id="tool-calls-content" style="color: #6b7280; font-size: 14px; line-height: 1.5;"></div>
-            </div>
-          </div>
-        </div>
-      `;
-            chatOutput.appendChild(assistantDiv);
-            chatOutput.scrollTop = chatOutput.scrollHeight;
-            try {
-              self2.showLoading(assistantDiv);
-              const response = await self2.apiClient.makeAuthenticatedRequest("/api/finops/stream", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                  question,
-                  userEmail: await self2.authService.getUserEmail(),
-                  installationId: await self2.authService.getInstallationId()
-                })
-              });
-              console.log("[CHAT] Raw response object:", response);
-              console.log("[CHAT] Response headers:", {
-                contentType: response.headers.get("content-type"),
-                status: response.status,
-                statusText: response.statusText
-              });
-              self2.hideLoading(assistantDiv);
-              const contentType = response.headers.get("content-type");
-              if (contentType && contentType.includes("text/event-stream")) {
-                console.log("[CHAT] Handling streaming response");
-                await self2.handleStreamingResponse(response, assistantDiv);
-              } else {
-                console.log("[CHAT] Handling JSON response");
-                const data = await response.json();
-                console.log("[CHAT] Parsed response data:", data);
-                console.log("[CHAT] Response data type:", typeof data);
-                console.log("[CHAT] Response keys:", Object.keys(data));
-                if (data.response) {
-                  console.log("[CHAT] Found response content:", data.response);
-                  assistantDiv.querySelector("#main-content").textContent = data.response;
-                } else if (data.AGENT_OUTPUT) {
-                  console.log("[CHAT] Found AGENT_OUTPUT:", data.AGENT_OUTPUT);
-                  assistantDiv.querySelector("#main-content").textContent = data.AGENT_OUTPUT;
-                } else if (data.answer) {
-                  console.log("[CHAT] Found answer:", data.answer);
-                  assistantDiv.querySelector("#main-content").textContent = data.answer;
-                } else {
-                  console.warn("[CHAT] No recognized response format found in:", data);
-                  assistantDiv.querySelector("#main-content").textContent = "I received your question but no response was provided.";
-                }
-              }
-            } catch (error) {
-              console.error("[UI] Failed to send question:", error);
-              self2.hideLoading(assistantDiv);
-              self2.showError(assistantDiv, `Failed to send question: ${error.message}`);
-            }
-          };
-          sendButton.addEventListener("click", sendQuestion);
-          questionInput.addEventListener("keypress", (e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              sendQuestion();
-            }
-          });
-          questionInput.addEventListener("input", () => {
-            questionInput.style.height = "auto";
-            questionInput.style.height = Math.min(questionInput.scrollHeight, 120) + "px";
           });
         }
         async handleStreamingResponse(response, assistantDiv) {
@@ -77737,7 +77579,7 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
                                     font-size: 13px;
                                     color: #64748b;
                                     font-weight: 500;
-                                ">AI Assistant</p>
+                                ">Document Preview</p>
                             </div>
                         </div>
                         
@@ -77763,101 +77605,26 @@ table[role='presentation'].inboxsdk__thread_view_with_custom_view > tr {
                     </div>
                 </div>
 
-                <!-- Main Content -->
-                        <div style="
+                <!-- Main Content - Preview Interface -->
+                <div style="
                     display: flex;
                     flex-direction: column;
                     height: calc(100vh - 80px);
                     padding: 0;
                 ">
-                            <!-- Chat Messages -->
-                            <div id="chat-output" style="
+                    <!-- Preview Content Area -->
+                    <div id="preview-content" style="
                         flex: 1;
-                                padding: 20px;
-                                overflow-y: auto;
-                                background: #ffffff;
-                            ">
-                                <div style="
-                                    display: flex;
-                                    align-items: flex-start;
-                                    gap: 12px;
-                            margin-bottom: 20px;
-                                ">
-                                    <div style="
-                                width: 32px;
-                                height: 32px;
-                                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-                                border-radius: 8px;
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: center;
-                                        color: white;
-                                font-size: 14px;
-                                font-weight: 700;
-                                        flex-shrink: 0;
-                                box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
-                                    ">S</div>
-                                    <div style="
-                                        background: #f8fafc;
-                                        border-radius: 12px;
-                                padding: 16px 20px;
-                                        max-width: 85%;
-                                        border: 1px solid #e2e8f0;
-                                    ">
-                                        <p style="
-                                            margin: 0;
-                                    font-size: 15px;
-                                    color: #374151;
-                                    line-height: 1.6;
-                                ">Hi! I'm your Stamp AI assistant. Ask me anything about your invoices, payments, or accounts payable data. I'm here to help you stay on top of your financial operations.</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Input Area -->
-                            <div style="
-                        padding: 20px;
+                        padding: 0;
+                        overflow-y: auto;
                         background: #ffffff;
-                            ">
-                                <div style="
-                                    display: flex;
-                                    gap: 12px;
-                                    align-items: flex-end;
-                            max-width: 900px;
-                            margin: 0 auto;
-                                ">
-                                    <div style="flex: 1; position: relative;">
-                                <textarea id="question-input" placeholder="Ask me about your invoices, payments, or accounts payable..." style="
-                                            width: 100%;
-                                    padding: 16px 20px;
-                                            border: 1px solid #e2e8f0;
-                                    border-radius: 12px;
-                                    font-size: 15px;
-                                            font-family: inherit;
-                                            resize: none;
-                                    min-height: 56px;
-                                            max-height: 120px;
-                                            outline: none;
-                                            transition: all 0.2s ease;
-                                    background: #ffffff;
-                                            color: #1e293b;
-                                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                                        "></textarea>
-                                    </div>
-                                    <button id="send-question-btn" style="
-                                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-                                        color: white;
-                                        border: none;
-                                padding: 16px 24px;
-                                border-radius: 12px;
-                                        cursor: pointer;
-                                font-size: 15px;
-                                        font-weight: 600;
-                                        white-space: nowrap;
-                                        transition: all 0.2s ease;
-                                min-width: 100px;
-                                box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
-                                    ">Send</button>
+                    ">
+                        <div style="padding: 16px;">
+                            <div style="text-align: center; padding: 40px 20px; background: #f8f9fa; border-radius: 8px;">
+                                <div style="font-size: 48px; margin-bottom: 16px;">\u{1F4C4}</div>
+                                <h4 style="margin: 0 0 8px 0; color: #333;">Document Preview</h4>
+                                <p style="margin: 0; color: #666; font-size: 14px;">Open an email thread to view document previews and details.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
