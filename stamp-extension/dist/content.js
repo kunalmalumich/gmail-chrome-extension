@@ -77918,6 +77918,36 @@ Please ensure you are signed in and have the necessary permissions.`);
             }
           });
         }
+        // Attach event listeners for sidebar panel toggle events to clear preview content
+        attachSidebarToggleListeners() {
+          console.log("[SIDEBAR TOGGLE] Setting up sidebar panel toggle event listeners");
+          document.body.addEventListener("inboxsdkSidebarPanelActivated", (event) => {
+            console.log("[SIDEBAR TOGGLE] Sidebar panel activated event received:", event.detail);
+            this.clearPreviewContent();
+          });
+          document.body.addEventListener("inboxsdkSidebarPanelDeactivated", (event) => {
+            console.log("[SIDEBAR TOGGLE] Sidebar panel deactivated event received:", event.detail);
+            this.clearPreviewContent();
+          });
+        }
+        // Clear any loaded documents or images from the preview panel
+        clearPreviewContent() {
+          console.log("[PREVIEW CLEAR] Clearing preview content from sidebar");
+          if (!this.sidebarElement) {
+            console.log("[PREVIEW CLEAR] No sidebar element available, nothing to clear");
+            return;
+          }
+          const previewContentArea = this.sidebarElement.querySelector("#preview-content-area");
+          const hasPreviewContent = this.sidebarElement.querySelector("iframe, img, #pdf-viewer-container, #image-viewer-container");
+          if (hasPreviewContent || previewContentArea) {
+            console.log("[PREVIEW CLEAR] Preview content detected, clearing...");
+            this.sidebarElement.innerHTML = this.createMainAppContent();
+            this.attachChatEventListeners(this.sidebarElement);
+            console.log("[PREVIEW CLEAR] \u2705 Preview content cleared and sidebar reset to default state");
+          } else {
+            console.log("[PREVIEW CLEAR] No preview content found, nothing to clear");
+          }
+        }
         // PDF Preview functionality - display in sidebar panel instead of modal
         showRightPreviewWithBlob(iconEl, blob) {
           console.log("[PREVIEW] showRightPreviewWithBlob called with iconEl:", iconEl);
@@ -78560,6 +78590,8 @@ startxref
             console.log("[UI DEBUG] Sidebar element stored:", this.sidebarElement);
             this.attachChatEventListeners(el2);
             console.log("[UI DEBUG] Chat event listeners attached");
+            this.attachSidebarToggleListeners();
+            console.log("[UI DEBUG] Sidebar toggle event listeners attached");
             el2.addEventListener("click", (evt) => {
               console.log("[CLICK] Click detected on sidebar element");
               const row = evt.target && evt.target.closest && evt.target.closest(".stamp-sources");

@@ -2635,6 +2635,54 @@ class UIManager {
     });
   }
 
+  // Attach event listeners for sidebar panel toggle events to clear preview content
+  attachSidebarToggleListeners() {
+    console.log('[SIDEBAR TOGGLE] Setting up sidebar panel toggle event listeners');
+    
+    // Listen for sidebar panel activation (when opened)
+    document.body.addEventListener('inboxsdkSidebarPanelActivated', (event) => {
+      console.log('[SIDEBAR TOGGLE] Sidebar panel activated event received:', event.detail);
+      // Clear any existing preview content when panel is opened
+      this.clearPreviewContent();
+    });
+    
+    // Listen for sidebar panel deactivation (when closed)
+    document.body.addEventListener('inboxsdkSidebarPanelDeactivated', (event) => {
+      console.log('[SIDEBAR TOGGLE] Sidebar panel deactivated event received:', event.detail);
+      // Clear any existing preview content when panel is closed
+      this.clearPreviewContent();
+    });
+  }
+
+  // Clear any loaded documents or images from the preview panel
+  clearPreviewContent() {
+    console.log('[PREVIEW CLEAR] Clearing preview content from sidebar');
+    
+    if (!this.sidebarElement) {
+      console.log('[PREVIEW CLEAR] No sidebar element available, nothing to clear');
+      return;
+    }
+    
+    // Check if there's any preview content currently loaded
+    const previewContentArea = this.sidebarElement.querySelector('#preview-content-area');
+    const hasPreviewContent = this.sidebarElement.querySelector('iframe, img, #pdf-viewer-container, #image-viewer-container');
+    
+    if (hasPreviewContent || previewContentArea) {
+      console.log('[PREVIEW CLEAR] Preview content detected, clearing...');
+      
+      // Reset sidebar content to default state (empty or with default content)
+      // This will remove any loaded documents, images, or preview content
+      this.sidebarElement.innerHTML = this.createMainAppContent();
+      
+      // Re-attach event listeners since we replaced the innerHTML
+      this.attachChatEventListeners(this.sidebarElement);
+      
+      console.log('[PREVIEW CLEAR] ✅ Preview content cleared and sidebar reset to default state');
+    } else {
+      console.log('[PREVIEW CLEAR] No preview content found, nothing to clear');
+    }
+  }
+
   async handleStreamingResponse(response, assistantDiv) {
     console.log('[STREAM] Starting to handle streaming response...');
     const reader = response.body.getReader();
@@ -3199,6 +3247,10 @@ class UIManager {
         // Now set up event listeners
         this.attachChatEventListeners(el); // Call the new method here
         console.log('[UI DEBUG] Chat event listeners attached');
+        
+        // Set up sidebar panel toggle event listeners to clear preview content
+        this.attachSidebarToggleListeners();
+        console.log('[UI DEBUG] Sidebar toggle event listeners attached');
 
         // Delegated click for in-thread capsules
         el.addEventListener('click', (evt) => {
