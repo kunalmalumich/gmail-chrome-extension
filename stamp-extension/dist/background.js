@@ -452,6 +452,36 @@
       promise.then(sendResponse).catch((error) => sendResponse({ error: error.message }));
       return true;
     }
+    if (message.action === "downloadFile") {
+      const promise = new Promise((resolve, reject) => {
+        console.log("[Background] Starting download via Chrome downloads API...");
+        try {
+          chrome.downloads.download({
+            url: message.url,
+            filename: message.filename,
+            saveAs: false
+            // Don't show save dialog, use default location
+          }, (downloadId) => {
+            if (chrome.runtime.lastError) {
+              console.error("[Background] Download error:", chrome.runtime.lastError.message);
+              reject(new Error(chrome.runtime.lastError.message));
+            } else {
+              console.log("[Background] Download initiated successfully with ID:", downloadId);
+              resolve({
+                success: true,
+                downloadId,
+                filename: message.filename
+              });
+            }
+          });
+        } catch (error) {
+          console.error("[Background] Download failed:", error);
+          reject(error);
+        }
+      });
+      promise.then(sendResponse).catch((error) => sendResponse({ success: false, error: error.message }));
+      return true;
+    }
     if (message.type === "INJECT_FLOATING_CHAT_SCRIPTS") {
       (async () => {
         try {

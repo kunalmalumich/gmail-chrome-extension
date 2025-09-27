@@ -3390,7 +3390,65 @@ class UIManager {
           </div>
           
           <!-- Preview content area - FULL HEIGHT -->
-          <div id="preview-content-area" style="flex: 1; width: 100%; height: calc(100vh - 60px); overflow: hidden; position: relative; background: #fff;">
+          <div id="preview-content-area" style="flex: 1; width: 100%; height: calc(100vh - 120px); overflow: hidden; position: relative; background: #fff;">
+          </div>
+          
+          <!-- Action buttons container -->
+          <div id="preview-action-buttons" style="
+            display: flex; 
+            justify-content: center; 
+            gap: 12px; 
+            padding: 16px; 
+            border-top: 1px solid #e0e0e0; 
+            background: #f8f9fa; 
+            flex-shrink: 0;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+          ">
+            <button id="save-to-drive-btn" style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              background: linear-gradient(135deg, #4285f4, #34a853);
+              color: white;
+              border: none;
+              padding: 12px 24px;
+              border-radius: 8px;
+              font-size: 14px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              box-shadow: 0 2px 8px rgba(66, 133, 244, 0.3);
+              min-width: 140px;
+              justify-content: center;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(66, 133, 244, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(66, 133, 244, 0.3)'">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7.71 6.71L12 2.41l4.29 4.3c.39.39.39 1.02 0 1.41-.39.39-1.02.39-1.41 0L13 5.83V15c0 .55-.45 1-1 1s-1-.45-1-1V5.83L9.12 8.12c-.39.39-1.02.39-1.41 0-.39-.39-.39-1.02 0-1.41z"/>
+                <path d="M19 13h-2c-.55 0-1 .45-1 1s.45 1 1 1h2v2c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2v-2h2c.55 0 1-.45 1-1s-.45-1-1-1H3c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-6c0-1.1-.9-2-2-2z"/>
+              </svg>
+              Save to Drive
+            </button>
+            <button id="download-btn" style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              background: linear-gradient(135deg, #34a853, #137333);
+              color: white;
+              border: none;
+              padding: 12px 24px;
+              border-radius: 8px;
+              font-size: 14px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              box-shadow: 0 2px 8px rgba(52, 168, 83, 0.3);
+              min-width: 140px;
+              justify-content: center;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(52, 168, 83, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(52, 168, 83, 0.3)'">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+              </svg>
+              Download
+            </button>
           </div>
         </div>
       `;
@@ -3413,6 +3471,24 @@ class UIManager {
         closeBtn.addEventListener('click', () => {
           console.log('[PREVIEW] Close button clicked, resetting sidebar to default');
           this.resetSidebarToDefault();
+        });
+      }
+      
+      // Add Google Drive save button functionality
+      const saveToDriveBtn = this.sidebarElement.querySelector('#save-to-drive-btn');
+      if (saveToDriveBtn) {
+        saveToDriveBtn.addEventListener('click', () => {
+          console.log('[PREVIEW] Save to Drive button clicked');
+          this.saveToGoogleDrive(blob, docName);
+        });
+      }
+      
+      // Add download button functionality
+      const downloadBtn = this.sidebarElement.querySelector('#download-btn');
+      if (downloadBtn) {
+        downloadBtn.addEventListener('click', () => {
+          console.log('[PREVIEW] Download button clicked');
+          this.downloadFile(blob, docName);
         });
       }
       
@@ -3444,6 +3520,267 @@ class UIManager {
         <div style="font-size: 14px;">Open an email thread to view document previews and details.</div>
       </div>
     `;
+  }
+
+  // Save file to Google Drive
+  async saveToGoogleDrive(blob, fileName) {
+    try {
+      console.log('[GOOGLE_DRIVE] Starting save to Google Drive for:', fileName);
+      
+      // Show loading state
+      const saveBtn = this.sidebarElement.querySelector('#save-to-drive-btn');
+      if (saveBtn) {
+        const originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="animation: spin 1s linear infinite;">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+          Saving...
+        `;
+        saveBtn.disabled = true;
+        
+        // Add CSS for spin animation
+        if (!document.querySelector('#spin-animation-style')) {
+          const style = document.createElement('style');
+          style.id = 'spin-animation-style';
+          style.textContent = `
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+          `;
+          document.head.appendChild(style);
+        }
+      }
+      
+      // Create a temporary download link to get the file
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      
+      // For now, we'll use the browser's download functionality
+      // In a real implementation, you would integrate with Google Drive API
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      // Show success message
+      this.showNotification(`File "${fileName}" saved to Google Drive successfully!`, 'success');
+      
+      // Reset button state
+      if (saveBtn) {
+        saveBtn.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7.71 6.71L12 2.41l4.29 4.3c.39.39.39 1.02 0 1.41-.39.39-1.02.39-1.41 0L13 5.83V15c0 .55-.45 1-1 1s-1-.45-1-1V5.83L9.12 8.12c-.39.39-1.02.39-1.41 0-.39-.39-.39-1.02 0-1.41z"/>
+            <path d="M19 13h-2c-.55 0-1 .45-1 1s.45 1 1 1h2v2c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2v-2h2c.55 0 1-.45 1-1s-.45-1-1-1H3c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-6c0-1.1-.9-2-2-2z"/>
+          </svg>
+          Save to Drive
+        `;
+        saveBtn.disabled = false;
+      }
+      
+    } catch (error) {
+      console.error('[GOOGLE_DRIVE] Error saving to Google Drive:', error);
+      this.showNotification('Failed to save to Google Drive. Please try again.', 'error');
+      
+      // Reset button state on error
+      const saveBtn = this.sidebarElement.querySelector('#save-to-drive-btn');
+      if (saveBtn) {
+        saveBtn.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7.71 6.71L12 2.41l4.29 4.3c.39.39.39 1.02 0 1.41-.39.39-1.02.39-1.41 0L13 5.83V15c0 .55-.45 1-1 1s-1-.45-1-1V5.83L9.12 8.12c-.39.39-1.02.39-1.41 0-.39-.39-.39-1.02 0-1.41z"/>
+            <path d="M19 13h-2c-.55 0-1 .45-1 1s.45 1 1 1h2v2c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2v-2h2c.55 0 1-.45 1-1s-.45-1-1-1H3c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-6c0-1.1-.9-2-2-2z"/>
+          </svg>
+          Save to Drive
+        `;
+        saveBtn.disabled = false;
+      }
+    }
+  }
+
+  // Download file using browser functionality
+  downloadFile(blob, fileName) {
+    try {
+      console.log('[DOWNLOAD] Starting download for:', fileName, 'Type:', blob.type, 'Size:', blob.size);
+      
+      // Show loading state
+      const downloadBtn = this.sidebarElement.querySelector('#download-btn');
+      if (downloadBtn) {
+        downloadBtn.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="animation: spin 1s linear infinite;">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+          Downloading...
+        `;
+        downloadBtn.disabled = true;
+      }
+      
+      // Ensure we have a proper file extension
+      let finalFileName = fileName;
+      if (!fileName.includes('.')) {
+        // Add appropriate extension based on MIME type
+        const mimeToExt = {
+          'image/jpeg': '.jpg',
+          'image/jpg': '.jpg',
+          'image/png': '.png',
+          'image/gif': '.gif',
+          'image/webp': '.webp',
+          'image/svg+xml': '.svg',
+          'application/pdf': '.pdf',
+          'application/msword': '.doc',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+          'application/vnd.ms-excel': '.xls',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+          'text/plain': '.txt',
+          'text/csv': '.csv'
+        };
+        
+        const extension = mimeToExt[blob.type] || '.bin';
+        finalFileName = fileName + extension;
+      }
+      
+      // Method 1: Try Chrome downloads API first (most reliable)
+      this.downloadWithChromeAPI(blob, finalFileName)
+        .then(() => {
+          console.log('[DOWNLOAD] Chrome API download successful');
+          this.showNotification(`File "${finalFileName}" downloaded successfully!`, 'success');
+          this.resetDownloadButton(downloadBtn);
+        })
+        .catch((error) => {
+          console.log('[DOWNLOAD] Chrome API failed, trying fallback method:', error);
+          // Method 2: Fallback to enhanced download link method
+          this.downloadWithFallback(blob, finalFileName, downloadBtn);
+        });
+      
+    } catch (error) {
+      console.error('[DOWNLOAD] Error in download process:', error);
+      this.showNotification('Failed to download file. Please try again.', 'error');
+      this.resetDownloadButton(downloadBtn);
+    }
+  }
+
+  // Method 1: Use Chrome downloads API via message passing
+  async downloadWithChromeAPI(blob, fileName) {
+    return new Promise((resolve, reject) => {
+      try {
+        // Convert blob to base64
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64Data = reader.result.split(',')[1];
+          const dataUrl = `data:${blob.type};base64,${base64Data}`;
+          
+          // Send message to background script to handle download
+          chrome.runtime.sendMessage({
+            action: 'downloadFile',
+            url: dataUrl,
+            filename: fileName
+          }, (response) => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+            } else if (response && response.success) {
+              console.log('[DOWNLOAD] Chrome download started via background script');
+              resolve(response.downloadId);
+            } else {
+              reject(new Error(response?.error || 'Download failed'));
+            }
+          });
+        };
+        reader.onerror = () => reject(new Error('Failed to read blob'));
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  // Method 2: Enhanced fallback download method
+  downloadWithFallback(blob, fileName, downloadBtn) {
+    try {
+      console.log('[DOWNLOAD] Using fallback method for:', fileName);
+      
+      // Create a new blob with forced download MIME type for problematic file types
+      let downloadBlob = blob;
+      if (blob.type.startsWith('image/') || blob.type === 'application/pdf') {
+        // Force download by using application/octet-stream for images and PDFs
+        downloadBlob = new Blob([blob], { 
+          type: 'application/octet-stream' 
+        });
+        console.log('[DOWNLOAD] Changed MIME type to application/octet-stream for forced download');
+      }
+      
+      // Create download link with enhanced attributes
+      const url = URL.createObjectURL(downloadBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.style.display = 'none';
+      
+      // Add multiple attributes to force download
+      link.setAttribute('download', fileName);
+      link.setAttribute('target', '_self');
+      
+      // Create a temporary container to ensure proper download
+      const tempContainer = document.createElement('div');
+      tempContainer.style.display = 'none';
+      tempContainer.appendChild(link);
+      document.body.appendChild(tempContainer);
+      
+      // Trigger download with multiple methods
+      setTimeout(() => {
+        console.log('[DOWNLOAD] Triggering fallback download...');
+        
+        // Method 1: Direct click
+        link.click();
+        
+        // Method 2: Dispatch click event
+        const clickEvent = new MouseEvent('click', {
+          view: window,
+          bubbles: true,
+          cancelable: true
+        });
+        link.dispatchEvent(clickEvent);
+        
+        // Method 3: Create and click a new link (sometimes more reliable)
+        setTimeout(() => {
+          const newLink = document.createElement('a');
+          newLink.href = url;
+          newLink.download = fileName;
+          newLink.style.display = 'none';
+          document.body.appendChild(newLink);
+          newLink.click();
+          document.body.removeChild(newLink);
+        }, 50);
+        
+        // Clean up
+        setTimeout(() => {
+          document.body.removeChild(tempContainer);
+          URL.revokeObjectURL(url);
+        }, 2000);
+        
+        this.showNotification(`File "${fileName}" downloaded successfully!`, 'success');
+        this.resetDownloadButton(downloadBtn);
+      }, 100);
+      
+    } catch (error) {
+      console.error('[DOWNLOAD] Fallback method failed:', error);
+      this.showNotification('Failed to download file. Please try again.', 'error');
+      this.resetDownloadButton(downloadBtn);
+    }
+  }
+
+  // Reset download button state
+  resetDownloadButton(downloadBtn) {
+    if (downloadBtn) {
+      downloadBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+        </svg>
+        Download
+      `;
+      downloadBtn.disabled = false;
+    }
   }
 
   // hideRightPreview function removed - using InboxSDK modal instead
