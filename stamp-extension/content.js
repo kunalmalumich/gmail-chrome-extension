@@ -175,7 +175,7 @@ class FloatingChat {
     messageDiv.className = `floating-chat-message ${type}`;
     // Basic markdown for bolding and newlines
     messageDiv.innerHTML = content
-        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+        .replace(new RegExp('\\*\\*(.*?)\\*\\*', 'g'), '<b>$1</b>')
         .replace(/\n/g, '<br>');
 
     this.messagesContainer.appendChild(messageDiv);
@@ -306,7 +306,7 @@ class FloatingChat {
                 const reasoningDiv = document.createElement('div');
                 reasoningDiv.className = 'floating-chat-message assistant reasoning';
                 reasoningDiv.innerHTML = data.content
-                    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                    .replace(new RegExp('\\*\\*(.*?)\\*\\*', 'g'), '<b>$1</b>')
                     .replace(/\n/g, '<br>');
                 this.messagesContainer.appendChild(reasoningDiv);
                 this.scrollToBottom();
@@ -324,7 +324,7 @@ class FloatingChat {
                 }
 
                 assistantMessageDiv.innerHTML = fullResponse
-                    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                    .replace(new RegExp('\\*\\*(.*?)\\*\\*', 'g'), '<b>$1</b>')
                     .replace(/\n/g, '<br>');
 
                 this.scrollToBottom();
@@ -1811,10 +1811,10 @@ function createEntityCard(cardData, threadId) {
         </span>
         ` : ''}
           ${cardData.filename ? (() => {
-            console.log('[CREATE_CARD] Creating TEST PDF button for filename:', cardData.filename);
+            console.log('[CREATE_CARD] Creating TEST IMAGE button for filename:', cardData.filename);
             console.log('[CREATE_CARD] Button will have data-doc-name:', cardData.filename);
             console.log('[CREATE_CARD] Button will have data-thread-id:', threadId);
-            console.log('[CREATE_CARD] ✅ TEST PDF button HTML will be created');
+            console.log('[CREATE_CARD] ✅ TEST IMAGE button HTML will be created');
             return `
           <button class="doc-preview-icon" 
                   data-doc-name="${cardData.filename}" 
@@ -1838,11 +1838,11 @@ function createEntityCard(cardData, threadId) {
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                   "
-                  title="Preview Document - Click to test PDF preview functionality"
+                  title="Preview Image - Click to test image preview functionality"
                   onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 16px rgba(245, 158, 11, 0.6)';"
                   onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(245, 158, 11, 0.4)';"
-                  onclick="console.log('[DIRECT_CLICK] TEST PDF button clicked directly!', this);">
-            🔥 TEST PDF
+                  onclick="console.log('[DIRECT_CLICK] TEST IMAGE button clicked directly!', this);">
+            🔥 TEST IMAGE
           </button>
           `;
           })() : ''}
@@ -2441,29 +2441,31 @@ class UIManager {
       ? transformProcessedEntitiesForSidebar(threadInfo.processedEntities)
       : [];
 
-    // Always add test document for PDF preview testing
-    console.log('[PREVIEW] Adding test document for PDF preview testing');
+    // Always add test document for image preview testing
+    console.log('[PREVIEW] Adding test document for image preview testing');
     console.log('[PREVIEW] Current threadId:', threadId);
     console.log('[PREVIEW] Current cardDataArray length before adding test:', cardDataArray.length);
     
+    // Create test entity for image preview testing
     const testEntity = {
       type: 'inv',
-      value: 'INV-2024-001',
+      value: 'INV-2024-IMG-001',
       document: {
-        message_id: 'test-message-123',
+        message_id: 'test-message-456',
         thread_id: threadId,
         final_status: 'pending_approval',
         details: {
-          vendor: { name: 'Test Vendor Inc.' },
-          amount: 1250.75,
+          vendor: { name: 'Test Image Vendor Inc.' },
+          amount: 2500.00,
           currency: 'USD',
-          filename: 'test-invoice.pdf', // This is important for PDF preview
-          issue_date: '2024-01-15',
-          due_date: '2024-02-15',
-          description: 'Test invoice for software services'
+          filename: 'test-invoice-image.png', // This is important for image preview
+          issue_date: '2024-01-20',
+          due_date: '2024-02-20',
+          description: 'Test invoice image for software services'
         }
       }
     };
+    
     console.log('[PREVIEW] Created test entity:', testEntity);
     
     const testCardData = transformProcessedEntitiesForSidebar([testEntity]);
@@ -2497,21 +2499,22 @@ class UIManager {
                 docName: btn.getAttribute('data-doc-name')
               });
               
-              // Test if button is clickable by adding a direct click test
-              btn.addEventListener('click', (e) => {
-                console.log('[DIRECT_BUTTON_CLICK] Button clicked directly!', e.target);
-                console.log('[DIRECT_BUTTON_CLICK] Button attributes:', {
-                  hasDoc: btn.getAttribute('data-has-doc'),
-                  threadId: btn.getAttribute('data-thread-id'),
-                  docName: btn.getAttribute('data-doc-name')
-                });
-                e.stopPropagation();
-                
-                // Test the preview functionality directly
-                console.log('[DIRECT_BUTTON_CLICK] Testing preview functionality directly...');
-                const testBlob = this.createTestPdfBlob();
-                this.showRightPreviewWithBlob(btn, testBlob);
-              });
+          // Test if button is clickable by adding a direct click test
+          btn.addEventListener('click', async (e) => {
+            console.log('[DIRECT_BUTTON_CLICK] Button clicked directly!', e.target);
+            console.log('[DIRECT_BUTTON_CLICK] Button attributes:', {
+              hasDoc: btn.getAttribute('data-has-doc'),
+              threadId: btn.getAttribute('data-thread-id'),
+              docName: btn.getAttribute('data-doc-name')
+            });
+            e.stopPropagation();
+            
+            // Test the preview functionality directly
+            console.log('[DIRECT_BUTTON_CLICK] Testing preview functionality directly...');
+            const documentName = btn.getAttribute('data-doc-name');
+            const testBlob = await this.createTestBlobForFilename(documentName);
+            this.showRightPreviewWithBlob(btn, testBlob);
+          });
             });
             
             // Also check if the button is visible and has the right text
@@ -2554,7 +2557,7 @@ class UIManager {
           });
           
           // Test if button is clickable by adding a direct click test
-          btn.addEventListener('click', (e) => {
+          btn.addEventListener('click', async (e) => {
             console.log('[DIRECT_BUTTON_CLICK_FALLBACK] Button clicked directly!', e.target);
             console.log('[DIRECT_BUTTON_CLICK_FALLBACK] Button attributes:', {
               hasDoc: btn.getAttribute('data-has-doc'),
@@ -2565,7 +2568,8 @@ class UIManager {
             
             // Test the preview functionality directly
             console.log('[DIRECT_BUTTON_CLICK_FALLBACK] Testing preview functionality directly...');
-            const testBlob = this.createTestPdfBlob();
+            const documentName = btn.getAttribute('data-doc-name');
+            const testBlob = await this.createTestBlobForFilename(documentName);
             this.showRightPreviewWithBlob(btn, testBlob);
           });
         });
@@ -3108,10 +3112,10 @@ class UIManager {
                     this.showRightPreviewWithBlob(icon, blob);
                 } catch (err) {
                     console.error('[DOC] Failed to fetch PDF from backend:', err);
-                    console.log('[TEST] Using test PDF for preview functionality testing');
+                    console.log('[TEST] Using test blob for preview functionality testing');
                     
-                    // Use test PDF for testing purposes
-                    const testBlob = this.createTestPdfBlob();
+                    // Use appropriate test blob based on file type
+                    const testBlob = await this.createTestBlobForFilename(documentName);
                     
                     // Cache the test PDF
                     if (this.pdfCache.size > 25) {
@@ -3124,10 +3128,10 @@ class UIManager {
                     this.showRightPreviewWithBlob(icon, testBlob);
                 }
             } else {
-                // No backend fetch available - use test PDF for testing
-                console.log('[DOC] No backend fetch available, using test PDF for testing');
-                const testBlob = this.createTestPdfBlob();
-                console.log('[TEST] Showing test PDF preview (no backend)');
+                // No backend fetch available - use appropriate test blob for testing
+                console.log('[DOC] No backend fetch available, using test blob for testing');
+                const testBlob = await this.createTestBlobForFilename(documentName);
+                console.log('[TEST] Showing test blob preview (no backend)');
                 this.showRightPreviewWithBlob(icon, testBlob);
             }
             return; // Exit early for PDF preview clicks
@@ -3538,6 +3542,56 @@ startxref
     });
     
     return pdfBlob;
+  }
+
+  // Create a test image blob for testing image preview functionality
+  createTestImageBlob() {
+    console.log('[TEST_IMAGE] Creating test image blob...');
+    
+    // Create a simple test image using canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 300;
+    const ctx = canvas.getContext('2d');
+    
+    // Create a gradient background
+    const gradient = ctx.createLinearGradient(0, 0, 400, 300);
+    gradient.addColorStop(0, '#4F46E5');
+    gradient.addColorStop(1, '#7C3AED');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 400, 300);
+    
+    // Add some text
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Test Image Document', 200, 80);
+    
+    ctx.font = '16px Arial';
+    ctx.fillText('Invoice #: INV-2024-IMG-001', 200, 120);
+    ctx.fillText('Vendor: Test Image Vendor Inc.', 200, 150);
+    ctx.fillText('Amount: $2,500.00', 200, 180);
+    ctx.fillText('Date: 2024-01-20', 200, 210);
+    ctx.fillText('This is a test image for preview functionality', 200, 250);
+    
+    // Convert canvas to blob
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        console.log('[TEST_IMAGE] Created test image blob:', {
+          type: blob.type,
+          size: blob.size,
+          sizeKB: Math.round(blob.size / 1024)
+        });
+        resolve(blob);
+      }, 'image/png');
+    });
+  }
+
+  // Helper function to create image test blob (replacing PDF test)
+  async createTestBlobForFilename(filename) {
+    console.log('[TEST_BLOB] Creating image test blob for filename:', filename);
+    console.log('[TEST_BLOB] Using image test blob (replaced PDF test)');
+    return await this.createTestImageBlob();
   }
 
   async handleStreamingResponse(response, assistantDiv) {

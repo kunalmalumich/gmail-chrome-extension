@@ -73478,9 +73478,10 @@ Please ensure you are signed in and have the necessary permissions.`);
                 uiManager.showRightPreviewWithBlob(clickedElement, blob);
               }).catch((error) => {
                 console.error("[DOC_PREVIEW] Error fetching PDF:", error);
-                console.log("[DOC_PREVIEW] Falling back to test PDF");
-                const testBlob = uiManager.createTestPdfBlob();
-                uiManager.showRightPreviewWithBlob(clickedElement, testBlob);
+                console.log("[DOC_PREVIEW] Falling back to test image");
+                uiManager.createTestImageBlob().then((testBlob) => {
+                  uiManager.showRightPreviewWithBlob(clickedElement, testBlob);
+                });
               });
             } else {
               console.error("[DOC_PREVIEW] UIManager or apiClient not found in global scope");
@@ -76790,10 +76791,10 @@ Please ensure you are signed in and have the necessary permissions.`);
         </span>
         ` : ""}
           ${cardData.filename ? (() => {
-          console.log("[CREATE_CARD] Creating TEST PDF button for filename:", cardData.filename);
+          console.log("[CREATE_CARD] Creating TEST IMAGE button for filename:", cardData.filename);
           console.log("[CREATE_CARD] Button will have data-doc-name:", cardData.filename);
           console.log("[CREATE_CARD] Button will have data-thread-id:", threadId);
-          console.log("[CREATE_CARD] \u2705 TEST PDF button HTML will be created");
+          console.log("[CREATE_CARD] \u2705 TEST IMAGE button HTML will be created");
           return `
           <button class="doc-preview-icon" 
                   data-doc-name="${cardData.filename}" 
@@ -76817,11 +76818,11 @@ Please ensure you are signed in and have the necessary permissions.`);
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                   "
-                  title="Preview Document - Click to test PDF preview functionality"
+                  title="Preview Image - Click to test image preview functionality"
                   onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 16px rgba(245, 158, 11, 0.6)';"
                   onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(245, 158, 11, 0.4)';"
-                  onclick="console.log('[DIRECT_CLICK] TEST PDF button clicked directly!', this);">
-            \u{1F525} TEST PDF
+                  onclick="console.log('[DIRECT_CLICK] TEST IMAGE button clicked directly!', this);">
+            \u{1F525} TEST IMAGE
           </button>
           `;
         })() : ""}
@@ -77197,41 +77198,64 @@ Please ensure you are signed in and have the necessary permissions.`);
           this.apiClient = apiClient;
           this.dataManager.apiClient = apiClient;
         }
-        initializeFloatingChat() {
-          console.log("[FLOATING CHAT] Starting initialization...");
-          try {
-            this.loadFloatingChatScripts().then(() => {
-              console.log("[FLOATING CHAT] Scripts loaded successfully");
-              this.floatingChatManager = new FloatingChatManager(this);
-              console.log("[FLOATING CHAT] Manager initialized:", this.floatingChatManager);
-            }).catch((error) => {
-              console.error("[FLOATING CHAT] Failed to load scripts:", error);
-            });
-          } catch (error) {
-            console.error("[FLOATING CHAT] Failed to initialize floating chat:", error);
-          }
-        }
-        async loadFloatingChatScripts() {
-          console.log("[FLOATING CHAT] Requesting script injection from background script...");
-          try {
-            const cssLink = document.createElement("link");
-            cssLink.rel = "stylesheet";
-            cssLink.href = chrome.runtime.getURL("floating-chat/floating-chat.css");
-            console.log("[FLOATING CHAT] Injected CSS link.");
-            document.head.appendChild(cssLink);
-            const response = await chrome.runtime.sendMessage({
-              type: "INJECT_FLOATING_CHAT_SCRIPTS"
-            });
-            if (response && response.success) {
-              console.log("[FLOATING CHAT] Background script confirmed injection.");
-            } else {
-              throw new Error(response.error || "Unknown error during script injection.");
+        // ===== FLOATING CHAT METHODS (COMMENTED OUT) =====
+        // Uncomment the following methods when you want to enable floating chat:
+        /*
+          initializeFloatingChat() {
+            console.log('[FLOATING CHAT] Starting initialization...');
+            try {
+              // Load floating chat scripts using chrome.scripting.executeScript
+              this.loadFloatingChatScripts().then(() => {
+                console.log('[FLOATING CHAT] Scripts loaded successfully');
+                // Initialize floating chat manager
+                this.floatingChatManager = new FloatingChatManager(this);
+                console.log('[FLOATING CHAT] Manager initialized:', this.floatingChatManager);
+              }).catch(error => {
+                console.error('[FLOATING CHAT] Failed to load scripts:', error);
+              });
+            } catch (error) {
+              console.error('[FLOATING CHAT] Failed to initialize floating chat:', error);
             }
-          } catch (error) {
-            console.error("[FLOATING CHAT] Failed to load scripts via background script:", error);
-            throw error;
           }
-        }
+        
+          async loadFloatingChatScripts() {
+            console.log('[FLOATING CHAT] Requesting script injection from background script...');
+            
+            try {
+              // Load CSS (this is allowed in content scripts)
+              const cssLink = document.createElement('link');
+              cssLink.rel = 'stylesheet';
+              cssLink.href = chrome.runtime.getURL('floating-chat/floating-chat.css');
+              console.log('[FLOATING CHAT] Injected CSS link.');
+              document.head.appendChild(cssLink);
+        
+              // Send a message to the background script to inject the JS files
+              const response = await chrome.runtime.sendMessage({
+                type: 'INJECT_FLOATING_CHAT_SCRIPTS'
+              });
+        
+              if (response && response.success) {
+                console.log('[FLOATING CHAT] Background script confirmed injection.');
+              } else {
+                throw new Error(response.error || 'Unknown error during script injection.');
+              }
+        
+            } catch (error) {
+              console.error('[FLOATING CHAT] Failed to load scripts via background script:', error);
+              throw error;
+            }
+          }
+        
+          // Test method for floating chat (can be called from console)
+          testFloatingChat() {
+            if (this.floatingChatManager) {
+              console.log('[TEST] Floating chat state:', this.floatingChatManager.getState());
+              this.floatingChatManager.addMessage('This is a test message from the console!', 'assistant');
+            } else {
+              console.log('[TEST] Floating chat manager not initialized');
+            }
+          }
+          */
         // Test method for floating chat (can be called from console)
         testFloatingChat() {
           if (this.floatingChatManager) {
@@ -77252,7 +77276,6 @@ Please ensure you are signed in and have the necessary permissions.`);
             if (authState.isLoggedIn) {
               console.log("[UI DEBUG] 2. User is logged in. Calling renderMainView.");
               this.renderMainView();
-              this.initializeFloatingChat();
             } else {
               console.log("[UI DEBUG] 2. User is NOT logged in. Calling renderLoginView.");
               this.renderLoginView();
@@ -77287,25 +77310,25 @@ Please ensure you are signed in and have the necessary permissions.`);
             console.warn("[ThreadViewLabels] Failed to apply labels to open thread:", e);
           }
           let cardDataArray = threadInfo && threadInfo.processedEntities ? transformProcessedEntitiesForSidebar(threadInfo.processedEntities) : [];
-          console.log("[PREVIEW] Adding test document for PDF preview testing");
+          console.log("[PREVIEW] Adding test document for image preview testing");
           console.log("[PREVIEW] Current threadId:", threadId);
           console.log("[PREVIEW] Current cardDataArray length before adding test:", cardDataArray.length);
           const testEntity = {
             type: "inv",
-            value: "INV-2024-001",
+            value: "INV-2024-IMG-001",
             document: {
-              message_id: "test-message-123",
+              message_id: "test-message-456",
               thread_id: threadId,
               final_status: "pending_approval",
               details: {
-                vendor: { name: "Test Vendor Inc." },
-                amount: 1250.75,
+                vendor: { name: "Test Image Vendor Inc." },
+                amount: 2500,
                 currency: "USD",
-                filename: "test-invoice.pdf",
-                // This is important for PDF preview
-                issue_date: "2024-01-15",
-                due_date: "2024-02-15",
-                description: "Test invoice for software services"
+                filename: "test-invoice-image.png",
+                // This is important for image preview
+                issue_date: "2024-01-20",
+                due_date: "2024-02-20",
+                description: "Test invoice image for software services"
               }
             }
           };
@@ -77334,7 +77357,7 @@ Please ensure you are signed in and have the necessary permissions.`);
                       threadId: btn.getAttribute("data-thread-id"),
                       docName: btn.getAttribute("data-doc-name")
                     });
-                    btn.addEventListener("click", (e) => {
+                    btn.addEventListener("click", async (e) => {
                       console.log("[DIRECT_BUTTON_CLICK] Button clicked directly!", e.target);
                       console.log("[DIRECT_BUTTON_CLICK] Button attributes:", {
                         hasDoc: btn.getAttribute("data-has-doc"),
@@ -77343,7 +77366,8 @@ Please ensure you are signed in and have the necessary permissions.`);
                       });
                       e.stopPropagation();
                       console.log("[DIRECT_BUTTON_CLICK] Testing preview functionality directly...");
-                      const testBlob = this.createTestPdfBlob();
+                      const documentName = btn.getAttribute("data-doc-name");
+                      const testBlob = await this.createTestBlobForFilename(documentName);
                       this.showRightPreviewWithBlob(btn, testBlob);
                     });
                   });
@@ -77378,7 +77402,7 @@ Please ensure you are signed in and have the necessary permissions.`);
                     threadId: btn.getAttribute("data-thread-id"),
                     docName: btn.getAttribute("data-doc-name")
                   });
-                  btn.addEventListener("click", (e) => {
+                  btn.addEventListener("click", async (e) => {
                     console.log("[DIRECT_BUTTON_CLICK_FALLBACK] Button clicked directly!", e.target);
                     console.log("[DIRECT_BUTTON_CLICK_FALLBACK] Button attributes:", {
                       hasDoc: btn.getAttribute("data-has-doc"),
@@ -77387,7 +77411,8 @@ Please ensure you are signed in and have the necessary permissions.`);
                     });
                     e.stopPropagation();
                     console.log("[DIRECT_BUTTON_CLICK_FALLBACK] Testing preview functionality directly...");
-                    const testBlob = this.createTestPdfBlob();
+                    const documentName = btn.getAttribute("data-doc-name");
+                    const testBlob = await this.createTestBlobForFilename(documentName);
                     this.showRightPreviewWithBlob(btn, testBlob);
                   });
                 });
@@ -77814,8 +77839,8 @@ Please ensure you are signed in and have the necessary permissions.`);
                   this.showRightPreviewWithBlob(icon, blob);
                 } catch (err) {
                   console.error("[DOC] Failed to fetch PDF from backend:", err);
-                  console.log("[TEST] Using test PDF for preview functionality testing");
-                  const testBlob = this.createTestPdfBlob();
+                  console.log("[TEST] Using test blob for preview functionality testing");
+                  const testBlob = await this.createTestBlobForFilename(documentName);
                   if (this.pdfCache.size > 25) {
                     const firstKey = this.pdfCache.keys().next().value;
                     this.pdfCache.delete(firstKey);
@@ -77825,9 +77850,9 @@ Please ensure you are signed in and have the necessary permissions.`);
                   this.showRightPreviewWithBlob(icon, testBlob);
                 }
               } else {
-                console.log("[DOC] No backend fetch available, using test PDF for testing");
-                const testBlob = this.createTestPdfBlob();
-                console.log("[TEST] Showing test PDF preview (no backend)");
+                console.log("[DOC] No backend fetch available, using test blob for testing");
+                const testBlob = await this.createTestBlobForFilename(documentName);
+                console.log("[TEST] Showing test blob preview (no backend)");
                 this.showRightPreviewWithBlob(icon, testBlob);
               }
               return;
@@ -78148,6 +78173,45 @@ startxref
             sizeKB: Math.round(pdfBlob.size / 1024)
           });
           return pdfBlob;
+        }
+        // Create a test image blob for testing image preview functionality
+        createTestImageBlob() {
+          console.log("[TEST_IMAGE] Creating test image blob...");
+          const canvas = document.createElement("canvas");
+          canvas.width = 400;
+          canvas.height = 300;
+          const ctx = canvas.getContext("2d");
+          const gradient = ctx.createLinearGradient(0, 0, 400, 300);
+          gradient.addColorStop(0, "#4F46E5");
+          gradient.addColorStop(1, "#7C3AED");
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, 400, 300);
+          ctx.fillStyle = "white";
+          ctx.font = "bold 24px Arial";
+          ctx.textAlign = "center";
+          ctx.fillText("Test Image Document", 200, 80);
+          ctx.font = "16px Arial";
+          ctx.fillText("Invoice #: INV-2024-IMG-001", 200, 120);
+          ctx.fillText("Vendor: Test Image Vendor Inc.", 200, 150);
+          ctx.fillText("Amount: $2,500.00", 200, 180);
+          ctx.fillText("Date: 2024-01-20", 200, 210);
+          ctx.fillText("This is a test image for preview functionality", 200, 250);
+          return new Promise((resolve) => {
+            canvas.toBlob((blob) => {
+              console.log("[TEST_IMAGE] Created test image blob:", {
+                type: blob.type,
+                size: blob.size,
+                sizeKB: Math.round(blob.size / 1024)
+              });
+              resolve(blob);
+            }, "image/png");
+          });
+        }
+        // Helper function to create image test blob (replacing PDF test)
+        async createTestBlobForFilename(filename) {
+          console.log("[TEST_BLOB] Creating image test blob for filename:", filename);
+          console.log("[TEST_BLOB] Using image test blob (replaced PDF test)");
+          return await this.createTestImageBlob();
         }
         async handleStreamingResponse(response, assistantDiv) {
           console.log("[STREAM] Starting to handle streaming response...");
@@ -79083,31 +79147,6 @@ startxref
         uiManager.initialize();
         window.uiManager = uiManager;
         window.sharedHandleStreamingResponse = uiManager.handleStreamingResponse.bind(uiManager);
-        window.testFloatingChat = () => {
-          console.log("[GLOBAL TEST] Testing floating chat...");
-          if (window.uiManager) {
-            window.uiManager.testFloatingChat();
-          } else {
-            console.log("[GLOBAL TEST] UIManager not available");
-          }
-        };
-        window.createFloatingChat = () => {
-          console.log("[GLOBAL TEST] Manually creating floating chat...");
-          if (window.uiManager && window.uiManager.apiClient && window.uiManager.authService) {
-            try {
-              const floatingChat = new FloatingChat(
-                window.uiManager.apiClient,
-                window.uiManager.authService
-              );
-              console.log("[GLOBAL TEST] Floating chat created:", floatingChat);
-              return floatingChat;
-            } catch (error) {
-              console.error("[GLOBAL TEST] Failed to create floating chat:", error);
-            }
-          } else {
-            console.log("[GLOBAL TEST] UIManager or dependencies not available");
-          }
-        };
         const materialIconsLink = document.createElement("link");
         materialIconsLink.rel = "stylesheet";
         materialIconsLink.href = "https://fonts.googleapis.com/icon?family=Material+Icons";

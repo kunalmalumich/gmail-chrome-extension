@@ -1242,11 +1242,12 @@ export async function buildSpreadsheet(container, data, opts = {}) {
               })
               .catch(error => {
                 console.error('[DOC_PREVIEW] Error fetching PDF:', error);
-                console.log('[DOC_PREVIEW] Falling back to test PDF');
+                console.log('[DOC_PREVIEW] Falling back to test image');
                 
-                // Fallback to test PDF
-                const testBlob = uiManager.createTestPdfBlob();
-                uiManager.showRightPreviewWithBlob(clickedElement, testBlob);
+                // Fallback to test image
+                uiManager.createTestImageBlob().then(testBlob => {
+                  uiManager.showRightPreviewWithBlob(clickedElement, testBlob);
+                });
               });
           } else {
             console.error('[DOC_PREVIEW] UIManager or apiClient not found in global scope');

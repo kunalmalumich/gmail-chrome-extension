@@ -343,6 +343,115 @@
       promise.then(sendResponse).catch((error) => sendResponse({ error: error.message }));
       return true;
     }
+    if (message.type === "UPLOAD_TO_GOOGLE_DRIVE") {
+      const promise = new Promise(async (resolve, reject) => {
+        console.log("[Background] Starting Google Drive upload...");
+        try {
+          const manifest = chrome.runtime.getManifest();
+          const scopes = manifest.oauth2.scopes;
+          console.log("[Background] Requesting access token for Google Drive upload...");
+          const tokenResponse = await new Promise((tokenResolve, tokenReject) => {
+            chrome.identity.getAuthToken({
+              interactive: true,
+              scopes
+            }, (token) => {
+              if (chrome.runtime.lastError) {
+                tokenReject(new Error(chrome.runtime.lastError.message));
+              } else if (token) {
+                tokenResolve({ accessToken: token });
+              } else {
+                tokenReject(new Error("No access token available"));
+              }
+            });
+          });
+          console.log("[Background] Access token obtained, preparing file upload...");
+          const base64Data = message.fileData.split(",")[1];
+          const binaryData = atob(base64Data);
+          const bytes = new Uint8Array(binaryData.length);
+          for (let i = 0; i < binaryData.length; i++) {
+            bytes[i] = binaryData.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: message.mimeType });
+          console.log("[Background] File prepared, uploading to Google Drive...");
+          const formData = new FormData();
+          formData.append("metadata", JSON.stringify({
+            name: message.fileName,
+            parents: ["appDataFolder"]
+            // Save to app-specific folder
+          }));
+          formData.append("file", blob, message.fileName);
+          const uploadResponse = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${tokenResponse.accessToken}`
+            },
+            body: formData
+          });
+          if (!uploadResponse.ok) {
+            const errorText = await uploadResponse.text();
+            throw new Error(`Upload failed: ${uploadResponse.status} ${errorText}`);
+          }
+          const uploadResult = await uploadResponse.json();
+          console.log("[Background] File uploaded successfully to Google Drive:", uploadResult);
+          resolve({
+            success: true,
+            fileId: uploadResult.id,
+            fileName: message.fileName
+          });
+        } catch (error) {
+          console.error("[Background] Google Drive upload failed:", error);
+          reject(error);
+        }
+      });
+      promise.then(sendResponse).catch((error) => sendResponse({ error: error.message }));
+      return true;
+    }
+    if (message.type === "DOWNLOAD_FILE") {
+      const promise = new Promise(async (resolve, reject) => {
+        console.log("[Background] Starting file download...");
+        try {
+          const base64Data = message.fileData.split(",")[1];
+          const binaryData = atob(base64Data);
+          const bytes = new Uint8Array(binaryData.length);
+          for (let i = 0; i < binaryData.length; i++) {
+            bytes[i] = binaryData.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: message.mimeType });
+          console.log("[Background] File prepared, creating download...");
+          const dataUrl = await new Promise((dataResolve, dataReject) => {
+            const reader = new FileReader();
+            reader.onload = () => dataResolve(reader.result);
+            reader.onerror = dataReject;
+            reader.readAsDataURL(blob);
+          });
+          const downloadId = await new Promise((downloadResolve, downloadReject) => {
+            chrome.downloads.download({
+              url: dataUrl,
+              filename: message.fileName,
+              saveAs: false
+              // Don't show save dialog, use default location
+            }, (downloadId2) => {
+              if (chrome.runtime.lastError) {
+                downloadReject(new Error(chrome.runtime.lastError.message));
+              } else {
+                downloadResolve(downloadId2);
+              }
+            });
+          });
+          console.log("[Background] File download initiated successfully:", downloadId);
+          resolve({
+            success: true,
+            downloadId,
+            fileName: message.fileName
+          });
+        } catch (error) {
+          console.error("[Background] File download failed:", error);
+          reject(error);
+        }
+      });
+      promise.then(sendResponse).catch((error) => sendResponse({ error: error.message }));
+      return true;
+    }
     if (message.type === "INJECT_FLOATING_CHAT_SCRIPTS") {
       (async () => {
         try {

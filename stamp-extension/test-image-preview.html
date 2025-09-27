@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Preview Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border: 2px solid #fbbf24;
+            border-radius: 8px;
+            padding: 12px 20px;
+            cursor: pointer;
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            margin: 10px;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+        .test-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.6);
+        }
+        .preview-area {
+            margin-top: 20px;
+            border: 2px dashed #ccc;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fafafa;
+        }
+        .preview-content {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        .preview-content img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .preview-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🖼️ Image Preview Test</h1>
+        
+        <div class="info">
+            <h3>Test Instructions:</h3>
+            <p>This test demonstrates the image preview functionality that has been added to the Gmail Chrome extension. The extension now supports both PDF and image previews using the same workflow.</p>
+            <ul>
+                <li><strong>PDF Test:</strong> Creates a test PDF document and displays it in an iframe</li>
+                <li><strong>Image Test:</strong> Creates a test image using HTML5 Canvas and displays it as an img element</li>
+            </ul>
+        </div>
+
+        <h3>Test Buttons:</h3>
+        <button class="test-button" onclick="testPdfPreview()">🔥 TEST PDF</button>
+        <button class="test-button" onclick="testImagePreview()">🔥 TEST IMAGE</button>
+        <button class="test-button" onclick="clearPreview()">🗑️ Clear Preview</button>
+
+        <div class="preview-area" id="previewArea">
+            <p style="color: #666;">Click a test button above to see the preview functionality</p>
+        </div>
+
+        <div class="info">
+            <h3>Implementation Details:</h3>
+            <ul>
+                <li><strong>File Type Detection:</strong> The system detects file types based on filename extensions (.pdf, .png, .jpg, .jpeg, .gif)</li>
+                <li><strong>Dynamic Button Text:</strong> Buttons show "TEST PDF" or "TEST IMAGE" based on the file type</li>
+                <li><strong>Blob Creation:</strong> Different test blobs are created for PDFs (string-based) and images (canvas-based)</li>
+                <li><strong>Display Logic:</strong> PDFs use iframe elements, images use img elements with object-fit: contain</li>
+                <li><strong>Same Workflow:</strong> Both file types use the same preview workflow and caching system</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Simulate the createTestPdfBlob function from the extension
+        function createTestPdfBlob() {
+            console.log('[TEST_PDF] Creating test PDF blob...');
+            const pdfContent = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+/Resources <<
+/Font <<
+/F1 5 0 R
+>>
+>>
+>>
+endobj
+
+4 0 obj
+<<
+/Length 200
+>>
+stream
+BT
+/F1 24 Tf
+100 700 Td
+(Test Invoice Document) Tj
+0 -50 Td
+/F1 12 Tf
+(Invoice #: INV-2024-001) Tj
+0 -20 Td
+(Vendor: Test Vendor Inc.) Tj
+0 -20 Td
+(Amount: $1,250.75) Tj
+0 -20 Td
+(Date: 2024-01-15) Tj
+0 -20 Td
+(Description: Test invoice for software services) Tj
+0 -20 Td
+(This is a test PDF created for preview functionality testing.) Tj
+ET
+endstream
+endobj
+
+5 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000274 00000 n 
+0000000525 00000 n 
+trailer
+<<
+/Size 6
+/Root 1 0 R
+>>
+startxref
+610
+%%EOF`;
+
+            const pdfBlob = new Blob([pdfContent], { type: 'application/pdf' });
+            console.log('[TEST] Created test PDF blob:', {
+                type: pdfBlob.type,
+                size: pdfBlob.size,
+                sizeKB: Math.round(pdfBlob.size / 1024)
+            });
+            
+            return pdfBlob;
+        }
+
+        // Simulate the createTestImageBlob function from the extension
+        function createTestImageBlob() {
+            console.log('[TEST_IMAGE] Creating test image blob...');
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 400;
+            canvas.height = 300;
+            const ctx = canvas.getContext('2d');
+            
+            // Create a gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 400, 300);
+            gradient.addColorStop(0, '#4F46E5');
+            gradient.addColorStop(1, '#7C3AED');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 400, 300);
+            
+            // Add some text
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Test Image Document', 200, 80);
+            
+            ctx.font = '16px Arial';
+            ctx.fillText('Invoice #: INV-2024-IMG-001', 200, 120);
+            ctx.fillText('Vendor: Test Image Vendor Inc.', 200, 150);
+            ctx.fillText('Amount: $2,500.00', 200, 180);
+            ctx.fillText('Date: 2024-01-20', 200, 210);
+            ctx.fillText('This is a test image for preview functionality', 200, 250);
+            
+            return new Promise((resolve) => {
+                canvas.toBlob((blob) => {
+                    console.log('[TEST_IMAGE] Created test image blob:', {
+                        type: blob.type,
+                        size: blob.size,
+                        sizeKB: Math.round(blob.size / 1024)
+                    });
+                    resolve(blob);
+                }, 'image/png');
+            });
+        }
+
+        // Simulate the showRightPreviewWithBlob function from the extension
+        function showRightPreviewWithBlob(blob) {
+            console.log('[PREVIEW] showRightPreviewWithBlob called with blob:', blob);
+            console.log('[PREVIEW] Blob type:', blob?.type, 'size:', blob?.size);
+            
+            const previewArea = document.getElementById('previewArea');
+            const dataUrl = URL.createObjectURL(blob);
+            
+            // Create appropriate element based on file type
+            let displayEl;
+            if (blob.type === 'application/pdf') {
+                console.log('[PREVIEW] Creating iframe for PDF display');
+                displayEl = document.createElement('iframe');
+                displayEl.src = dataUrl;
+                displayEl.style.cssText = 'width: 100%; height: 100%; border: none;';
+            } else if (blob.type.startsWith('image/')) {
+                console.log('[PREVIEW] Creating image element for image display');
+                displayEl = document.createElement('img');
+                displayEl.src = dataUrl;
+                displayEl.style.cssText = 'width: 100%; height: 100%; object-fit: contain;';
+            } else {
+                console.log('[PREVIEW] Unknown blob type, creating generic element');
+                displayEl = document.createElement('div');
+                displayEl.textContent = 'Unknown file type: ' + blob.type;
+                displayEl.style.cssText = 'padding: 20px; text-align: center; color: #666;';
+            }
+            
+            // Clear previous content and add new content
+            previewArea.innerHTML = '';
+            const previewContent = document.createElement('div');
+            previewContent.className = 'preview-content';
+            previewContent.appendChild(displayEl);
+            previewArea.appendChild(previewContent);
+            
+            console.log('[PREVIEW] Preview displayed successfully');
+        }
+
+        // Test functions
+        function testPdfPreview() {
+            console.log('[TEST] Testing PDF preview...');
+            const pdfBlob = createTestPdfBlob();
+            showRightPreviewWithBlob(pdfBlob);
+        }
+
+        async function testImagePreview() {
+            console.log('[TEST] Testing image preview...');
+            const imageBlob = await createTestImageBlob();
+            showRightPreviewWithBlob(imageBlob);
+        }
+
+        function clearPreview() {
+            console.log('[TEST] Clearing preview...');
+            const previewArea = document.getElementById('previewArea');
+            previewArea.innerHTML = '<p style="color: #666;">Click a test button above to see the preview functionality</p>';
+        }
+    </script>
+</body>
+</html>
